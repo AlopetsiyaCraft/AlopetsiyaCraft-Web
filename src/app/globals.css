@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0a0a;
+  --bg-alt: #1a1a1a;
+  --card: #1a1a1a;
+  --bubble: #242424;
+  --border: #2a2a2a;
+  --hover: #2a2a2a;
+  --text: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  --checker-a: #2a2a2a;
+  --checker-b: #1a1a1a;
+}
+
+:root.light {
+  --bg: #EEF0F2;
+  --bg-alt: #e3e5e8;
+  --card: #ffffff;
+  --bubble: #e8eaed;
+  --border: #d5d8dc;
+  --hover: #e0e2e5;
+  --text: #1a1a1a;
+  --text-secondary: #555555;
+  --text-muted: #999999;
+  --checker-a: #ffffff;
+  --checker-b: #f5f5f5;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.header {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+* {
+  border-color: var(--border);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
