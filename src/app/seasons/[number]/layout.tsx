@@ -44,7 +44,7 @@ export default async function SeasonLayout({
 
   const tabs = [
     { name: "Карта", href: `/seasons/${seasonNumber}/map` },
-    { name: "Скриншоты", href: `/seasons/${seasonNumber}/screenshots` },
+    { name: "Фото", href: `/seasons/${seasonNumber}/screenshots` },
     { name: "Чат", href: `/seasons/${seasonNumber}/chat` },
     { name: "Сборка", href: `/seasons/${seasonNumber}/build` },
   ];

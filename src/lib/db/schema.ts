@@ -111,6 +111,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   comments: many(comments),
   audioTracks: many(audioTracks),
   discRequests: many(discRequests),
+  photoAlbums: many(photoAlbums),
+  photos: many(photos),
+  photoComments: many(photoComments),
+  wallPosts: many(wallPosts),
+  postComments: many(postComments),
 }));
 
 export const seasonsRelations = relations(seasons, ({ many }) => ({
@@ -154,6 +159,177 @@ export const audioTracksRelations = relations(audioTracks, ({ one, many }) => ({
     references: [users.id],
   }),
   discRequests: many(discRequests),
+}));
+
+export const photoAlbums = sqliteTable("photo_albums", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  name: text("name").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const photos = sqliteTable("photos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  seasonId: integer("season_id")
+    .notNull()
+    .references(() => seasons.id),
+  albumId: integer("album_id").references(() => photoAlbums.id),
+  // Имя файла на диске в data/uploads/photos/ (генерируем сами).
+  fileName: text("file_name").notNull(),
+  // Исходное имя файла пользователя — хранится (в нём часто дата).
+  originalName: text("original_name").notNull(),
+  size: integer("size").notNull(),
+  // Кому видно фото: "public" — всем (включая анонимов), "registered" — только залогиненным.
+  visibility: text("visibility", { enum: ["public", "registered"] })
+    .notNull()
+    .default("public"),
+  caption: text("caption"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const photoComments = sqliteTable("photo_comments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  photoId: integer("photo_id")
+    .notNull()
+    .references(() => photos.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  text: text("text").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const wallPosts = sqliteTable("wall_posts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  text: text("text").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const postPhotos = sqliteTable("post_photos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => wallPosts.id),
+  photoId: integer("photo_id")
+    .notNull()
+    .references(() => photos.id),
+});
+
+export const postComments = sqliteTable("post_comments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => wallPosts.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  text: text("text").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/** Друзья: пара (userId, friendId) с user_id < friend_id, статус + кто запросил. */
+export const friends = sqliteTable("friends", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  friendId: integer("friend_id")
+    .notNull()
+    .references(() => users.id),
+  status: text("status", { enum: ["pending", "accepted"] })
+    .notNull()
+    .default("pending"),
+  requesterId: integer("requester_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const photoAlbumsRelations = relations(photoAlbums, ({ one, many }) => ({
+  user: one(users, {
+    fields: [photoAlbums.userId],
+    references: [users.id],
+  }),
+  photos: many(photos),
+}));
+
+export const photosRelations = relations(photos, ({ one, many }) => ({
+  user: one(users, {
+    fields: [photos.userId],
+    references: [users.id],
+  }),
+  season: one(seasons, {
+    fields: [photos.seasonId],
+    references: [seasons.id],
+  }),
+  album: one(photoAlbums, {
+    fields: [photos.albumId],
+    references: [photoAlbums.id],
+  }),
+  comments: many(photoComments),
+  postLinks: many(postPhotos),
+}));
+
+export const photoCommentsRelations = relations(photoComments, ({ one }) => ({
+  photo: one(photos, {
+    fields: [photoComments.photoId],
+    references: [photos.id],
+  }),
+  user: one(users, {
+    fields: [photoComments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const wallPostsRelations = relations(wallPosts, ({ one, many }) => ({
+  user: one(users, {
+    fields: [wallPosts.userId],
+    references: [users.id],
+  }),
+  photos: many(postPhotos),
+  comments: many(postComments),
+}));
+
+export const postPhotosRelations = relations(postPhotos, ({ one }) => ({
+  post: one(wallPosts, {
+    fields: [postPhotos.postId],
+    references: [wallPosts.id],
+  }),
+  photo: one(photos, {
+    fields: [postPhotos.photoId],
+    references: [photos.id],
+  }),
+}));
+
+export const postCommentsRelations = relations(postComments, ({ one }) => ({
+  post: one(wallPosts, {
+    fields: [postComments.postId],
+    references: [wallPosts.id],
+  }),
+  user: one(users, {
+    fields: [postComments.userId],
+    references: [users.id],
+  }),
 }));
 
 export const discRequestsRelations = relations(discRequests, ({ one }) => ({

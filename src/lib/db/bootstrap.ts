@@ -119,6 +119,74 @@ export const bootstrapSql = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch()),
     completed_at INTEGER
   );
+
+  CREATE TABLE IF NOT EXISTS photo_albums (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    season_id INTEGER NOT NULL REFERENCES seasons(id),
+    album_id INTEGER REFERENCES photo_albums(id),
+    file_name TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    visibility TEXT NOT NULL DEFAULT 'public',
+    caption TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS photo_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    photo_id INTEGER NOT NULL REFERENCES photos(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    text TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS wall_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    text TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS post_photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL REFERENCES wall_posts(id),
+    photo_id INTEGER NOT NULL REFERENCES photos(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS post_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL REFERENCES wall_posts(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    text TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS friends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    friend_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'pending',
+    requester_id INTEGER NOT NULL REFERENCES users(id),
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(user_id, friend_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_photos_season ON photos(season_id);
+  CREATE INDEX IF NOT EXISTS idx_photos_user ON photos(user_id);
+  CREATE INDEX IF NOT EXISTS idx_photo_comments_photo ON photo_comments(photo_id);
+  CREATE INDEX IF NOT EXISTS idx_wall_posts_user ON wall_posts(user_id);
+  CREATE INDEX IF NOT EXISTS idx_post_photos_post ON post_photos(post_id);
+  CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id);
+  CREATE INDEX IF NOT EXISTS idx_friends_a ON friends(user_id);
+  CREATE INDEX IF NOT EXISTS idx_friends_b ON friends(friend_id);
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */

@@ -66,6 +66,13 @@ export default function Header({
         </Link>
 
         <nav className="flex items-center gap-4">
+          <Link
+            href="/gallery"
+            className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors px-3 py-2 rounded-lg"
+          >
+            Галерея
+          </Link>
+
           <div ref={seasonsRef} className="relative">
             <button
               onClick={() => { setSeasonsOpen(!seasonsOpen); setUserOpen(false); }}
@@ -165,7 +172,7 @@ export default function Header({
                       Мои аудио
                     </Link>
                     <Link
-                      href="/profile/friends"
+                      href={user?.name ? `/profile/${encodeURIComponent(user.name)}/friends` : "/profile"}
                       onClick={() => setUserOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 cursor-pointer text-[var(--text)]"
                     >
