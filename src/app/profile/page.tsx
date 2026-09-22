@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import ProfileSkinViewer from "@/components/ProfileSkinViewer";
 import NameHistoryBadge from "@/components/NameHistoryBadge";
 import CapeThumbnail from "@/components/CapeThumbnail";
+import SkinHistorySection from "@/components/SkinHistorySection";
 
 export default async function ProfilePage({
   searchParams,
@@ -137,49 +138,15 @@ export default async function ProfilePage({
           </div>
         </div>
 
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden mt-4">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Скины <span className="text-[var(--text-muted)] text-sm font-normal">({skins.length})</span>
-            </h2>
-            {skins.length === 0 ? (
-              <p className="text-[var(--text-muted)] text-sm">Нет загруженных скинов</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {skins.map((skin) => (
-                  <div
-                    key={skin.id}
-                    className="relative group"
-                  >
-                    <div
-                      className="w-12 h-12 rounded relative overflow-hidden border border-[var(--border)]"
-                      title={new Date(skin.createdAt).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}
-                    >
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundImage: `url(${skin.skinUrl})`,
-                          backgroundSize: "384px 384px",
-                          backgroundPosition: "-48px -48px",
-                          imageRendering: "pixelated",
-                        }}
-                      />
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundImage: `url(${skin.skinUrl})`,
-                          backgroundSize: "384px 384px",
-                          backgroundPosition: "-240px -48px",
-                          imageRendering: "pixelated",
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <SkinHistorySection
+          skins={skins.map((s) => ({
+            id: s.id,
+            skinUrl: s.skinUrl,
+            createdAt: s.createdAt.toISOString(),
+          }))}
+          currentSkinUrl={profileUser.skinUrl}
+          model={profileUser.skinModel === "slim" ? "slim" : "default"}
+        />
 
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden mt-4">
           <div className="p-6">
@@ -200,6 +167,9 @@ export default async function ProfilePage({
                       title={new Date(cape.createdAt).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}
                     >
                       <CapeThumbnail capeUrl={cape.capeUrl} width={30} height={48} />
+                    </div>
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded bg-black text-white text-[11px] px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+                      {new Date(cape.createdAt).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}
                     </div>
                   </div>
                 ))}

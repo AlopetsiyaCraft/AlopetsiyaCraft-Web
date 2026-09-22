@@ -3,11 +3,11 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, capeHistory } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { writeFile, unlink } from "fs/promises";
+import { writeFile } from "fs/promises";
 import { join } from "path";
-import { mkdirSync, readdirSync, existsSync } from "fs";
+import { mkdirSync } from "fs";
 import { createHash } from "crypto";
-import { uploadsDir, resolveUploadPath } from "@/lib/uploads";
+import { uploadsDir } from "@/lib/uploads";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,13 +52,9 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .get();
 
-    if (lastCape && lastCape.capeUrl !== capeUrl) {
-      const oldFile = resolveUploadPath(lastCape.capeUrl);
-      if (oldFile && existsSync(oldFile)) {
-        await unlink(oldFile).catch(() => {});
-      }
-    }
-
+    // Пропускаем запись, если загрузили ровно тот же файл (имя файла не
+    // поменялось). Старые файлы не удаляем: каждая запись истории плащей
+    // обязана показывать свою картинку, а не битую ссылку.
     if (!lastCape || lastCape.capeUrl !== capeUrl) {
       await db
         .insert(capeHistory)

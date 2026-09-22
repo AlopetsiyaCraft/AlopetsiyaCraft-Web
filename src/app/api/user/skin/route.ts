@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { mkdirSync } from "fs";
+import { createHash } from "crypto";
 import { uploadsDir } from "@/lib/uploads";
 
 export async function POST(request: NextRequest) {
@@ -33,7 +34,12 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const filename = `skin-${session.user.id}.png`;
+    // Уникальное имя файла: история скинов хранит URL каждой загрузки, и у
+    // каждой миниатюры должна быть своя неизменная картинка. Раньше файл
+    // перезаписывался одним и тем же именем, и все записи истории смотрели
+    // на текущий скин.
+    const hash = createHash("md5").update(buffer).digest("hex").slice(0, 8);
+    const filename = `skin-${session.user.id}-${Date.now()}-${hash}.png`;
     const skinsDir = uploadsDir("skins");
     mkdirSync(skinsDir, { recursive: true });
     const filepath = join(skinsDir, filename);
