@@ -10,7 +10,7 @@ export default async function SeasonChatPage({
   const { number } = await params;
   const seasonNumber = parseInt(number);
 
-  const messages = db
+  const messages = await db
     .select()
     .from(chatLogs)
     .where(eq(chatLogs.seasonId, seasonNumber))

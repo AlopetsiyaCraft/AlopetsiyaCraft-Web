@@ -7,11 +7,16 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "db:init": "tsx scripts/db-init.ts",
+    "predev": "npm run db:init",
+    "prebuild": "npm run db:init",
+    "prestart": "npm run db:init"
   },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^13.0.1",
+    "dotenv": "^18.0.2",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.11",
     "next-auth": "^5.0.0-beta.32",
@@ -27,7 +32,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -41,7 +45,6 @@
     "typescript": "^5"
   },
   "allowScripts": {
-    "better-sqlite3@13.0.1": true,
     "sharp@0.34.5": true,
     "esbuild@0.18.20": true,
     "esbuild@0.25.12": true,

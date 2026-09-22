@@ -8,7 +8,7 @@ export async function GET() {
     const SITE_ONLINE_THRESHOLD_MS = 30 * 1000;
     const now = new Date();
 
-    const allUsers = db
+    const allUsers = await db
       .select({
         id: users.id,
         nickname: users.nickname,
@@ -19,7 +19,7 @@ export async function GET() {
       .orderBy(desc(users.lastActiveAt))
       .all();
 
-    const serverOnline = db.select().from(playersOnline).all();
+    const serverOnline = await db.select().from(playersOnline).all();
     const serverOnlineNicknames = new Set(serverOnline.map((p) => p.nickname));
 
     const players = allUsers.map((user) => {

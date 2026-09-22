@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     const userId = parseInt(session.user.id);
 
-    const currentUser = db
+    const currentUser = await db
       .select()
       .from(users)
       .where(eq(users.id, userId))
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Это уже ваш никнейм" }, { status: 400 });
     }
 
-    const existing = db
+    const existing = await db
       .select()
       .from(users)
       .where(eq(users.nickname, trimmed))
@@ -64,12 +64,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    db.update(users)
+    await db
+      .update(users)
       .set({ nickname: trimmed })
       .where(eq(users.id, userId))
       .run();
 
-    db.insert(nameHistory)
+    await db
+      .insert(nameHistory)
       .values({
         userId,
         nickname: trimmed,

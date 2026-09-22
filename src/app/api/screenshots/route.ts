@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     const imageUrl = `/uploads/${filename}`;
 
-    const result = db
+    const result = await db
       .insert(screenshots)
       .values({
         userId: parseInt(session.user.id),

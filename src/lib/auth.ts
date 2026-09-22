@@ -19,7 +19,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const user = db
+        const user = await db
           .select()
           .from(users)
           .where(eq(users.nickname, credentials.nickname as string))

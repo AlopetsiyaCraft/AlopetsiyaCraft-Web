@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
       .orderBy(asc(chatLogs.createdAt));
 
     const messages = seasonId
-      ? baseQuery
+      ? await baseQuery
           .where(eq(chatLogs.seasonId, parseInt(seasonId)))
           .limit(limit)
           .all()
-      : baseQuery.limit(limit).all();
+      : await baseQuery.limit(limit).all();
 
     return NextResponse.json(messages);
   } catch (error) {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     const activeSeasonId = seasonId || 4;
 
-    const result = db
+    const result = await db
       .insert(chatLogs)
       .values({
         seasonId: activeSeasonId,

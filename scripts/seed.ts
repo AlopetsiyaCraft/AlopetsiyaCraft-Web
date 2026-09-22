@@ -1,3 +1,5 @@
+import "dotenv/config";
+import { initDatabase } from "../src/lib/db/bootstrap";
 import { db } from "../src/lib/db";
 import { seasons } from "../src/lib/db/schema";
 
@@ -28,15 +30,25 @@ const seedSeasons = [
   },
 ];
 
-console.log("Seeding database...");
+async function main() {
+  console.log("Initializing database schema...");
+  await initDatabase();
 
-for (const season of seedSeasons) {
-  try {
-    db.insert(seasons).values(season).run();
-    console.log(`✓ Season ${season.number} added`);
-  } catch (e) {
-    console.log(`- Season ${season.number} already exists`);
+  console.log("Seeding database...");
+
+  for (const season of seedSeasons) {
+    try {
+      await db.insert(seasons).values(season).run();
+      console.log(`✓ Season ${season.number} added`);
+    } catch (e) {
+      console.log(`- Season ${season.number} already exists`);
+    }
   }
+
+  console.log("Done!");
 }
 
-console.log("Done!");
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

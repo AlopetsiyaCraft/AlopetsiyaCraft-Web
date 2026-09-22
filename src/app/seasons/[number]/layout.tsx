@@ -20,7 +20,7 @@ export default async function SeasonLayout({
     notFound();
   }
 
-  const season = db
+  const season = await db
     .select()
     .from(seasons)
     .where(eq(seasons.number, seasonNumber))
@@ -30,12 +30,12 @@ export default async function SeasonLayout({
     notFound();
   }
 
-  const allSeasons = db.select().from(seasons).orderBy(desc(seasons.number)).all();
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.number)).all();
 
   const session = await auth();
   let user = null;
   if (session?.user?.id) {
-    user = db
+    user = await db
       .select({ name: users.nickname, skinUrl: users.skinUrl })
       .from(users)
       .where(eq(users.id, parseInt(session.user.id)))

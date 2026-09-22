@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User required" }, { status: 400 });
     }
 
-    const user = db
+    const user = await db
       .select({ id: users.id })
       .from(users)
       .where(eq(users.nickname, nickname))
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const names = db
+    const names = await db
       .select()
       .from(nameHistory)
       .where(eq(nameHistory.userId, user.id))

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = db
+    const result = await db
       .insert(comments)
       .values({
         screenshotId,
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const screenshotComments = db
+    const screenshotComments = await db
       .select()
       .from(comments)
       .where(eq(comments.screenshotId, parseInt(screenshotId)))

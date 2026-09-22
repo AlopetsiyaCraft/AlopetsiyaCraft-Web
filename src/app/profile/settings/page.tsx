@@ -15,7 +15,7 @@ export default async function SettingsPage() {
     redirect("/auth/login");
   }
 
-  const user = db
+  const user = await db
     .select()
     .from(users)
     .where(eq(users.id, parseInt(session.user.id)))
@@ -25,7 +25,7 @@ export default async function SettingsPage() {
     redirect("/auth/login");
   }
 
-  const allSeasons = dbAll.select().from(seasons).all();
+  const allSeasons = await dbAll.select().from(seasons).all();
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">

@@ -12,7 +12,8 @@ export async function POST() {
       return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
     }
 
-    db.update(users)
+    await db
+      .update(users)
       .set({ lastActiveAt: new Date() })
       .where(eq(users.id, parseInt(session.user.id)))
       .run();

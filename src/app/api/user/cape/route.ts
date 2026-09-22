@@ -37,12 +37,13 @@ export async function POST(request: NextRequest) {
 
     const capeUrl = `/uploads/capes/${filename}`;
 
-    db.update(users)
+    await db
+      .update(users)
       .set({ capeUrl })
       .where(eq(users.id, parseInt(session.user.id)))
       .run();
 
-    const lastCape = db
+    const lastCape = await db
       .select({ capeUrl: capeHistory.capeUrl })
       .from(capeHistory)
       .where(eq(capeHistory.userId, parseInt(session.user.id)))
@@ -58,7 +59,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (!lastCape || lastCape.capeUrl !== capeUrl) {
-      db.insert(capeHistory)
+      await db
+        .insert(capeHistory)
         .values({
           userId: parseInt(session.user.id),
           capeUrl,
@@ -81,7 +83,8 @@ export async function DELETE() {
       return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
     }
 
-    db.update(users)
+    await db
+      .update(users)
       .set({ capeUrl: null })
       .where(eq(users.id, parseInt(session.user.id)))
       .run();

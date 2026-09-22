@@ -7,11 +7,11 @@ import Header from "@/components/Header";
 
 export default async function SeasonsPage() {
   const session = await auth();
-  const allSeasons = db.select().from(seasons).orderBy(desc(seasons.number)).all();
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.number)).all();
 
   let user = null;
   if (session?.user?.id) {
-    user = db
+    user = await db
       .select({ name: users.nickname, skinUrl: users.skinUrl })
       .from(users)
       .where(eq(users.id, parseInt(session.user.id)))

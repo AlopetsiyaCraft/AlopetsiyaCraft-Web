@@ -12,7 +12,7 @@ export default async function SeasonScreenshotsPage({
   const seasonNumber = parseInt(number);
   const session = await auth();
 
-  const seasonScreenshots = db
+  const seasonScreenshots = await db
     .select({
       id: screenshots.id,
       imageUrl: screenshots.imageUrl,

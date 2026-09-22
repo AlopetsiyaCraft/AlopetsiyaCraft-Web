@@ -10,7 +10,7 @@ export default async function SeasonBuildPage({
   const { number } = await params;
   const seasonNumber = parseInt(number);
 
-  const season = db
+  const season = await db
     .select()
     .from(seasons)
     .where(eq(seasons.number, seasonNumber))

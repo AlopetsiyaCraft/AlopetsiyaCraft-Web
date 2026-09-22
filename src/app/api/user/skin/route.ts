@@ -41,12 +41,14 @@ export async function POST(request: NextRequest) {
 
     const skinUrl = `/uploads/skins/${filename}`;
 
-    db.update(users)
+    await db
+      .update(users)
       .set({ skinUrl })
       .where(eq(users.id, parseInt(session.user.id)))
       .run();
 
-    db.insert(skinHistory)
+    await db
+      .insert(skinHistory)
       .values({
         userId: parseInt(session.user.id),
         skinUrl,
@@ -68,7 +70,8 @@ export async function DELETE() {
       return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
     }
 
-    db.update(users)
+    await db
+      .update(users)
       .set({ skinUrl: null })
       .where(eq(users.id, parseInt(session.user.id)))
       .run();

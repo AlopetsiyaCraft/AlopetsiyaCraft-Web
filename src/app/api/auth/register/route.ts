@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingUser = db
+    const existingUser = await db
       .select()
       .from(users)
       .where(eq(users.nickname, nickname))
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const result = db
+    const result = await db
       .insert(users)
       .values({
         nickname,
@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
       .returning()
       .get();
 
-    db.insert(nameHistory)
+    await db
+      .insert(nameHistory)
       .values({
         userId: result.id,
         nickname,

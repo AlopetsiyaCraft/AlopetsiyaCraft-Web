@@ -16,11 +16,11 @@ export default async function ProfilePage({
 }) {
   const params = await searchParams;
   const session = await auth();
-  const allSeasons = db.select().from(seasons).orderBy(desc(seasons.number)).all();
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.number)).all();
 
   let viewerUser = null;
   if (session?.user?.id) {
-    viewerUser = db
+    viewerUser = await db
       .select({ name: users.nickname, skinUrl: users.skinUrl })
       .from(users)
       .where(eq(users.id, parseInt(session.user.id)))
@@ -33,7 +33,7 @@ export default async function ProfilePage({
     redirect("/auth/login");
   }
 
-  const profileUser = db
+  const profileUser = await db
     .select()
     .from(users)
     .where(eq(users.nickname, targetNickname))
@@ -45,7 +45,7 @@ export default async function ProfilePage({
 
   const isOwnProfile = session?.user?.id && parseInt(session.user.id) === profileUser.id;
 
-  const skins = db
+  const skins = await db
     .select()
     .from(skinHistory)
     .where(eq(skinHistory.userId, profileUser.id))
@@ -53,7 +53,7 @@ export default async function ProfilePage({
     .limit(20)
     .all();
 
-  const names = db
+  const names = await db
     .select()
     .from(nameHistory)
     .where(eq(nameHistory.userId, profileUser.id))
@@ -62,7 +62,7 @@ export default async function ProfilePage({
 
   const previousNames = names.filter((n) => n.nickname !== profileUser.nickname);
 
-  const capes = db
+  const capes = await db
     .select()
     .from(capeHistory)
     .where(eq(capeHistory.userId, profileUser.id))
