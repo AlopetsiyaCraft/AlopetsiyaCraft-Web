@@ -11,6 +11,8 @@ mkdirSync(dirname(DB_PATH), { recursive: true });
 const sqlite = new Database(DB_PATH);
 
 sqlite.exec(`
+  PRAGMA foreign_keys = ON;
+
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nickname TEXT NOT NULL UNIQUE,
@@ -18,7 +20,9 @@ sqlite.exec(`
     mc_uuid TEXT,
     ip_address TEXT,
     skin_url TEXT,
+    cape_url TEXT,
     role TEXT NOT NULL DEFAULT 'user',
+    last_active_at INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
 
@@ -55,6 +59,34 @@ sqlite.exec(`
     season_id INTEGER NOT NULL REFERENCES seasons(id),
     nickname TEXT NOT NULL,
     message TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS players_online (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname TEXT NOT NULL UNIQUE,
+    skin_url TEXT,
+    last_seen INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS skin_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    skin_url TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS name_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    nickname TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS cape_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    cape_url TEXT NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
 `);
