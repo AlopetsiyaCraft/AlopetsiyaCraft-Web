@@ -138,32 +138,44 @@ async function syncProfile(member: GuildMember): Promise<void> {
     const data = (await res.json()) as { nickname?: string };
     if (!data.nickname) return;
 
-    // Ник на сервере = ник сайта.
-    if (member.nickname !== data.nickname) {
-      await member.setNickname(data.nickname);
-      console.log(`Discord: ник участника ${member.user.tag} → ${data.nickname}`);
+    // Ник на сервере = ник сайта. Отдельный try — даже если ник сменить нельзя
+    // (например, участник — владелец сервера), аватарку всё равно ставим.
+    try {
+      if (member.nickname !== data.nickname) {
+        await member.setNickname(data.nickname);
+        console.log(`Discord: ник участника ${member.user.tag} → ${data.nickname}`);
+      }
+    } catch (nickError) {
+      console.error(`Discord: не удалось сменить ник ${member.user.tag}:`, nickError);
     }
 
     // Аватарка на сервере = голова скина с сайта.
-    const avatarUrl = `${WEBSITE_URL}/api/chat/head/image?nickname=${encodeURIComponent(data.nickname)}`;
-    if (lastAvatarByMember.get(member.id) !== avatarUrl) {
-      const imgRes = await fetch(avatarUrl);
-      if (imgRes.ok) {
-        const buf = Buffer.from(await imgRes.arrayBuffer());
-        const dataUri = `data:image/png;base64,${buf.toString("base64")}`;
-        await client.rest.patch(Routes.guildMember(member.guild.id, member.id), {
-          body: { avatar: dataUri },
-        });
-        lastAvatarByMember.set(member.id, avatarUrl);
-        console.log(`Discord: аватарка участника ${member.user.tag} → голова сайта`);
-      } else {
-        console.error(`Сайт ответил ${imgRes.status} на ${avatarUrl}`);
+    try {
+      const avatarUrl = `${WEBSITE_URL}/api/chat/head/image?nickname=${encodeURIComponent(data.nickname)}`;
+      if (lastAvatarByMember.get(member.id) !== avatarUrl) {
+        const imgRes = await fetch(avatarUrl);
+        if (imgRes.ok) {
+          const buf = Buffer.from(await imgRes.arrayBuffer());
+          const dataUri = `data:image/png;base64,${buf.toString("base64")}`;
+          await client.rest.patch(Routes.guildMember(member.guild.id, member.id), {
+            body: { avatar: dataUri },
+          });
+          lastAvatarByMember.set(member.id, avatarUrl);
+          console.log(`Discord: аватарка участника ${member.user.tag} → голова сайта`);
+        } else {
+          console.error(`Сайт ответил ${imgRes.status} на ${avatarUrl}`);
+        }
       }
+    } catch (avatarError) {
+      console.error(
+        `Discord: не удалось поставить аватарку ${member.user.tag} ` +
+          `(нужно право Manage Nicknames у бота):`,
+        avatarError
+      );
     }
   } catch (error) {
     console.error(
-      `Discord: не удалось синхронизировать ${member.user.tag} ` +
-        `(нужно право Manage Nicknames у бота):`,
+      `Discord: не удалось синхронизировать ${member.user.tag} (запрос к сайту):`,
       error
     );
   }

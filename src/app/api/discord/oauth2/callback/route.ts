@@ -120,5 +120,39 @@ export async function GET(request: NextRequest) {
   await db.update(users).set({ discordId: null }).where(eq(users.discordId, me.id)).run();
   await db.update(users).set({ discordId: me.id }).where(eq(users.id, userId)).run();
 
+  // Аватарка на сервере = голова скина с сайта (server avatar). Ставим сразу
+  // при привязке, чтобы не ждать триггера бота (best-effort: если у бота нет
+  // Manage Nicknames или участник — владелец, бот повторит позже по сообщению).
+  if (guildId && current?.nickname) {
+    try {
+      const imgRes = await fetch(
+        `${base}/api/chat/head/image?nickname=${encodeURIComponent(current.nickname)}`
+      );
+      if (imgRes.ok) {
+        const buf = Buffer.from(await imgRes.arrayBuffer());
+        const dataUri = `data:image/png;base64,${buf.toString("base64")}`;
+        const avatarRes = await fetch(
+          `https://discord.com/api/guilds/${guildId}/members/${me.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN || ""}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ avatar: dataUri }),
+          }
+        );
+        if (!avatarRes.ok) {
+          const t = await avatarRes.text().catch(() => "");
+          console.error("Discord avatar set failed at link:", avatarRes.status, t.slice(0, 200));
+        }
+      } else {
+        console.error("Head image fetch failed at link:", imgRes.status);
+      }
+    } catch (avatarError) {
+      console.error("Discord avatar set error at link:", avatarError);
+    }
+  }
+
   return NextResponse.redirect(successUrl);
 }
