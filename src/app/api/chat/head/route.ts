@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   const user = await db
     .select({ skinUrl: users.skinUrl, capeUrl: users.capeUrl, skinModel: users.skinModel })
     .from(users)
-    .where(eq(users.nickname, nickname))
+    .where(sql`lower(${users.nickname}) = lower(${nickname})`)
     .get();
 
   return NextResponse.json({
