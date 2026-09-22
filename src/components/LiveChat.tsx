@@ -50,17 +50,31 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
 
   const checkIfAtBottom = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return true;
-    return el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 60;
   }, []);
 
   function handleScroll() {
     shouldAutoScroll.current = checkIfAtBottom();
   }
+
+  /**
+   * Прокручиваем именно контейнер чата до маркера в конце списка.
+   * scrollIntoView({ block: "end" }) сам находит ближайший скроллящийся
+   * предок — то есть наш h-96 блок — и не трогает страницу.
+   */
+  const scrollToBottom = useCallback(() => {
+    const end = endRef.current;
+    if (!end) return;
+    end.scrollIntoView({ block: "end" });
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
 
   async function fetchMessages() {
     try {
@@ -84,12 +98,9 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   useEffect(() => {
     if (shouldAutoScroll.current) {
-      const el = scrollRef.current;
-      if (el) {
-        el.scrollTop = el.scrollHeight;
-      }
+      scrollToBottom();
     }
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   async function handleSend() {
     if (!input.trim() || sending) return;
@@ -177,6 +188,7 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
             </div>
           ))
         )}
+        <div ref={endRef} aria-hidden="true" className="h-px" />
       </div>
 
       <div className="px-4 py-3 border-t border-[var(--border)]">

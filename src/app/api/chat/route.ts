@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { chatLogs, users } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getActiveSeasonId } from "@/lib/bridge";
 import { notifyDiscord } from "@/lib/discord";
@@ -23,14 +23,15 @@ export async function GET(request: NextRequest) {
       })
       .from(chatLogs)
       .leftJoin(users, eq(chatLogs.nickname, users.nickname))
-      .orderBy(asc(chatLogs.createdAt));
+      .orderBy(desc(chatLogs.createdAt));
 
-    const messages = seasonId
+    const messages = (seasonId
       ? await baseQuery
           .where(eq(chatLogs.seasonId, parseInt(seasonId)))
           .limit(limit)
           .all()
-      : await baseQuery.limit(limit).all();
+      : await baseQuery.limit(limit).all()
+    ).reverse();
 
     return NextResponse.json(messages);
   } catch (error) {
