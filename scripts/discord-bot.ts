@@ -8,10 +8,13 @@
  * Если Discord-аккаунт автора привязан к профилю сайта, сайт сам подставит
  * НИК САЙТА (а не ник Discord) — в MC-чате будет единый игровой ник с головой.
  *
- * Синхронизация ников: бот переименовывает участников сервера в ник их
- * профиля сайта (при входе, при смене ника и разово при запуске).
- * Нужно: Privileged Intent «Server Members» в Developer Portal бота
- * и право «Управление никами» (Manage Nicknames) у бота на сервере.
+ * Синхронизация профилей: бот ставит привязанным участникам сервера ник
+ * с сайта и аватарку-голову с их скина (server avatar). Обновляется при
+ * сообщении участника, при входе, при смене ника и разово при запуске.
+ * Нужно: право «Управление никами» (Manage Nicknames) у бота на сервере;
+ * для событий входа/смены ника дополнительно Privileged Intent «Server
+ * Members» в Developer Portal бота (без него синхронизация по сообщению
+ * всё равно работает).
  *
  * Запуск:
  *   npm run discord-bot
@@ -34,10 +37,13 @@ import {
   Message,
   ActivityType,
   GuildMember,
+  Routes,
 } from "discord.js";
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN || "";
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";
+// Если задан — синхронизировать ники/аватарки и слушать сообщения только на этом сервере.
+const GUILD_ID = process.env.DISCORD_GUILD_ID || "";
 const WEBSITE_URL = (process.env.WEBSITE_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
 const API_KEY = process.env.CHAT_API_KEY || "";
 
@@ -103,32 +109,60 @@ async function forwardToWebsite(message: Message): Promise<void> {
   }
 }
 
+/** Последняя установленная аватарка (URL головы) по ID участника — чтобы не дёргать API зря. */
+const lastAvatarByMember = new Map<string, string>();
+
 /**
- * Ник участника на Discord-сервере = ник его профиля сайта.
- * Резолвим Discord ID через GET /api/discord; если аккаунт привязан —
- * переименовываем участника. Требует у бота права «Управление никами»
- * (Manage Nicknames) на сервере.
+ * Синхронизация профиля участника Discord-сервера с профилем сайта:
+ *  - ник участника = ник сайта (setNickname);
+ *  - аватарка участника на сервере = голова скина сайта (server avatar).
+ * Резолвим Discord ID через GET /api/discord; если аккаунт не привязан —
+ * ничего не трогаем. Требует у бота права «Управление никами» (Manage Nicknames).
+ * Ник/аватарка участников Discord-сервера — per-server, как и задумано:
+ * на разных серверах можно держать разные ники и аватарки.
  */
-async function syncNickname(member: GuildMember): Promise<void> {
+async function syncProfile(member: GuildMember): Promise<void> {
   if (member.user.bot) return;
+  if (GUILD_ID && member.guild.id !== GUILD_ID) return;
   if (!API_KEY) return;
   try {
     const res = await fetch(
       `${WEBSITE_URL}/api/discord?discordId=${encodeURIComponent(member.id)}`,
       { headers: { "x-api-key": API_KEY } }
     );
-    if (res.status === 404) return; // не привязан — ник не трогаем
+    if (res.status === 404) return; // не привязан — ник/аватарку не трогаем
     if (!res.ok) {
       console.error(`Сайт ответил ${res.status} на /api/discord`);
       return;
     }
     const data = (await res.json()) as { nickname?: string };
-    if (!data.nickname || member.nickname === data.nickname) return;
-    await member.setNickname(data.nickname);
-    console.log(`Discord: ник участника ${member.user.tag} → ${data.nickname}`);
+    if (!data.nickname) return;
+
+    // Ник на сервере = ник сайта.
+    if (member.nickname !== data.nickname) {
+      await member.setNickname(data.nickname);
+      console.log(`Discord: ник участника ${member.user.tag} → ${data.nickname}`);
+    }
+
+    // Аватарка на сервере = голова скина с сайта.
+    const avatarUrl = `${WEBSITE_URL}/api/chat/head/image?nickname=${encodeURIComponent(data.nickname)}`;
+    if (lastAvatarByMember.get(member.id) !== avatarUrl) {
+      const imgRes = await fetch(avatarUrl);
+      if (imgRes.ok) {
+        const buf = Buffer.from(await imgRes.arrayBuffer());
+        const dataUri = `data:image/png;base64,${buf.toString("base64")}`;
+        await client.rest.patch(Routes.guildMember(member.guild.id, member.id), {
+          body: { avatar: dataUri },
+        });
+        lastAvatarByMember.set(member.id, avatarUrl);
+        console.log(`Discord: аватарка участника ${member.user.tag} → голова сайта`);
+      } else {
+        console.error(`Сайт ответил ${imgRes.status} на ${avatarUrl}`);
+      }
+    }
   } catch (error) {
     console.error(
-      `Discord: не удалось переименовать ${member.user.tag} ` +
+      `Discord: не удалось синхронизировать ${member.user.tag} ` +
         `(нужно право Manage Nicknames у бота):`,
       error
     );
@@ -143,12 +177,13 @@ client.once(Events.ClientReady, async (c) => {
   );
   await c.user.setActivity("чат AlopetsiyaCraft", { type: ActivityType.Watching });
 
-  // разовая синхронизация ников уже сидящих участников (после рестарта бота)
+  // разовая синхронизация ников/аватарок уже сидящих участников (после рестарта бота)
   for (const guild of c.guilds.cache.values()) {
+    if (GUILD_ID && guild.id !== GUILD_ID) continue;
     try {
       const members = await guild.members.fetch();
       for (const member of members.values()) {
-        await syncNickname(member);
+        await syncProfile(member);
       }
     } catch (error) {
       console.error(
@@ -165,6 +200,7 @@ client.on(Events.MessageCreate, async (message) => {
   if (message.webhookId) return;
   if (message.author?.bot) return;
   if (!message.guild || !message.channel) return;
+  if (GUILD_ID && message.guild.id !== GUILD_ID) return;
   if (CHANNEL_ID && message.channel.id !== CHANNEL_ID) return;
 
   // дубли от reconnect-реиграла гейтвея пропускаем
@@ -177,16 +213,23 @@ client.on(Events.MessageCreate, async (message) => {
   if (text.startsWith("/")) return;
 
   await forwardToWebsite(message);
+
+  // Заодно синхронизируем ник и аватарку автора (если аккаунт привязан).
+  // Срабатывает на сообщении, поэтому работает и без privileged-интента
+  // Server Members.
+  if (message.member) {
+    void syncProfile(message.member);
+  }
 });
 
-// Ник участника = ник сайта: переименовываем при входе на сервер
-// и при смене ника (событие придёт и после нашего собственного
-// переименования, но там ник уже совпадёт — повторного действия нет).
+// Ник и аватарка участника = профиль сайта: обновляем при входе на сервер
+// и при смене ника (событие придёт и после нашего собственного изменения,
+// но там ники/аватарки уже совпадут — повторного действия нет).
 client.on(Events.GuildMemberAdd, (member) => {
-  void syncNickname(member);
+  void syncProfile(member);
 });
 client.on(Events.GuildMemberUpdate, (_oldMember, member) => {
-  void syncNickname(member);
+  void syncProfile(member);
 });
 
 function shutdown(signal: string) {
