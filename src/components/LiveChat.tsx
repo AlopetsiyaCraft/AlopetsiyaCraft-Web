@@ -92,7 +92,7 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 2000);
+    const interval = setInterval(fetchMessages, 500);
     return () => clearInterval(interval);
   }, []);
 
