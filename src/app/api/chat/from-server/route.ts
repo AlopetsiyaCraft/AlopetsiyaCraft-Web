@@ -3,19 +3,26 @@ import { asc, and, gt, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { chatLogs } from "@/lib/db/schema";
 import { checkBridgeKey, getActiveSeasonId } from "@/lib/bridge";
+import { notifyDiscord } from "@/lib/discord";
 
 const MAX_NICKNAME = 32;
 const MAX_MESSAGE = 500;
 
+/** Источники, которые умеет принимать мост. */
+const BRIDGE_SOURCES = ["minecraft", "website", "discord"] as const;
+
 /**
- * Мост чата Minecraft-сервера (мод chatbridge) ↔ сайт.
+ * Мост чата Minecraft-сервера (мод chatbridge) ↔ сайт ↔ Discord.
  *
- * POST /api/chat/from-server  — мод шлёт { nickname, message }
- *   (игровой чат, join/leave). Сохраняется с source="minecraft".
- * GET  /api/chat/from-server?since=<мс> — мод/бот поллит новые сообщения.
+ * POST /api/chat/from-server  — внешние системы шлют { nickname, message, [source] }:
+ *   - мод: игровой чат и join/leave (source по умолчанию "minecraft");
+ *   - Discord-бот: сообщения из канала (source = "discord").
+ *   Сообщения не из Discord дополнительно пушатся в вебхук Discord
+ *   (см. src/lib/discord.ts).
+ * GET  /api/chat/from-server?since=<мс> — мод поллит новые сообщения.
  *   Возвращает только source = "website" | "discord" (свои же сообщения
  *   с сервера исключаются, чтобы мод не выводил их в игру повторно — эхо).
- *   createdAt отдаётся в ЧИЛОСЕКУНДАХ, как ожидает мод (System.currentTimeMillis()).
+ *   createdAt отдаётся в МИЛЛИСЕКУНДАХ, как ожидает мод (System.currentTimeMillis()).
  *
  * Оба запроса требуют заголовок `x-api-key`, совпадающий с CHAT_API_KEY в .env.
  */
@@ -27,6 +34,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const nickname = typeof body?.nickname === "string" ? body.nickname.trim().slice(0, MAX_NICKNAME) : "";
   const message = typeof body?.message === "string" ? body.message.trim().slice(0, MAX_MESSAGE) : "";
+  const source = BRIDGE_SOURCES.includes(body?.source) ? body.source : "minecraft";
 
   if (!nickname || !message) {
     return NextResponse.json({ error: "nickname и message обязательны" }, { status: 400 });
@@ -40,9 +48,14 @@ export async function POST(request: NextRequest) {
       seasonId,
       nickname,
       message,
-      source: "minecraft",
+      source,
     })
     .run();
+
+  // Уведомляем Discord (только не для сообщений, пришедших из Discord — иначе эхо).
+  if (source !== "discord") {
+    await notifyDiscord({ source, nickname, message });
+  }
 
   return NextResponse.json({ message: "OK" });
 }

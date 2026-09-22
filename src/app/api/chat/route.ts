@@ -4,6 +4,7 @@ import { chatLogs, users } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getActiveSeasonId } from "@/lib/bridge";
+import { notifyDiscord } from "@/lib/discord";
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,6 +71,13 @@ export async function POST(request: NextRequest) {
       })
       .returning()
       .get();
+
+    // Новое сообщение с сайта также уходит в Discord (если вебхук настроен).
+    await notifyDiscord({
+      source: "website",
+      nickname: session.user.name || "Unknown",
+      message: message.trim(),
+    });
 
     return NextResponse.json({ message: "Отправлено", id: result.id }, { status: 201 });
   } catch (error) {

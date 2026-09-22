@@ -9,6 +9,7 @@
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
     "db:init": "tsx scripts/db-init.ts",
+    "discord-bot": "tsx scripts/discord-bot.ts",
     "predev": "npm run db:init",
     "prebuild": "npm run db:init",
     "prestart": "npm run db:init"
@@ -16,9 +17,10 @@
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "bcryptjs": "^3.0.3",
+    "discord.js": "^14.27.0",
     "dotenv": "^18.0.2",
     "drizzle-orm": "^0.45.2",
-    "next": "16.2.11",
+    "next": "16.3.5",
     "next-auth": "^5.0.0-beta.32",
     "react": "19.2.4",
     "react-dom": "19.2.4",
