@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { screenshots } from "@/lib/db/schema";
 import { writeFile } from "fs/promises";
 import { join } from "path";
+import { mkdirSync } from "fs";
+import { uploadsDir } from "@/lib/uploads";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +32,9 @@ export async function POST(request: NextRequest) {
 
     const timestamp = Date.now();
     const filename = `${timestamp}-${file.name}`;
-    const filepath = join(process.cwd(), "public", "uploads", filename);
+    const uploadsRoot = uploadsDir();
+    mkdirSync(uploadsRoot, { recursive: true });
+    const filepath = join(uploadsRoot, filename);
 
     await writeFile(filepath, buffer);
 

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { mkdirSync } from "fs";
+import { uploadsDir } from "@/lib/uploads";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     const filename = `skin-${session.user.id}.png`;
-    const skinsDir = join(process.cwd(), "public", "uploads", "skins");
+    const skinsDir = uploadsDir("skins");
     mkdirSync(skinsDir, { recursive: true });
     const filepath = join(skinsDir, filename);
 

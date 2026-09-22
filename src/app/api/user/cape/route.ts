@@ -7,6 +7,7 @@ import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { mkdirSync, readdirSync, existsSync } from "fs";
 import { createHash } from "crypto";
+import { uploadsDir, resolveUploadPath } from "@/lib/uploads";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     const ext = file.name.split(".").pop() || "png";
     const hash = createHash("md5").update(buffer).digest("hex").slice(0, 8);
     const filename = `cape-${session.user.id}-${Date.now()}-${hash}.${ext}`;
-    const capesDir = join(process.cwd(), "public", "uploads", "capes");
+    const capesDir = uploadsDir("capes");
     mkdirSync(capesDir, { recursive: true });
     const filepath = join(capesDir, filename);
 
@@ -52,8 +53,8 @@ export async function POST(request: NextRequest) {
       .get();
 
     if (lastCape && lastCape.capeUrl !== capeUrl) {
-      const oldFile = join(process.cwd(), "public", lastCape.capeUrl);
-      if (existsSync(oldFile)) {
+      const oldFile = resolveUploadPath(lastCape.capeUrl);
+      if (oldFile && existsSync(oldFile)) {
         await unlink(oldFile).catch(() => {});
       }
     }
