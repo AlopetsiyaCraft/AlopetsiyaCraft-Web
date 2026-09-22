@@ -98,6 +98,27 @@ export const bootstrapSql = `
     cape_url TEXT NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
+
+  CREATE TABLE IF NOT EXISTS audio_tracks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    title TEXT NOT NULL,
+    artist TEXT,
+    file_name TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS disc_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    track_id INTEGER NOT NULL REFERENCES audio_tracks(id),
+    nickname TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    error TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    completed_at INTEGER
+  );
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */

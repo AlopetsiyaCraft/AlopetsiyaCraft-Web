@@ -1,6 +1,39 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
+export const audioTracks = sqliteTable("audio_tracks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  title: text("title").notNull(),
+  artist: text("artist"),
+  fileName: text("file_name").notNull(),
+  size: integer("size").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const discRequests = sqliteTable("disc_requests", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  trackId: integer("track_id")
+    .notNull()
+    .references(() => audioTracks.id),
+  nickname: text("nickname").notNull(),
+  status: text("status", { enum: ["pending", "done", "failed"] })
+    .notNull()
+    .default("pending"),
+  error: text("error"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+});
+
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   nickname: text("nickname").notNull().unique(),
@@ -76,6 +109,8 @@ export const chatLogs = sqliteTable("chat_logs", {
 export const usersRelations = relations(users, ({ many }) => ({
   screenshots: many(screenshots),
   comments: many(comments),
+  audioTracks: many(audioTracks),
+  discRequests: many(discRequests),
 }));
 
 export const seasonsRelations = relations(seasons, ({ many }) => ({
@@ -110,6 +145,25 @@ export const chatLogsRelations = relations(chatLogs, ({ one }) => ({
   season: one(seasons, {
     fields: [chatLogs.seasonId],
     references: [seasons.id],
+  }),
+}));
+
+export const audioTracksRelations = relations(audioTracks, ({ one, many }) => ({
+  user: one(users, {
+    fields: [audioTracks.userId],
+    references: [users.id],
+  }),
+  discRequests: many(discRequests),
+}));
+
+export const discRequestsRelations = relations(discRequests, ({ one }) => ({
+  user: one(users, {
+    fields: [discRequests.userId],
+    references: [users.id],
+  }),
+  track: one(audioTracks, {
+    fields: [discRequests.trackId],
+    references: [audioTracks.id],
   }),
 }));
 
