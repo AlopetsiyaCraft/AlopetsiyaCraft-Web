@@ -18,6 +18,10 @@ export default async function ProfileFotoPage({
   const target = await db.select().from(users).where(eq(users.nickname, nick)).get();
   if (!target) notFound();
 
+  const viewerName = viewerId
+    ? (await db.select({ name: users.nickname }).from(users).where(eq(users.id, viewerId)).get())?.name ?? null
+    : null;
+
   const seasonRows = await db
     .select({ id: seasons.id, number: seasons.number, name: seasons.name })
     .from(seasons)
@@ -30,6 +34,7 @@ export default async function ProfileFotoPage({
       ownerUserId={target.id}
       ownerNickname={target.nickname}
       viewerId={viewerId}
+      viewerNickname={viewerName}
       seasons={seasonRows}
     />
   );

@@ -13,18 +13,20 @@ export default function PhotoTab({
   ownerUserId,
   ownerNickname,
   viewerId,
+  viewerNickname,
   seasons,
 }: {
   isOwn: boolean;
   ownerUserId: number;
   ownerNickname: string;
   viewerId: number | null;
+  viewerNickname?: string | null;
   seasons: SeasonOption[];
 }) {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [albums, setAlbums] = useState<AlbumsListItem[]>([]);
   const [albumFilter, setAlbumFilter] = useState<number | "none" | "all">("all");
-  const [lightbox, setLightbox] = useState<PhotoItem | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newAlbumName, setNewAlbumName] = useState("");
@@ -188,21 +190,22 @@ export default function PhotoTab({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {filtered.map((p) => (
-            <PhotoCard key={p.id} photo={p} onOpen={setLightbox} />
+          {filtered.map((p, i) => (
+            <PhotoCard key={p.id} photo={p} onOpen={() => setLightboxIndex(i)} />
           ))}
         </div>
       )}
 
-      {lightbox && (
+      {lightboxIndex != null && filtered.length > 0 && (
         <PhotoLightbox
-          photo={lightbox}
+          photos={filtered}
+          initialIndex={lightboxIndex}
           isLoggedIn={!!viewerId}
           viewerId={viewerId}
-          onClose={() => setLightbox(null)}
+          viewerNickname={viewerNickname ?? null}
+          onClose={() => setLightboxIndex(null)}
           onChanged={(updated) => {
             setPhotos((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-            setLightbox(updated);
           }}
           onDeleted={() => refresh()}
         />

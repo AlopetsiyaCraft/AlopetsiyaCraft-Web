@@ -2,17 +2,16 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { capeHistory, nameHistory, seasons, users } from "@/lib/db/schema";
+import { nameHistory, seasons, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
-import ProfileSkinViewer from "@/components/ProfileSkinViewer";
+import HeadViewer from "@/components/HeadViewer";
 import NameHistoryBadge from "@/components/NameHistoryBadge";
-import CapeThumbnail from "@/components/CapeThumbnail";
 import ProfileTabs from "@/components/ProfileTabs";
 
 /**
  * Профиль игрока (VK-стиль, osu-адреса): /profile/<ник> или /profile/<id>.
- * Вкладки: Стена (/), Аудио (/music), Фото (/foto), Друзья (/friends).
+ * Вкладки: Стена (/), Аудио (/music), Фото (/foto), Друзья (/friends), Внешний вид (/appearance).
  * Профиль видят только зарегистрированные.
  */
 export default async function ProfileLayout({
@@ -45,20 +44,13 @@ export default async function ProfileLayout({
   }
   if (!target) notFound();
 
-  const [allSeasons, names, capes] = await Promise.all([
+  const [allSeasons, names] = await Promise.all([
     db.select().from(seasons).orderBy(desc(seasons.number)).all(),
     db
       .select()
       .from(nameHistory)
       .where(eq(nameHistory.userId, target.id))
       .orderBy(desc(nameHistory.createdAt))
-      .all(),
-    db
-      .select()
-      .from(capeHistory)
-      .where(eq(capeHistory.userId, target.id))
-      .orderBy(desc(capeHistory.createdAt))
-      .limit(20)
       .all(),
   ]);
 
@@ -76,17 +68,15 @@ export default async function ProfileLayout({
       <main className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
           <div className="p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row gap-8">
+            <div className="flex items-center gap-6">
               <div className="flex-shrink-0">
                 {target.skinUrl ? (
-                  <ProfileSkinViewer
-                    skinUrl={target.skinUrl}
-                    capeUrl={target.capeUrl}
-                    model={target.skinModel === "slim" ? "slim" : "default"}
-                  />
+                  <div className="w-24 h-24 rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--bg)]">
+                    <HeadViewer skinUrl={target.skinUrl} size={96} />
+                  </div>
                 ) : (
-                  <div className="w-[300px] h-[300px] bg-[var(--bg)] border border-[var(--border)] rounded-lg flex items-center justify-center">
-                    <span className="text-[var(--text-muted)] text-xs">Нет скина</span>
+                  <div className="w-24 h-24 bg-[var(--bg)] border border-[var(--border)] rounded-xl flex items-center justify-center text-[var(--text-muted)] text-xs text-center px-2">
+                    Нет скина
                   </div>
                 )}
               </div>
@@ -112,21 +102,6 @@ export default async function ProfileLayout({
                     </Link>
                   )}
                 </div>
-
-                {capes.length > 0 && (
-                  <div className="border-t border-[var(--border)] pt-4">
-                    <h3 className="text-sm font-semibold text-[var(--text-muted)] mb-2">
-                      Плащи <span className="font-normal">({capes.length})</span>
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {capes.map((cape) => (
-                        <div key={cape.id} className="rounded overflow-hidden border border-[var(--border)]">
-                          <CapeThumbnail capeUrl={cape.capeUrl} width={30} height={48} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

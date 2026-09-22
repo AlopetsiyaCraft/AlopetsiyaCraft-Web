@@ -19,22 +19,24 @@ export interface PhotoItem {
   commentCount: number;
 }
 
-export interface PhotoCommentItem {
+/** База комментария (фото и стены): плоский список + parentId для дерева ответов. */
+interface CommentBase {
   id: number;
-  photoId: number;
   text: string;
   createdAt: number;
   authorNickname: string;
+  authorId: number;
+  parentId: number | null;
+  replyToNickname: string | null;
   viewerIsAuthor: boolean;
 }
 
-export interface PostCommentItem {
-  id: number;
+export interface PhotoCommentItem extends CommentBase {
+  photoId: number;
+}
+
+export interface PostCommentItem extends CommentBase {
   postId: number;
-  text: string;
-  createdAt: number;
-  authorNickname: string;
-  viewerIsAuthor: boolean;
 }
 
 export interface PostItem {

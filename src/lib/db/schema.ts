@@ -204,6 +204,7 @@ export const photoComments = sqliteTable("photo_comments", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id),
+  parentId: integer("parent_id").references((): any => photoComments.id),
   text: text("text").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -239,6 +240,7 @@ export const postComments = sqliteTable("post_comments", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id),
+  parentId: integer("parent_id").references((): any => postComments.id),
   text: text("text").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

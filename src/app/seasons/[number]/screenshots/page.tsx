@@ -52,6 +52,7 @@ export default async function SeasonScreenshotsPage({
         seasons={seasonOptions}
         isLoggedIn={!!session}
         viewerId={viewer?.id ?? null}
+        viewerNickname={viewer?.name ?? null}
         fixedSeasonId={season.id}
       />
     </div>

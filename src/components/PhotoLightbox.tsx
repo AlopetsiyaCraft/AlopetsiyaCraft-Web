@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import CommentTree from "./CommentTree";
 import type { AlbumsListItem, PhotoCommentItem, PhotoItem } from "@/lib/profile";
 
 function ruDate(ts: number): string {
@@ -12,82 +13,135 @@ function visibilityLabel(v: PhotoItem["visibility"]): string {
   return v === "public" ? "Видно всем" : "Только зарегистрированным";
 }
 
-/** Лайтбокс: фото крупно + мета + комментарии (залогиненным) + правка (владельцу). */
+function Chevron({ className, dir }: { className?: string; dir: "left" | "right" }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+    >
+      {dir === "left" ? (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+      ) : (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      )}
+    </svg>
+  );
+}
+
+/**
+ * Полноэкранный просмотр фото (VK-стиль): чистая картинка по центру, стрелки и счётчик
+ * прямо на фото, справа панель «прилегает» к фото по высоте. Переключение — клик по левой/
+ * правой части фото, стрелки на клавиатуре. Клик вне фото — закрыть.
+ */
 export default function PhotoLightbox({
-  photo,
+  photos,
+  initialIndex,
   isLoggedIn,
   viewerId,
+  viewerNickname,
   onClose,
   onChanged,
   onDeleted,
 }: {
-  photo: PhotoItem;
+  photos: PhotoItem[];
+  initialIndex: number;
   isLoggedIn: boolean;
   viewerId: number | null;
+  viewerNickname: string | null;
   onClose: () => void;
   onChanged?: (p: PhotoItem) => void;
-  onDeleted?: () => void;
+  onDeleted?: (photoId: number) => void;
 }) {
+  const [index, setIndex] = useState(Math.min(Math.max(initialIndex, 0), photos.length - 1));
   const [comments, setComments] = useState<PhotoCommentItem[]>([]);
-  const [commentText, setCommentText] = useState("");
-  const [sendingComment, setSendingComment] = useState(false);
   const [albums, setAlbums] = useState<AlbumsListItem[]>([]);
-  const [visibility, setVisibility] = useState<"public" | "registered">(photo.visibility);
-  const [albumId, setAlbumId] = useState<number | null>(photo.albumId);
-  const [caption, setCaption] = useState(photo.caption ?? "");
+  const [visibility, setVisibility] = useState<"public" | "registered">(photos[index]?.visibility ?? "public");
+  const [albumId, setAlbumId] = useState<number | null>(photos[index]?.albumId ?? null);
+  const [caption, setCaption] = useState(photos[index]?.caption ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const isOwner = !!viewerId && photo.userId === viewerId;
+
+  const photo = photos[index];
+  const isOwner = !!viewerId && photo?.userId === viewerId;
+
+  const go = useCallback(
+    (delta: number) => {
+      setIndex((i) => {
+        if (photos.length === 0) return i;
+        return (i + delta + photos.length) % photos.length;
+      });
+    },
+    [photos.length]
+  );
 
   const refreshComments = useCallback(async () => {
-    if (!isLoggedIn) {
-      setComments([]);
-      return;
-    }
+    if (!isLoggedIn || !photo) return;
     const res = await fetch(`/api/photos/${photo.id}/comments`);
     if (res.ok) setComments((await res.json()) as PhotoCommentItem[]);
-  }, [photo.id, isLoggedIn]);
+  }, [photo?.id, isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // сбрасываем состояние на новом фото
   useEffect(() => {
-    refreshComments();
-  }, [refreshComments]);
-
-  useEffect(() => {
+    setComments([]);
+    setCaption(photo?.caption ?? "");
+    setVisibility(photo?.visibility ?? "public");
+    setAlbumId(photo?.albumId ?? null);
+    setMessage(null);
     if (isOwner && albums.length === 0) {
       fetch("/api/albums")
         .then((r) => r.json())
         .then((data: AlbumsListItem[]) => setAlbums(data))
         .catch(() => setAlbums([]));
     }
-    setVisibility(photo.visibility);
-    setAlbumId(photo.albumId);
-    setCaption(photo.caption ?? "");
-  }, [photo, isOwner]); // eslint-disable-line react-hooks/exhaustive-deps
+    refreshComments();
+  }, [photo?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function addComment() {
-    const text = commentText.trim();
-    if (!text || sendingComment) return;
-    setSendingComment(true);
+  // клавиатура: ← → переключение, Esc — закрыть
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowLeft") go(-1);
+      else if (e.key === "ArrowRight") go(1);
+      else if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [go, onClose]);
+
+  // блокируем прокрутку страницы под лайтбоксом
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  async function addComment(text: string, parentId: number | null): Promise<boolean> {
+    if (!photo) return false;
     try {
       const res = await fetch(`/api/photos/${photo.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, parentId }),
       });
       if (res.ok) {
         const item = (await res.json()) as PhotoCommentItem;
         setComments((c) => [...c, item]);
-        setCommentText("");
-      } else {
-        const j = await res.json().catch(() => null);
-        setMessage(j?.error ?? "Не удалось отправить комментарий");
+        return true;
       }
-    } finally {
-      setSendingComment(false);
+      const j = await res.json().catch(() => null);
+      setMessage(j?.error ?? "Не удалось отправить комментарий");
+      return false;
+    } catch {
+      return false;
     }
   }
 
   async function saveChanges() {
+    if (!photo) return;
     setSaving(true);
     setMessage(null);
     try {
@@ -110,174 +164,229 @@ export default function PhotoLightbox({
   }
 
   async function deletePhoto() {
+    if (!photo) return;
     if (!window.confirm("Удалить это фото?")) return;
     const res = await fetch(`/api/photos/${photo.id}`, { method: "DELETE" });
     if (res.ok) {
-      onDeleted?.();
+      onDeleted?.(photo.id);
       onClose();
     } else {
       setMessage("Не удалось удалить фото");
     }
   }
 
+  if (!photo) return null;
+
+  /** Клик по фото: левая половина — назад, правая — вперёд. */
+  function handleImageClick(e: React.MouseEvent) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x < rect.width / 2) go(-1);
+    else go(1);
+  }
+
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden cursor-default"
       onClick={onClose}
     >
       <div
-        className="bg-[var(--card)] border border-[var(--border)] rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        className="relative flex items-stretch shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-          <div className="text-sm text-[var(--text-secondary)]">
-            <Link href={`/profile/${encodeURIComponent(photo.authorNickname)}`} className="text-[#7c3aed] hover:underline font-medium">
-              {photo.authorNickname}
-            </Link>
-            {photo.seasonNumber ? <span> · Сезон {photo.seasonNumber}</span> : null}
-            {photo.albumName ? <span> · из альбома «{photo.albumName}»</span> : null}
-            <span> · {ruDate(photo.createdAt)}</span>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[var(--hover)] text-[var(--text-muted)]" title="Закрыть">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        {/* ---- Фото: чистая картинка, стрелки и счётчик прямо на ней ---- */}
+        <div
+          className="relative group cursor-pointer"
+          onClick={handleImageClick}
+        >
+          <img
+            key={photo.id}
+            src={photo.url}
+            alt={photo.caption || "Фото"}
+            className="max-h-screen max-w-[calc(100vw-412px)] object-contain select-none block"
+            draggable={false}
+          />
+
+          {photos.length > 1 && (
+            <>
+              {/* Навигация-стрелки (появляются на фото при наведении) */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  go(-1);
+                }}
+                aria-label="Предыдущее фото"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-60 hover:!opacity-90 transition-opacity cursor-pointer"
+              >
+                <Chevron dir="left" className="w-7 h-7" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  go(1);
+                }}
+                aria-label="Следующее фото"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-60 hover:!opacity-90 transition-opacity cursor-pointer"
+              >
+                <Chevron dir="right" className="w-7 h-7" />
+              </button>
+
+              {/* Счётчик на полупрозрачном фоне прямо на фото */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-white/95 bg-black/55 rounded-full px-3 py-1 pointer-events-none">
+                {index + 1} / {photos.length}
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="overflow-auto flex-1 custom-scrollbar">
-          <div className="p-4">
-            <img src={photo.url} alt={photo.caption || "Фото"} className="max-h-[50vh] mx-auto rounded-lg" />
-
-            <div className="mt-3 text-xs text-[var(--text-muted)] flex flex-wrap gap-x-4 gap-y-1">
-              <span>{visibilityLabel(photo.visibility)}</span>
-              <span>{photo.originalName}</span>
-              <span>{(photo.size / 1024).toFixed(0)} КБ</span>
+        {/* ---- Панель информации: прилегает к фото по высоте (как в VK) ---- */}
+        <aside className="w-[400px] max-w-[46vw] shrink-0 bg-[var(--card)] flex flex-col">
+          <div className="px-5 py-4 border-b border-[var(--border)]">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <Link
+                  href={`/profile/${encodeURIComponent(photo.authorNickname)}`}
+                  className="text-[#7c3aed] hover:underline font-semibold"
+                >
+                  {photo.authorNickname}
+                </Link>
+                <div className="text-xs text-[var(--text-muted)]">
+                  {photo.seasonNumber ? `Сезон ${photo.seasonNumber}` : "Без сезона"}
+                  {photo.albumName ? ` · из альбома «${photo.albumName}»` : ""}
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg hover:bg-[var(--hover)] text-[var(--text-muted)]"
+                title="Закрыть"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            {photo.caption && <p className="mt-2 text-sm">{photo.caption}</p>}
+          </div>
 
-            {isOwner && (
-              <div className="mt-4 bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 space-y-3">
-                <h3 className="text-sm font-semibold">Редактирование</h3>
-                <div>
-                  <label className="block text-xs text-[var(--text-muted)] mb-1">Кто видит фото</label>
-                  <div className="flex gap-2">
-                    {(["public", "registered"] as const).map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setVisibility(v)}
-                        className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-                          visibility === v
-                            ? "bg-[#7c3aed] border-[#7c3aed] text-white"
-                            : "bg-[var(--card)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
-                        }`}
-                      >
-                        {v === "public" ? "Всем пользователям" : "Только зарегистрированным"}
-                      </button>
-                    ))}
+          <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+            <div className="px-5 py-4 space-y-4">
+              {/* Мета */}
+              <div className="text-sm space-y-1.5">
+                <div className="flex gap-2">
+                  <span className="text-[var(--text-muted)] shrink-0 w-32">Автор</span>
+                  <Link
+                    href={`/profile/${encodeURIComponent(photo.authorNickname)}`}
+                    className="text-[#7c3aed] hover:underline"
+                  >
+                    {photo.authorNickname}
+                  </Link>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-[var(--text-muted)] shrink-0 w-32">Сезон</span>
+                  <span>{photo.seasonNumber ? `Сезон ${photo.seasonNumber}` : "—"}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-[var(--text-muted)] shrink-0 w-32">Загружено</span>
+                  <span>{ruDate(photo.createdAt)}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-[var(--text-muted)] shrink-0 w-32">Название</span>
+                  <span className="break-words">{photo.originalName}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-[var(--text-muted)] shrink-0 w-32">Размер</span>
+                  <span>{(photo.size / 1024).toFixed(0)} КБ</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-[var(--text-muted)] shrink-0 w-32">Доступ</span>
+                  <span>{visibilityLabel(photo.visibility)}</span>
+                </div>
+              </div>
+
+              {photo.caption && <p className="text-sm whitespace-pre-wrap break-words">{photo.caption}</p>}
+
+              {/* Редактирование (владельцу) */}
+              {isOwner && (
+                <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold">Редактирование</h3>
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Кто видит фото</label>
+                    <div className="flex gap-2">
+                      {(["public", "registered"] as const).map((v) => (
+                        <button
+                          key={v}
+                          onClick={() => setVisibility(v)}
+                          className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+                            visibility === v
+                              ? "bg-[#7c3aed] border-[#7c3aed] text-white"
+                              : "bg-[var(--card)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
+                          }`}
+                        >
+                          {v === "public" ? "Всем" : "Только зарегистрированным"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Альбом</label>
+                    <select
+                      value={albumId ?? ""}
+                      onChange={(e) => setAlbumId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                      className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm"
+                    >
+                      <option value="">Без альбома</option>
+                      {albums.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Подпись</label>
+                    <input
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value)}
+                      maxLength={200}
+                      className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm"
+                      placeholder="Подпись к фото"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={saveChanges}
+                      disabled={saving}
+                      className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
+                    >
+                      {saving ? "Сохраняем…" : "Сохранить"}
+                    </button>
+                    <button
+                      onClick={deletePhoto}
+                      className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded-lg"
+                    >
+                      Удалить фото
+                    </button>
+                    {message && <span className="text-sm text-[var(--text-secondary)]">{message}</span>}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-[var(--text-muted)] mb-1">Альбом</label>
-                  <select
-                    value={albumId ?? ""}
-                    onChange={(e) => setAlbumId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                    className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm"
-                  >
-                    <option value="">Без альбома</option>
-                    {albums.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-[var(--text-muted)] mb-1">Подпись</label>
-                  <input
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    maxLength={200}
-                    className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm"
-                    placeholder="Подпись к фото"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={saveChanges}
-                    disabled={saving}
-                    className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
-                  >
-                    {saving ? "Сохраняем…" : "Сохранить"}
-                  </button>
-                  <button
-                    onClick={deletePhoto}
-                    className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded-lg"
-                  >
-                    Удалить фото
-                  </button>
-                  {message && <span className="text-sm text-[var(--text-secondary)]">{message}</span>}
-                </div>
-              </div>
-            )}
+              )}
 
-            {isLoggedIn ? (
-              <div className="mt-4 border-t border-[var(--border)] pt-4">
-                <h3 className="text-sm font-semibold mb-2">
-                  Комментарии <span className="text-[var(--text-muted)] font-normal">({comments.length})</span>
-                </h3>
-                <div className="space-y-3 mb-3">
-                  {comments.length === 0 ? (
-                    <p className="text-[var(--text-muted)] text-sm">Комментариев пока нет</p>
-                  ) : (
-                    comments.map((c) => (
-                      <div key={c.id} className="bg-[var(--bubble)] rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2 text-xs">
-                          <Link
-                            href="#"
-                            className="text-[#7c3aed] font-medium"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              window.location.href = `/profile/${encodeURIComponent(c.authorNickname)}`;
-                            }}
-                          >
-                            {c.authorNickname}
-                          </Link>
-                          <span className="text-[var(--text-muted)]">{ruDate(c.createdAt)}</span>
-                        </div>
-                        <p className="text-sm mt-1 break-words">{c.text}</p>
-                      </div>
-                    ))
-                  )}
+              {/* Комментарии */}
+              {isLoggedIn ? (
+                <div className="border-t border-[var(--border)] pt-3">
+                  <h3 className="text-sm font-semibold mb-3">
+                    Комментарии{" "}
+                    <span className="text-[var(--text-muted)] font-normal">({comments.length})</span>
+                  </h3>
+                  <CommentTree comments={comments} viewerNickname={viewerNickname} onAddComment={addComment} />
                 </div>
-                <form
-                  className="flex gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    addComment();
-                  }}
-                >
-                  <input
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    maxLength={500}
-                    placeholder="Написать комментарий…"
-                    className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!commentText.trim() || sendingComment}
-                    className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
-                  >
-                    Отправить
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <p className="mt-4 text-[var(--text-muted)] text-sm">Комментарии видны только зарегистрированным.</p>
-            )}
+              ) : (
+                <h3 className="text-sm font-semibold text-[var(--text-muted)] border-t border-[var(--border)] pt-3">
+                  Комментарии видны только зарегистрированным.
+                </h3>
+              )}
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

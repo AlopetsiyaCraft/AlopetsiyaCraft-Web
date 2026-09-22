@@ -8,6 +8,7 @@ const TABS = [
   { name: "Аудио", suffix: "/music" },
   { name: "Фото", suffix: "/foto" },
   { name: "Друзья", suffix: "/friends" },
+  { name: "Внешний вид", suffix: "/appearance" },
 ];
 
 /** Навигация по вкладкам профиля (VK-стиль). */

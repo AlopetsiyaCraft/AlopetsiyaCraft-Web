@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import CommentTree from "./CommentTree";
 import PhotoLightbox from "./PhotoLightbox";
-import type { PhotoCommentItem, PhotoItem, PostCommentItem, PostItem } from "@/lib/profile";
+import type { PhotoItem, PostCommentItem, PostItem } from "@/lib/profile";
 
 function ruDate(ts: number): string {
   return new Date(ts).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
@@ -31,8 +32,7 @@ export default function WallFeed({
   const [publishError, setPublishError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [commentsByPost, setCommentsByPost] = useState<Record<number, PostCommentItem[]>>({});
-  const [commentText, setCommentText] = useState<Record<number, string>>({});
-  const [lightbox, setLightbox] = useState<PhotoItem | null>(null);
+  const [lightbox, setLightbox] = useState<{ photos: PhotoItem[]; index: number } | null>(null);
 
   useEffect(() => {
     if (isOwn) {
@@ -101,19 +101,20 @@ export default function WallFeed({
     }
   }
 
-  async function addComment(postId: number) {
-    const text = (commentText[postId] ?? "").trim();
-    if (!text) return;
+  async function addComment(postId: number, text: string, parentId: number | null): Promise<boolean> {
+    const t = text.trim();
+    if (!t) return false;
     const res = await fetch(`/api/wall/${postId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: t, parentId }),
     });
     if (res.ok) {
       const item = (await res.json()) as PostCommentItem;
       setCommentsByPost((prev) => ({ ...prev, [postId]: [...(prev[postId] ?? []), item] }));
-      setCommentText((prev) => ({ ...prev, [postId]: "" }));
+      return true;
     }
+    return false;
   }
 
   return (
@@ -224,8 +225,8 @@ export default function WallFeed({
 
             {post.photos.length > 0 && (
               <div className={`grid gap-2 mt-3 ${post.photos.length === 1 ? "grid-cols-1" : post.photos.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
-                {post.photos.map((p) => (
-                  <div key={p.id} className="rounded-lg overflow-hidden cursor-pointer border border-[var(--border)]" onClick={() => setLightbox(p)}>
+                {post.photos.map((p, i) => (
+                  <div key={p.id} className="rounded-lg overflow-hidden cursor-pointer border border-[var(--border)]" onClick={() => setLightbox({ photos: post.photos, index: i })}>
                     <img src={p.url} alt={p.caption || "Фото"} loading="lazy" className="w-full h-full object-cover max-h-72" />
                   </div>
                 ))}
@@ -241,44 +242,13 @@ export default function WallFeed({
               </button>
 
               {expanded.has(post.id) && (
-                <div className="mt-3 space-y-2">
-                  {(commentsByPost[post.id] ?? []).length === 0 && (
-                    <p className="text-xs text-[var(--text-muted)]">Комментариев пока нет</p>
-                  )}
-                  {(commentsByPost[post.id] ?? []).map((c) => (
-                    <div key={c.id} className="bg-[var(--bubble)] rounded-lg px-3 py-2">
-                      <div className="text-xs text-[var(--text-muted)]">
-                        <a href={`/profile/${encodeURIComponent(c.authorNickname)}`} className="text-[#7c3aed] font-medium hover:underline">
-                          {c.authorNickname}
-                        </a>
-                      </div>
-                      <p className="text-sm mt-0.5 break-words">{c.text}</p>
-                    </div>
-                  ))}
-                  {viewerNickname && (
-                    <form
-                      className="flex gap-2"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        addComment(post.id);
-                      }}
-                    >
-                      <input
-                        value={commentText[post.id] ?? ""}
-                        onChange={(e) => setCommentText((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                        maxLength={500}
-                        placeholder="Написать комментарий…"
-                        className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!(commentText[post.id] ?? "").trim()}
-                        className="px-3 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
-                      >
-                        Отправить
-                      </button>
-                    </form>
-                  )}
+                <div className="mt-3">
+                  <CommentTree
+                    comments={commentsByPost[post.id] ?? []}
+                    viewerNickname={viewerNickname}
+                    onAddComment={(text, parentId) => addComment(post.id, text, parentId)}
+                    loginHint="Комментарии видны только зарегистрированным."
+                  />
                 </div>
               )}
             </div>
@@ -288,17 +258,23 @@ export default function WallFeed({
 
       {lightbox && (
         <PhotoLightbox
-          photo={lightbox}
+          photos={lightbox.photos}
+          initialIndex={lightbox.index}
           isLoggedIn={!!viewerId}
           viewerId={viewerId}
+          viewerNickname={viewerNickname}
           onClose={() => setLightbox(null)}
           onChanged={(updated) => {
             setPosts((prev) =>
               prev.map((p) => ({ ...p, photos: p.photos.map((ph) => (ph.id === updated.id ? updated : ph)) }))
             );
-            setLightbox(updated);
+            setLightbox((lb) =>
+              lb ? { ...lb, photos: lb.photos.map((ph) => (ph.id === updated.id ? updated : ph)) } : lb
+            );
           }}
-          onDeleted={() => {}}
+          onDeleted={(photoId) => {
+            setPosts((prev) => prev.map((p) => ({ ...p, photos: p.photos.filter((ph) => ph.id !== photoId) })));
+          }}
         />
       )}
     </div>

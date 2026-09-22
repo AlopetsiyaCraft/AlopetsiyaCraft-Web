@@ -144,6 +144,7 @@ export const bootstrapSql = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     photo_id INTEGER NOT NULL REFERENCES photos(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
+    parent_id INTEGER REFERENCES photo_comments(id),
     text TEXT NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
@@ -165,6 +166,7 @@ export const bootstrapSql = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     post_id INTEGER NOT NULL REFERENCES wall_posts(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
+    parent_id INTEGER REFERENCES post_comments(id),
     text TEXT NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
@@ -182,9 +184,11 @@ export const bootstrapSql = `
   CREATE INDEX IF NOT EXISTS idx_photos_season ON photos(season_id);
   CREATE INDEX IF NOT EXISTS idx_photos_user ON photos(user_id);
   CREATE INDEX IF NOT EXISTS idx_photo_comments_photo ON photo_comments(photo_id);
+  CREATE INDEX IF NOT EXISTS idx_photo_comments_parent ON photo_comments(parent_id);
   CREATE INDEX IF NOT EXISTS idx_wall_posts_user ON wall_posts(user_id);
   CREATE INDEX IF NOT EXISTS idx_post_photos_post ON post_photos(post_id);
   CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id);
+  CREATE INDEX IF NOT EXISTS idx_post_comments_parent ON post_comments(parent_id);
   CREATE INDEX IF NOT EXISTS idx_friends_a ON friends(user_id);
   CREATE INDEX IF NOT EXISTS idx_friends_b ON friends(friend_id);
 `;
@@ -192,6 +196,17 @@ export const bootstrapSql = `
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */
 export async function initDatabase() {
   const client = createDbClient();
+  // legacy: ответы на комментарии (дерево) — колонка нужна до создания индексов
+  try {
+    await client.execute(`ALTER TABLE photo_comments ADD COLUMN parent_id INTEGER`);
+  } catch (e) {
+    // column already exists (fresh db has it in CREATE TABLE)
+  }
+  try {
+    await client.execute(`ALTER TABLE post_comments ADD COLUMN parent_id INTEGER`);
+  } catch (e) {
+    // column already exists (fresh db has it in CREATE TABLE)
+  }
   await client.executeMultiple(bootstrapSql);
   try {
     // legacy: older local DBs created without skin_url

@@ -43,6 +43,7 @@ export default async function GalleryPage() {
           seasons={seasonOptions}
           isLoggedIn={!!session}
           viewerId={viewer?.id ?? null}
+          viewerNickname={viewer?.name ?? null}
         />
       </main>
     </div>
