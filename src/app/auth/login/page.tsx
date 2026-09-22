@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,6 +9,16 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Возврат после входа: /auth/login?callbackUrl=... (используется при
+  // прерванной авторизации Discord, когда кука сессии не долетела).
+  const [callbackUrl, setCallbackUrl] = useState("/");
+
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get("callbackUrl");
+    if (param && param.startsWith("/")) {
+      setCallbackUrl(param);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,7 +41,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Неверный никнейм или пароль");
       } else {
-        router.push("/");
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch (err) {

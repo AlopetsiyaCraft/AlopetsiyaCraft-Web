@@ -10,32 +10,42 @@ import { users } from "@/lib/db/schema";
  * и (по возможности) добавляет пользователя на сервер AlopetsiyaCraft —
  * со scope guilds.join и правом бота Create Instant Invite.
  *
- * Требует входа на сайт (session) и настроенных DISCORD_CLIENT_ID/SECRET
- * в .env. Redirect URI должен быть зарегистрирован в Developer Portal:
- *   <WEBSITE_URL>/api/discord/oauth2/callback
+ * Все редиректы — абсолютные (request.nextUrl.origin), т.к. Next.js требует
+ * абсолютные URL в NextResponse.redirect. Origin берём из запроса, чтобы
+ * вернуть пользователя на тот же хост (localhost/127.0.0.1), где у него
+ * есть кука сессии.
  */
 export async function GET(request: NextRequest) {
+  const base = (process.env.WEBSITE_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
+  // origin строим из заголовка Host (см. oauth2/route.ts).
+  const host = request.headers.get("host") || new URL(base).host;
+  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "http";
+  const origin = `${proto}://${host}`;
+  const successUrl = `${origin}/profile/settings?discord=linked`;
+  const errorUrl = `${origin}/profile/settings?discord=error`;
+
   const code = request.nextUrl.searchParams.get("code") ?? "";
   if (!code) {
-    return NextResponse.redirect("/profile/settings?discord=error");
+    return NextResponse.redirect(errorUrl);
   }
 
   const clientId = process.env.DISCORD_CLIENT_ID || "";
   const clientSecret = process.env.DISCORD_CLIENT_SECRET || "";
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect("/profile/settings?discord=error");
+    return NextResponse.redirect(errorUrl);
   }
 
   const session = await auth();
   const userId = Number.parseInt(session?.user?.id ?? "", 10);
   if (!Number.isFinite(userId)) {
-    // Не залогинен — отправим на логин; после входа пользователь снова
-    // нажмёт «Привязать Discord».
-    return NextResponse.redirect("/auth/login");
+    // Куки сессии нет (например, Discord вернул на другой хост) — отправляем
+    // на логин; после входа пользователь вернётся на страницу настроек и
+    // снова нажмёт «Привязать Discord».
+    const loginUrl = `${origin}/auth/login?callbackUrl=${encodeURIComponent("/profile/settings")}`;
+    return NextResponse.redirect(loginUrl);
   }
 
-  const base = (process.env.WEBSITE_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
-  const redirect = `${base}/api/discord/oauth2/callback`;
+  const redirect = `${origin}/api/discord/oauth2/callback`;
 
   // Обмен кода на токен.
   let tokenRes: Response;
@@ -52,16 +62,16 @@ export async function GET(request: NextRequest) {
       }),
     });
   } catch {
-    return NextResponse.redirect("/profile/settings?discord=error");
+    return NextResponse.redirect(errorUrl);
   }
   if (!tokenRes.ok) {
     const body = await tokenRes.text().catch(() => "");
     console.error("Discord token exchange failed:", tokenRes.status, body);
-    return NextResponse.redirect("/profile/settings?discord=error");
+    return NextResponse.redirect(errorUrl);
   }
   const token = (await tokenRes.json()) as { access_token?: string };
   if (!token.access_token) {
-    return NextResponse.redirect("/profile/settings?discord=error");
+    return NextResponse.redirect(errorUrl);
   }
 
   // Информация о Discord-аккаунте.
@@ -69,7 +79,7 @@ export async function GET(request: NextRequest) {
     headers: { Authorization: `Bearer ${token.access_token}` },
   });
   if (!meRes.ok) {
-    return NextResponse.redirect("/profile/settings?discord=error");
+    return NextResponse.redirect(errorUrl);
   }
   const me = (await meRes.json()) as { id: string };
 
@@ -82,8 +92,6 @@ export async function GET(request: NextRequest) {
 
   // Добавление на сервер (best-effort): работает, если бот в этой гильдии,
   // у него есть право Create Instant Invite, а пользователь дал guilds.join.
-  // Для уже состоящих в сервере возвращается 204 — сюда же можно передать
-  // ник, который будет выставлен при добавлении.
   const guildId = process.env.DISCORD_GUILD_ID || "";
   if (guildId) {
     try {
@@ -112,5 +120,5 @@ export async function GET(request: NextRequest) {
   await db.update(users).set({ discordId: null }).where(eq(users.discordId, me.id)).run();
   await db.update(users).set({ discordId: me.id }).where(eq(users.id, userId)).run();
 
-  return NextResponse.redirect("/profile/settings?discord=linked");
+  return NextResponse.redirect(successUrl);
 }
