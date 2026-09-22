@@ -16,14 +16,19 @@ export default function SettingsForm({
   initialSkinUrl,
   initialCapeUrl,
   initialNickname,
+  initialSkinModel,
 }: {
   initialSkinUrl?: string | null;
   initialCapeUrl?: string | null;
   initialNickname: string;
+  initialSkinModel?: "wide" | "slim";
 }) {
   const [skinUrl, setSkinUrl] = useState<string | null>(initialSkinUrl ?? null);
   const [capeUrl, setCapeUrl] = useState<string | null>(initialCapeUrl ?? null);
   const [nickname, setNickname] = useState(initialNickname);
+  const [skinModel, setSkinModel] = useState<"wide" | "slim">(initialSkinModel ?? "wide");
+  const [modelSaving, setModelSaving] = useState(false);
+  const [modelMessage, setModelMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [nameMessage, setNameMessage] = useState<string | null>(null);
@@ -147,6 +152,27 @@ export default function SettingsForm({
     setLoading(false);
   }
 
+  async function handleModelChange(model: "wide" | "slim") {
+    if (model === skinModel || modelSaving) return;
+    setModelSaving(true);
+    setModelMessage(null);
+
+    const res = await fetch("/api/user/skin-model", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model }),
+    });
+
+    if (res.ok) {
+      setSkinModel(model);
+      setModelMessage("Модель сохранена — в игре обновится после перезахода");
+    } else {
+      const data = await res.json().catch(() => null);
+      setModelMessage(data?.error || "Ошибка сохранения");
+    }
+    setModelSaving(false);
+  }
+
   async function handleNameChange() {
     if (nickname === initialNickname) {
       setNameMessage("Это уже ваш никнейм");
@@ -223,6 +249,7 @@ export default function SettingsForm({
               <SkinViewer
                 skinUrl={previewSkinUrl || ""}
                 capeUrl={previewCapeUrl}
+                model={skinModel === "slim" ? "slim" : "default"}
                 width={300}
                 height={400}
                 showControls={!!previewSkinUrl}
@@ -258,6 +285,43 @@ export default function SettingsForm({
           </div>
 
           <div className="flex-1 space-y-4">
+            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4">
+              <label className="block text-sm font-medium mb-2">Модель персонажа</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleModelChange("wide")}
+                  disabled={modelSaving}
+                  className={`px-4 py-2 rounded-lg text-sm border transition-colors disabled:opacity-50 ${
+                    skinModel === "wide"
+                      ? "bg-[#7c3aed] border-[#7c3aed] text-white"
+                      : "bg-[var(--card)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
+                  }`}
+                >
+                  Стив (широкая)
+                </button>
+                <button
+                  onClick={() => handleModelChange("slim")}
+                  disabled={modelSaving}
+                  className={`px-4 py-2 rounded-lg text-sm border transition-colors disabled:opacity-50 ${
+                    skinModel === "slim"
+                      ? "bg-[#7c3aed] border-[#7c3aed] text-white"
+                      : "bg-[var(--card)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
+                  }`}
+                >
+                  Алекс (тонкая)
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                Выбери под свой скин: тонкие руки (Алекс) или стандартные (Стив).
+                Именно с такой моделью ты будешь виден в игре.
+              </p>
+              {modelMessage && (
+                <p className={`mt-2 text-xs ${modelMessage.includes("Ошибка") ? "text-red-500" : "text-green-500"}`}>
+                  {modelMessage}
+                </p>
+              )}
+            </div>
+
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}

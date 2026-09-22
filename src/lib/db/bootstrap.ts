@@ -27,6 +27,7 @@ export const bootstrapSql = `
     ip_address TEXT,
     skin_url TEXT,
     cape_url TEXT,
+    skin_model TEXT NOT NULL DEFAULT 'wide',
     discord_id TEXT,
     role TEXT NOT NULL DEFAULT 'user',
     last_active_at INTEGER,
@@ -118,6 +119,13 @@ export async function initDatabase() {
   try {
     // legacy: Discord-связка аккаунтов (discord_id у пользователя)
     await client.execute(`ALTER TABLE users ADD COLUMN discord_id TEXT`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: модель персонажа (wide = Стив, slim = Алекс) — её выбирает
+    // сам игрок, PNG 64x64 сам по себе не сообщает, тонкая модель или широкая
+    await client.execute(`ALTER TABLE users ADD COLUMN skin_model TEXT NOT NULL DEFAULT 'wide'`);
   } catch (e) {
     // column already exists
   }

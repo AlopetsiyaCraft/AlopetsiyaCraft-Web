@@ -7,6 +7,8 @@ import { CanvasTexture, RepeatWrapping } from "three";
 interface SkinViewerProps {
   skinUrl: string;
   capeUrl?: string | null;
+  /** Модель персонажа: "default" (Стив, широкая) или "slim" (Алекс). Без значения — auto-detect. */
+  model?: "default" | "slim";
   width?: number;
   height?: number;
   showControls?: boolean;
@@ -43,6 +45,7 @@ function createCheckerTexture(w: number, h: number): CanvasTexture {
 export default function SkinViewer({
   skinUrl,
   capeUrl,
+  model,
   width = 300,
   height = 300,
   showControls = true,
@@ -77,7 +80,7 @@ export default function SkinViewer({
     viewer.controls.enableZoom = false;
     viewer.controls.enablePan = false;
 
-    viewer.loadSkin(skinUrl);
+    viewer.loadSkin(skinUrl, model ? { model } : undefined);
 
     if (capeUrl) {
       viewer.loadCape(capeUrl);
@@ -102,7 +105,7 @@ export default function SkinViewer({
       observer.disconnect();
       viewer.dispose();
     };
-  }, [skinUrl, capeUrl, width, height, resetKey]);
+  }, [skinUrl, capeUrl, model, width, height, resetKey]);
 
   function toggleAnimation() {
     const viewer = viewerRef.current;

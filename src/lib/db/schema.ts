@@ -9,6 +9,7 @@ export const users = sqliteTable("users", {
   ipAddress: text("ip_address"),
   skinUrl: text("skin_url"),
   capeUrl: text("cape_url"),
+  skinModel: text("skin_model", { enum: ["wide", "slim"] }).notNull().default("wide"),
   discordId: text("discord_id").unique(),
   role: text("role", { enum: ["user", "admin"] }).notNull().default("user"),
   lastActiveAt: integer("last_active_at", { mode: "timestamp" }),

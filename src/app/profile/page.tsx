@@ -84,7 +84,11 @@ export default async function ProfilePage({
             <div className="flex flex-col sm:flex-row gap-8">
               <div className="flex-shrink-0">
                 {profileUser.skinUrl ? (
-                  <ProfileSkinViewer skinUrl={profileUser.skinUrl} capeUrl={profileUser.capeUrl} />
+                  <ProfileSkinViewer
+                    skinUrl={profileUser.skinUrl}
+                    capeUrl={profileUser.capeUrl}
+                    model={profileUser.skinModel === "slim" ? "slim" : "default"}
+                  />
                 ) : (
                   <div className="w-[300px] h-[300px] bg-[var(--bg)] border border-[var(--border)] rounded-lg flex items-center justify-center">
                     <span className="text-[var(--text-muted)] text-xs">Нет скина</span>

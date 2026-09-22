@@ -11,10 +11,18 @@ const SkinViewer = dynamic(() => import("@/components/SkinViewer"), {
   ),
 });
 
-export default function ProfileSkinViewer({ skinUrl, capeUrl }: { skinUrl: string; capeUrl?: string | null }) {
+export default function ProfileSkinViewer({
+  skinUrl,
+  capeUrl,
+  model,
+}: {
+  skinUrl: string;
+  capeUrl?: string | null;
+  model?: "default" | "slim";
+}) {
   return (
     <div className="rounded-lg border-2 border-[var(--border)] overflow-hidden">
-      <SkinViewer skinUrl={skinUrl} capeUrl={capeUrl} width={300} height={300} showControls={true} />
+      <SkinViewer skinUrl={skinUrl} capeUrl={capeUrl} model={model} width={300} height={300} showControls={true} />
     </div>
   );
 }

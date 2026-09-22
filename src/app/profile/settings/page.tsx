@@ -71,7 +71,12 @@ export default async function SettingsPage({
           </div>
         )}
 
-        <SettingsForm initialSkinUrl={user.skinUrl} initialCapeUrl={user.capeUrl} initialNickname={user.nickname} />
+        <SettingsForm
+          initialSkinUrl={user.skinUrl}
+          initialCapeUrl={user.capeUrl}
+          initialNickname={user.nickname}
+          initialSkinModel={user.skinModel}
+        />
 
         <div className="mt-6">
           <DiscordLinkCard discordId={user.discordId} oauthUrl={oauthUrl} />
