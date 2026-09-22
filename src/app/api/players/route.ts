@@ -24,13 +24,16 @@ export async function GET() {
 
     const players = allUsers.map((user) => {
       const isServerOnline = serverOnlineNicknames.has(user.nickname);
+      // drizzle converts NULL to epoch-0 Date (1970); treat it as "never active"
+      const lastActiveMs = user.lastActiveAt instanceof Date ? user.lastActiveAt.getTime() : 0;
       const isSiteOnline =
         !isServerOnline &&
-        user.lastActiveAt &&
-        now.getTime() - new Date(user.lastActiveAt).getTime() < SITE_ONLINE_THRESHOLD_MS;
+        lastActiveMs > 0 &&
+        now.getTime() - lastActiveMs < SITE_ONLINE_THRESHOLD_MS;
 
       return {
         ...user,
+        lastActiveAt: lastActiveMs > 0 ? user.lastActiveAt : null,
         status: isServerOnline ? "server" : isSiteOnline ? "site" : "offline",
       };
     });
