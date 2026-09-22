@@ -5,6 +5,13 @@
  * и отправляет их на сайт в /api/chat/from-server с source="discord".
  * Дальше мод chatbridge подхватывает их поллингом и выводит в игру как
  * [Discord] <ник>: сообщение, а чат на сайте показывает их тоже.
+ * Если Discord-аккаунт автора привязан к профилю сайта, сайт сам подставит
+ * НИК САЙТА (а не ник Discord) — в MC-чате будет единый игровой ник с головой.
+ *
+ * Синхронизация ников: бот переименовывает участников сервера в ник их
+ * профиля сайта (при входе, при смене ника и разово при запуске).
+ * Нужно: Privileged Intent «Server Members» в Developer Portal бота
+ * и право «Управление никами» (Manage Nicknames) у бота на сервере.
  *
  * Запуск:
  *   npm run discord-bot
@@ -26,6 +33,7 @@ import {
   Events,
   Message,
   ActivityType,
+  GuildMember,
 } from "discord.js";
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN || "";
@@ -38,6 +46,9 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    // Нужен, чтобы видеть участников сервера (вход/смена ника).
+    // Включается как Privileged Intent на странице бота в Discord Developer Portal.
+    GatewayIntentBits.GuildMembers,
   ],
 });
 
@@ -70,7 +81,10 @@ async function forwardToWebsite(message: Message): Promise<void> {
     nickname: nickname.slice(0, 32),
     message: message.content.trim().slice(0, 500),
     source: "discord",
+    discordUserId: message.author.id,
   };
+
+  console.log(`[Discord→site] authorId=${message.author.id} nick="${nickname}": ${payload.message.slice(0, 60)}`);
 
   try {
     const res = await fetch(`${WEBSITE_URL}/api/chat/from-server`, {
@@ -89,13 +103,60 @@ async function forwardToWebsite(message: Message): Promise<void> {
   }
 }
 
-client.once(Events.ClientReady, (c) => {
+/**
+ * Ник участника на Discord-сервере = ник его профиля сайта.
+ * Резолвим Discord ID через GET /api/discord; если аккаунт привязан —
+ * переименовываем участника. Требует у бота права «Управление никами»
+ * (Manage Nicknames) на сервере.
+ */
+async function syncNickname(member: GuildMember): Promise<void> {
+  if (member.user.bot) return;
+  if (!API_KEY) return;
+  try {
+    const res = await fetch(
+      `${WEBSITE_URL}/api/discord?discordId=${encodeURIComponent(member.id)}`,
+      { headers: { "x-api-key": API_KEY } }
+    );
+    if (res.status === 404) return; // не привязан — ник не трогаем
+    if (!res.ok) {
+      console.error(`Сайт ответил ${res.status} на /api/discord`);
+      return;
+    }
+    const data = (await res.json()) as { nickname?: string };
+    if (!data.nickname || member.nickname === data.nickname) return;
+    await member.setNickname(data.nickname);
+    console.log(`Discord: ник участника ${member.user.tag} → ${data.nickname}`);
+  } catch (error) {
+    console.error(
+      `Discord: не удалось переименовать ${member.user.tag} ` +
+        `(нужно право Manage Nicknames у бота):`,
+      error
+    );
+  }
+}
+
+client.once(Events.ClientReady, async (c) => {
   console.log(
     `Discord-бот ${c.user.tag} подключён${
       CHANNEL_ID ? `, канал: ${CHANNEL_ID}` : " (все каналы)"
     } → ${WEBSITE_URL}`
   );
-  c.user.setActivity("чат AlopetsiyaCraft", { type: ActivityType.Watching });
+  await c.user.setActivity("чат AlopetsiyaCraft", { type: ActivityType.Watching });
+
+  // разовая синхронизация ников уже сидящих участников (после рестарта бота)
+  for (const guild of c.guilds.cache.values()) {
+    try {
+      const members = await guild.members.fetch();
+      for (const member of members.values()) {
+        await syncNickname(member);
+      }
+    } catch (error) {
+      console.error(
+        `Discord: не смог получить участников сервера «${guild.name}»:`,
+        error
+      );
+    }
+  }
 });
 
 client.on(Events.MessageCreate, async (message) => {
@@ -116,6 +177,16 @@ client.on(Events.MessageCreate, async (message) => {
   if (text.startsWith("/")) return;
 
   await forwardToWebsite(message);
+});
+
+// Ник участника = ник сайта: переименовываем при входе на сервер
+// и при смене ника (событие придёт и после нашего собственного
+// переименования, но там ник уже совпадёт — повторного действия нет).
+client.on(Events.GuildMemberAdd, (member) => {
+  void syncNickname(member);
+});
+client.on(Events.GuildMemberUpdate, (_oldMember, member) => {
+  void syncNickname(member);
 });
 
 function shutdown(signal: string) {

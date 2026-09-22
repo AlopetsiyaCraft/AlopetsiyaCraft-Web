@@ -27,6 +27,7 @@ export const bootstrapSql = `
     ip_address TEXT,
     skin_url TEXT,
     cape_url TEXT,
+    discord_id TEXT,
     role TEXT NOT NULL DEFAULT 'user',
     last_active_at INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
@@ -111,6 +112,12 @@ export async function initDatabase() {
   try {
     // legacy: chat bridge source column
     await client.execute(`ALTER TABLE chat_logs ADD COLUMN source TEXT NOT NULL DEFAULT 'website'`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: Discord-связка аккаунтов (discord_id у пользователя)
+    await client.execute(`ALTER TABLE users ADD COLUMN discord_id TEXT`);
   } catch (e) {
     // column already exists
   }

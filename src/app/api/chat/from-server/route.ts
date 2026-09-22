@@ -40,13 +40,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "nickname и message обязательны" }, { status: 400 });
   }
 
+  // Discord-сообщения: если Discord-аккаунт привязан к профилю сайта —
+  // пишем в чат НИК САЙТА (а не ник Discord), чтобы в MC и на сайте был
+  // единый игровой ник с правильной головой и скином.
+  let storedNickname = nickname;
+  if (source === "discord" && typeof body?.discordUserId === "string" && body.discordUserId.trim()) {
+    const linked = await db
+      .select({ nickname: users.nickname })
+      .from(users)
+      .where(eq(users.discordId, body.discordUserId.trim()))
+      .limit(1)
+      .get();
+    if (linked) storedNickname = linked.nickname;
+  }
+
   const seasonId = await getActiveSeasonId();
 
   await db
     .insert(chatLogs)
     .values({
       seasonId,
-      nickname,
+      nickname: storedNickname,
       message,
       source,
     })
