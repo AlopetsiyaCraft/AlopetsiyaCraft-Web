@@ -41,6 +41,20 @@ const client = new Client({
   ],
 });
 
+/** Недавно обработанные ID сообщений — защита от дублей при reconnect-реиграле гейтвея. */
+const seenMessageIds = new Set<string>();
+const SEEN_CAP = 500;
+
+function markSeen(id: string): boolean {
+  if (seenMessageIds.has(id)) return false;
+  seenMessageIds.add(id);
+  if (seenMessageIds.size > SEEN_CAP) {
+    const first = seenMessageIds.values().next().value;
+    if (first !== undefined) seenMessageIds.delete(first);
+  }
+  return true;
+}
+
 async function forwardToWebsite(message: Message): Promise<void> {
   if (!API_KEY) {
     console.error("CHAT_API_KEY не задан в .env — бот не может отправлять на сайт.");
@@ -79,7 +93,7 @@ client.once(Events.ClientReady, (c) => {
   console.log(
     `Discord-бот ${c.user.tag} подключён${
       CHANNEL_ID ? `, канал: ${CHANNEL_ID}` : " (все каналы)"
-    } → {WEBSITE_URL}`
+    } → ${WEBSITE_URL}`
   );
   c.user.setActivity("чат AlopetsiyaCraft", { type: ActivityType.Watching });
 });
@@ -91,6 +105,9 @@ client.on(Events.MessageCreate, async (message) => {
   if (message.author?.bot) return;
   if (!message.guild || !message.channel) return;
   if (CHANNEL_ID && message.channel.id !== CHANNEL_ID) return;
+
+  // дубли от reconnect-реиграла гейтвея пропускаем
+  if (!markSeen(message.id)) return;
 
   const text = message.content?.trim() ?? "";
   if (!text) return;
