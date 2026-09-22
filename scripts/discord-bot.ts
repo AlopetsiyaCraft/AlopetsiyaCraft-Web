@@ -72,6 +72,31 @@ function markSeen(id: string): boolean {
   return true;
 }
 
+/**
+ * Текст Discord-сообщения «как в Discord»: упоминания <@id>/<@!id> →
+ * "@Ник", <@&id> → "@роль", <#id> → "#канал", кастомные эмодзи
+ * <:name:id>/<a:name:id> → ":name:". Иначе в MC-чате/на сайте показывался
+ * бы сырой <@123456789> вместо ника.
+ */
+function renderContent(message: Message): string {
+  let text = message.content ?? "";
+  for (const user of message.mentions.users.values()) {
+    const name = message.guild?.members.cache.get(user.id)?.displayName ?? user.displayName ?? user.username;
+    text = text.split(`<@${user.id}>`).join(`@${name}`);
+    text = text.split(`<@!${user.id}>`).join(`@${name}`);
+  }
+  for (const role of message.mentions.roles.values()) {
+    text = text.split(`<@&${role.id}>`).join(`@${role.name}`);
+  }
+  for (const channel of message.mentions.channels.values()) {
+    if ("name" in channel && channel.name) {
+      text = text.split(`<#${channel.id}>`).join(`#${channel.name}`);
+    }
+  }
+  text = text.replace(/<a?:([A-Za-z0-9_]+):\d+>/g, ":$1:");
+  return text;
+}
+
 async function forwardToWebsite(message: Message): Promise<void> {
   if (!API_KEY) {
     console.error("CHAT_API_KEY не задан в .env — бот не может отправлять на сайт.");
@@ -85,7 +110,7 @@ async function forwardToWebsite(message: Message): Promise<void> {
 
   const payload = {
     nickname: nickname.slice(0, 32),
-    message: message.content.trim().slice(0, 500),
+    message: renderContent(message).trim().slice(0, 500),
     source: "discord",
     discordUserId: message.author.id,
   };
