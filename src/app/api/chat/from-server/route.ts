@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { asc, and, gt, ne } from "drizzle-orm";
+import { asc, and, eq, gt, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { chatLogs } from "@/lib/db/schema";
+import { chatLogs, users } from "@/lib/db/schema";
 import { checkBridgeKey, getActiveSeasonId } from "@/lib/bridge";
 import { notifyDiscord } from "@/lib/discord";
 
@@ -76,8 +76,10 @@ export async function GET(request: NextRequest) {
       nickname: chatLogs.nickname,
       message: chatLogs.message,
       createdAt: chatLogs.createdAt,
+      skinUrl: users.skinUrl,
     })
     .from(chatLogs)
+    .leftJoin(users, eq(chatLogs.nickname, users.nickname))
     .where(and(gt(chatLogs.createdAt, new Date(sinceSec * 1000)), ne(chatLogs.source, "minecraft")))
     .orderBy(asc(chatLogs.createdAt))
     .limit(200)
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       nickname: r.nickname,
       message: r.message,
       createdAt: r.createdAt.getTime(),
+      skinUrl: r.skinUrl,
     }))
   );
 }
