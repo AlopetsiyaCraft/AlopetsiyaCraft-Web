@@ -167,15 +167,16 @@ export default function Header({
 
                     <div className="border-t border-[var(--border)]" />
 
-                    <button
-                      disabled
-                      className="w-full flex items-center gap-3 px-4 py-3 text-[var(--text-muted)] cursor-default"
+                    <Link
+                      href="/profile/settings"
+                      onClick={() => setUserOpen(false)}
+                      className="w-full flex items-center gap-3 px-4 py-3 cursor-pointer text-[var(--text)]"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       Мой аккаунт
-                    </button>
+                    </Link>
                     <button
                       onClick={() => { setUserOpen(false); signOut({ callbackUrl: "/" }); }}
                       className="w-full flex items-center gap-3 px-4 py-3 cursor-pointer text-red-400"

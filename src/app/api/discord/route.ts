@@ -58,6 +58,9 @@ export async function POST(request: NextRequest) {
   if (!target) {
     return NextResponse.json({ error: "Пользователь с таким ником не найден" }, { status: 404 });
   }
+  // Привязка «переезжает»: если этот Discord ID уже привязан к другому
+  // аккаунту сайта, открепляем его оттуда (иначе — конфликт unique).
+  await db.update(users).set({ discordId: null }).where(eq(users.discordId, discordId)).run();
   await db.update(users).set({ discordId }).where(eq(users.id, target.id)).run();
   return NextResponse.json({ message: "OK", nickname, discordId });
 }
