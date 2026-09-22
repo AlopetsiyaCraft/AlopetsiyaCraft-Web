@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { chatLogs, users } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { getActiveSeasonId } from "@/lib/bridge";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
         id: chatLogs.id,
         nickname: chatLogs.nickname,
         message: chatLogs.message,
+        source: chatLogs.source,
         createdAt: chatLogs.createdAt,
         skinUrl: users.skinUrl,
       })
@@ -55,7 +57,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Сообщение слишком длинное" }, { status: 400 });
     }
 
-    const activeSeasonId = seasonId || 4;
+    const requested = seasonId ? parseInt(String(seasonId), 10) : NaN;
+    const activeSeasonId = Number.isFinite(requested) ? requested : await getActiveSeasonId();
 
     const result = await db
       .insert(chatLogs)
@@ -63,6 +66,7 @@ export async function POST(request: NextRequest) {
         seasonId: activeSeasonId,
         nickname: session.user.name || "Unknown",
         message: message.trim(),
+        source: "website",
       })
       .returning()
       .get();

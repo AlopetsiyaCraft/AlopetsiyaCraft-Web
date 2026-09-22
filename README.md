@@ -31,6 +31,7 @@ npm run dev         # или: npm run build && npm start
 | `AUTH_SECRET` | Секрет NextAuth. Генерация: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `DATABASE_URL` | **`file:./data/database.db`** — локальный файл (по умолчанию) или **`libsql://...`** — облачная база |
 | `DATABASE_AUTH_TOKEN` | Токен Turso (только для облачной базы) |
+| `CHAT_API_KEY` | Ключ чат-моста для мода Minecraft и Discord-бота (заголовок `x-api-key`) |
 
 ### Почему облачная база (Turso)?
 
@@ -70,6 +71,26 @@ npm run dev         # или: npm run build && npm start
 
 ## Что не хранится в git
 
-- `data/` — локальная SQLite-база
-- `public/uploads/` — скины, плащи, скриншоты
+- `data/` — локальная SQLite-база и загруженные файлы (скины, плащи, скриншоты)
+- `public/uploads/` — больше не используется (файлы переехали в `data/uploads/`)
 - `.env*` — секреты (кроме `.env.example`)
+
+## Чат-мост с сервером Minecraft
+
+На сервере стоит NeoForge-мод `chatbridge` (исходники в `IdeaProjects/chatbridge`),
+который связывает игровой чат с сайтом:
+
+- **Сервер → сайт**: мод шлёт `POST /api/chat/from-server` с заголовком
+  `x-api-key: <CHAT_API_KEY>` и телом `{"nickname": "...", "message": "..."}`
+  (игровой чат, заход/выход игроков). Сообщения сохраняются с `source="minecraft"`.
+- **Сайт → сервер**: мод поллит `GET /api/chat/from-server?since=<мс>` и выводит
+  в игру сообщения с `source="website"` (чат с сайта) и `source="discord"`
+  (будущий Discord-бот). Свои же сообщения сервера в ответе исключаются —
+  мод не выводит их в игру повторно (нет эффекта эха). `createdAt` отдаётся
+  в миллисекундах, как ожидает мод.
+- **Настройка на сервере**: в `config/chatbridge-common.toml` укажи
+  `websiteUrl` (URL сайта) и `chatApiKey`, совпадающий с `CHAT_API_KEY` в `.env`.
+
+Мод умеет помечать источник префиксом: `[Сайт]` (зелёный) и `[Discord]`
+(фиолетовый). Связка «сайт → Discord» (вебхук) и «Discord → сайт/сервер» (бот)
+планируется следующим этапом.

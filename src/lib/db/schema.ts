@@ -65,6 +65,7 @@ export const chatLogs = sqliteTable("chat_logs", {
     .references(() => seasons.id),
   nickname: text("nickname").notNull(),
   message: text("message").notNull(),
+  source: text("source").notNull().default("website"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

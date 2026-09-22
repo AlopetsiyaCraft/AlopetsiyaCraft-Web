@@ -65,6 +65,7 @@ export const bootstrapSql = `
     season_id INTEGER NOT NULL REFERENCES seasons(id),
     nickname TEXT NOT NULL,
     message TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'website',
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
 
@@ -104,6 +105,12 @@ export async function initDatabase() {
   try {
     // legacy: older local DBs created without skin_url
     await client.execute(`ALTER TABLE users ADD COLUMN skin_url TEXT`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: chat bridge source column
+    await client.execute(`ALTER TABLE chat_logs ADD COLUMN source TEXT NOT NULL DEFAULT 'website'`);
   } catch (e) {
     // column already exists
   }
