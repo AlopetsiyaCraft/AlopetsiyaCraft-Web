@@ -27,7 +27,12 @@ export async function DELETE(
   }
 
   const track = await db
-    .select({ id: audioTracks.id, userId: audioTracks.userId, fileName: audioTracks.fileName })
+    .select({
+      id: audioTracks.id,
+      userId: audioTracks.userId,
+      fileName: audioTracks.fileName,
+      coverFileName: audioTracks.coverFileName,
+    })
     .from(audioTracks)
     .where(eq(audioTracks.id, trackId))
     .limit(1)
@@ -56,6 +61,12 @@ export async function DELETE(
   const path = resolveAudioPath(String(track.userId), track.fileName);
   if (path) {
     unlink(path).catch(() => {});
+  }
+  if (track.coverFileName) {
+    const coverPath = resolveAudioPath(String(track.userId), track.coverFileName);
+    if (coverPath) {
+      unlink(coverPath).catch(() => {});
+    }
   }
 
   return NextResponse.json({ message: "Трек удалён" });

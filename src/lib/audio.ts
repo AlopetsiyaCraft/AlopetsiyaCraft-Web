@@ -46,3 +46,19 @@ export function getSiteBaseUrl(): string {
 export function trackFileUrl(trackId: number): string {
   return `${getSiteBaseUrl()}/api/audio/${trackId}/file`;
 }
+
+/** Максимальный размер обложки, байт (5 МБ). */
+export const MAX_COVER_BYTES = 5 * 1024 * 1024;
+
+/** Расширение файла обложки. */
+export const COVER_EXT = ".png";
+
+/** Путь к файлу обложки на диске (в том же корне audio/<userId>/). */
+export function coverFilePath(userId: number, fileName: string): string {
+  return audioRoot(String(userId), fileName);
+}
+
+/** Публичный URL обложки трека (используется UI и клиентским превью). */
+export function coverFileUrl(trackId: number): string {
+  return `${getSiteBaseUrl()}/api/audio/${trackId}/cover`;
+}

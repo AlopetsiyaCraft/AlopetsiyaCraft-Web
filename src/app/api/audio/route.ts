@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       title: audioTracks.title,
       artist: audioTracks.artist,
       size: audioTracks.size,
+      coverFileName: audioTracks.coverFileName,
       createdAt: audioTracks.createdAt,
     })
     .from(audioTracks)
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
       size: t.size,
       createdAt: t.createdAt.getTime(),
       url: `/api/audio/${t.id}/file`,
+      coverUrl: t.coverFileName ? `/api/audio/${t.id}/cover` : null,
     }))
   );
 }

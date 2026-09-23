@@ -9,6 +9,7 @@ export const audioTracks = sqliteTable("audio_tracks", {
   title: text("title").notNull(),
   artist: text("artist"),
   fileName: text("file_name").notNull(),
+  coverFileName: text("cover_file_name"),
   size: integer("size").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

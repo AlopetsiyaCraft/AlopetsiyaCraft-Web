@@ -105,6 +105,7 @@ export const bootstrapSql = `
     title TEXT NOT NULL,
     artist TEXT,
     file_name TEXT NOT NULL,
+    cover_file_name TEXT,
     size INTEGER NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
@@ -246,6 +247,12 @@ export async function initDatabase() {
     // legacy: модель персонажа (wide = Стив, slim = Алекс) — её выбирает
     // сам игрок, PNG 64x64 сам по себе не сообщает, тонкая модель или широкая
     await client.execute(`ALTER TABLE users ADD COLUMN skin_model TEXT NOT NULL DEFAULT 'wide'`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: пиксельная обложка пластинки (фото альбома, 16x16 PNG)
+    await client.execute(`ALTER TABLE audio_tracks ADD COLUMN cover_file_name TEXT`);
   } catch (e) {
     // column already exists
   }

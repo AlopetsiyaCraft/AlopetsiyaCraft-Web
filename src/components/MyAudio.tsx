@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import UploadModal from "./UploadModal";
 
 interface Track {
   id: number;
@@ -9,6 +10,7 @@ interface Track {
   size: number;
   createdAt: number;
   url: string;
+  coverUrl: string | null;
 }
 
 interface DiscState {
@@ -16,7 +18,6 @@ interface DiscState {
   error?: string;
 }
 
-const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 const POLL_TIMEOUTS = 30; // 30 × 2 c = до минуты ждём ответа сервера
 
 function formatSize(bytes: number): string {
@@ -58,13 +59,12 @@ export default function MyAudio({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [durations, setDurations] = useState<Record<number, number>>({});
   const [disc, setDisc] = useState<Record<number, DiscState>>({});
+  const [query, setQuery] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -94,33 +94,15 @@ export default function MyAudio({
     refresh();
   }, [refresh]);
 
-  async function handleUpload(file: File) {
-    if (!file.name.toLowerCase().endsWith(".mp3")) {
-      setUploadError("Только файлы .mp3");
-      return;
-    }
-    if (file.size > MAX_AUDIO_BYTES) {
-      setUploadError("Файл больше 15 МБ");
-      return;
-    }
-    setUploading(true);
-    setUploadError(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/audio/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(j?.error || "Ошибка загрузки");
-      }
-      await refresh();
-    } catch (e) {
-      setUploadError(e instanceof Error ? e.message : "Ошибка загрузки");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return tracks;
+    return tracks.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        (t.artist ? t.artist.toLowerCase().includes(q) : false)
+    );
+  }, [tracks, query]);
 
   function togglePlay(track: Track) {
     const audio = audioRef.current;
@@ -217,7 +199,8 @@ export default function MyAudio({
         </h1>
         {isOwn ? (
           <p className="text-[var(--text-muted)] text-sm mt-1">
-            Загрузи свои песни — потом в игре сделай из них пластинки (нужно быть онлайн).
+            Нажимай «Загрузить песню» — внутри выбери песню (.mp3) и фото обложки:
+            фото кадрируется в квадрате 1:1 и станет пиксельным (16×16) на пластинке в игре.
           </p>
         ) : (
           <p className="text-[var(--text-muted)] text-sm mt-1">Публичная библиотека игрока.</p>
@@ -225,19 +208,28 @@ export default function MyAudio({
       </div>
 
       {isOwn && (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".mp3,audio/mpeg"
-            className="text-sm text-[var(--text-secondary)] file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:bg-[#7c3aed] file:hover:bg-[#6d28d9] file:text-white file:text-xs file:font-medium file:border-0 file:cursor-pointer"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleUpload(f);
-            }}
-          />
-          {uploading && <span className="text-sm text-[var(--text-secondary)]">Загружаем…</span>}
-          {uploadError && <span className="text-sm text-red-400">{uploadError}</span>}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 min-w-0">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по своим песням…"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] pl-9 pr-3 py-2 text-sm text-[var(--text-secondary)] outline-none focus:border-[#7c3aed] transition-colors"
+            />
+          </div>
+          <button
+            onClick={() => setUploadOpen(true)}
+            className="shrink-0 px-4 py-2 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-medium transition-colors"
+            title="Загрузить новую песню с обложкой"
+          >
+            Загрузить песню
+          </button>
         </div>
       )}
 
@@ -247,11 +239,17 @@ export default function MyAudio({
         <div className="text-red-400 text-sm py-8 text-center">{loadError}</div>
       ) : tracks.length === 0 ? (
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg py-10 text-center text-[var(--text-muted)] text-sm">
-          {isOwn ? "Пока пусто. Загрузи свою первую песню!" : "У этого игрока пока нет аудио."}
+          {isOwn
+            ? "Пока пусто. Нажми «Загрузить песню» и добавь первую!"
+            : "У этого игрока пока нет аудио."}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg py-10 text-center text-[var(--text-muted)] text-sm">
+          Ничего не найдено по запросу «{query}».
         </div>
       ) : (
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg divide-y divide-[var(--border)]">
-          {tracks.map((track, i) => {
+          {filtered.map((track, i) => {
             const isPlaying = playingId === track.id;
             const dState = disc[track.id];
             return (
@@ -265,6 +263,18 @@ export default function MyAudio({
                 >
                   {isPlaying ? <PauseIcon /> : <PlayIcon />}
                 </button>
+
+                {track.coverUrl && (
+                  <div className="w-9 h-9 rounded border border-[var(--border)] overflow-hidden shrink-0 bg-[var(--hover)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={track.coverUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  </div>
+                )}
 
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{track.title}</div>
@@ -298,6 +308,16 @@ export default function MyAudio({
             );
           })}
         </div>
+      )}
+
+      {uploadOpen && (
+        <UploadModal
+          onClose={() => setUploadOpen(false)}
+          onUploaded={() => {
+            setUploadOpen(false);
+            refresh();
+          }}
+        />
       )}
 
       <audio
