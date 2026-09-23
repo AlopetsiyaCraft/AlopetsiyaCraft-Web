@@ -59,3 +59,14 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* скрыть скроллбар полностью (webkit + firefox) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}

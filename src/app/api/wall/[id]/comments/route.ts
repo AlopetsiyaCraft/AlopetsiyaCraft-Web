@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { postComments, users, wallPosts } from "@/lib/db/schema";
+import { postCommentLikes, postComments, users, wallPosts } from "@/lib/db/schema";
 import type { PostCommentItem } from "@/lib/profile";
 
 const authorAlias = alias(users, "author");
 const replyUserAlias = alias(users, "reply_user");
 const parentAlias = alias(postComments, "parent");
 
-/** GET /api/wall/[id]/comments — комментарии к записи (плоский список + parentId). */
+/** GET /api/wall/[id]/comments — комментарии к записи (плоский список + parentId + лайки). */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -30,6 +30,7 @@ export async function GET(
       createdAt: postComments.createdAt,
       authorId: postComments.userId,
       authorNickname: authorAlias.nickname,
+      authorSkinUrl: authorAlias.skinUrl,
       parentId: postComments.parentId,
       replyToNickname: replyUserAlias.nickname,
     })
@@ -41,17 +42,49 @@ export async function GET(
     .orderBy(asc(postComments.createdAt), asc(postComments.id))
     .all();
 
-  const items: PostCommentItem[] = rows.map((r) => ({
-    id: r.id,
-    postId: r.postId,
-    text: r.text,
-    createdAt: r.createdAt.getTime(),
-    authorId: r.authorId,
-    authorNickname: r.authorNickname ?? "unknown",
-    parentId: r.parentId ?? null,
-    replyToNickname: r.replyToNickname ?? null,
-    viewerIsAuthor: r.authorId === viewerId,
-  }));
+  // лайки одним запросом
+  const ids = rows.map((r) => r.id);
+  const likesByComment = new Map<
+    number,
+    Array<{ userId: number; nickname: string; skinUrl: string | null }>
+  >();
+  if (ids.length > 0) {
+    const likes = await db
+      .select({
+        commentId: postCommentLikes.commentId,
+        userId: postCommentLikes.userId,
+        nickname: users.nickname,
+        skinUrl: users.skinUrl,
+      })
+      .from(postCommentLikes)
+      .innerJoin(users, eq(postCommentLikes.userId, users.id))
+      .where(inArray(postCommentLikes.commentId, ids))
+      .all();
+    for (const lk of likes) {
+      const cur = likesByComment.get(lk.commentId) ?? [];
+      cur.push({ userId: lk.userId, nickname: lk.nickname ?? "unknown", skinUrl: lk.skinUrl ?? null });
+      likesByComment.set(lk.commentId, cur);
+    }
+  }
+
+  const items: PostCommentItem[] = rows.map((r) => {
+    const likers = likesByComment.get(r.id) ?? [];
+    return {
+      id: r.id,
+      postId: r.postId,
+      text: r.text,
+      createdAt: r.createdAt.getTime(),
+      authorId: r.authorId,
+      authorNickname: r.authorNickname ?? "unknown",
+      authorSkinUrl: r.authorSkinUrl ?? null,
+      parentId: r.parentId ?? null,
+      replyToNickname: r.replyToNickname ?? null,
+      viewerIsAuthor: r.authorId === viewerId,
+      likeCount: likers.length,
+      likedByMe: likers.some((l) => l.userId === viewerId),
+      likers: likers.map((l) => ({ nickname: l.nickname, skinUrl: l.skinUrl })),
+    };
+  });
   return NextResponse.json(items);
 }
 
@@ -101,7 +134,7 @@ export async function POST(
       .get();
 
     const [author, replyTo] = await Promise.all([
-      db.select({ nickname: users.nickname }).from(users).where(eq(users.id, row.userId)).get(),
+      db.select({ nickname: users.nickname, skinUrl: users.skinUrl }).from(users).where(eq(users.id, row.userId)).get(),
       parentId != null
         ? db
             .select({ nickname: users.nickname })
@@ -119,9 +152,13 @@ export async function POST(
       createdAt: row.createdAt.getTime(),
       authorId: row.userId,
       authorNickname: author?.nickname ?? "unknown",
+      authorSkinUrl: author?.skinUrl ?? null,
       parentId: row.parentId ?? null,
       replyToNickname: replyTo?.nickname ?? null,
       viewerIsAuthor: true,
+      likeCount: 0,
+      likedByMe: false,
+      likers: [],
     };
     return NextResponse.json(item, { status: 201 });
   } catch (error) {

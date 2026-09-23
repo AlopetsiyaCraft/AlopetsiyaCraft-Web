@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 export const audioTracks = sqliteTable("audio_tracks", {
@@ -246,6 +246,40 @@ export const postComments = sqliteTable("post_comments", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+export const photoCommentLikes = sqliteTable(
+  "photo_comment_likes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    commentId: integer("comment_id")
+      .notNull()
+      .references(() => photoComments.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({ commentUser: uniqueIndex("uq_photo_comment_likes").on(t.commentId, t.userId) })
+);
+
+export const postCommentLikes = sqliteTable(
+  "post_comment_likes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    commentId: integer("comment_id")
+      .notNull()
+      .references(() => postComments.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({ commentUser: uniqueIndex("uq_post_comment_likes").on(t.commentId, t.userId) })
+);
 
 /** Друзья: пара (userId, friendId) с user_id < friend_id, статус + кто запросил. */
 export const friends = sqliteTable("friends", {

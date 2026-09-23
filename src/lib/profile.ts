@@ -19,6 +19,12 @@ export interface PhotoItem {
   commentCount: number;
 }
 
+/** Кто оценил комментарий (для тултипа «Оценили»). */
+export interface CommentLikeUser {
+  nickname: string;
+  skinUrl: string | null;
+}
+
 /** База комментария (фото и стены): плоский список + parentId для дерева ответов. */
 interface CommentBase {
   id: number;
@@ -26,9 +32,13 @@ interface CommentBase {
   createdAt: number;
   authorNickname: string;
   authorId: number;
+  authorSkinUrl: string | null;
   parentId: number | null;
   replyToNickname: string | null;
   viewerIsAuthor: boolean;
+  likeCount: number;
+  likedByMe: boolean;
+  likers: CommentLikeUser[];
 }
 
 export interface PhotoCommentItem extends CommentBase {

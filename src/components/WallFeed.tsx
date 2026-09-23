@@ -117,6 +117,23 @@ export default function WallFeed({
     return false;
   }
 
+  async function toggleLike(postId: number, commentId: number) {
+    const res = await fetch(`/api/wall/${postId}/comments/${commentId}/like`, { method: "POST" });
+    if (!res.ok) return;
+    const r = (await res.json()) as {
+      liked: boolean;
+      likeCount: number;
+      likedByMe: boolean;
+      likers: { nickname: string; skinUrl: string | null }[];
+    };
+    setCommentsByPost((prev) => ({
+      ...prev,
+      [postId]: (prev[postId] ?? []).map((c) =>
+        c.id === commentId ? { ...c, likedByMe: r.likedByMe, likeCount: r.likeCount, likers: r.likers } : c
+      ),
+    }));
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {isOwn && (
@@ -247,6 +264,7 @@ export default function WallFeed({
                     comments={commentsByPost[post.id] ?? []}
                     viewerNickname={viewerNickname}
                     onAddComment={(text, parentId) => addComment(post.id, text, parentId)}
+                    onToggleLike={(commentId) => toggleLike(post.id, commentId)}
                     loginHint="Комментарии видны только зарегистрированным."
                   />
                 </div>

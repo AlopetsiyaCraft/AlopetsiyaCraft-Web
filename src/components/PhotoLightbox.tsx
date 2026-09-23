@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import CommentTree from "./CommentTree";
 import type { AlbumsListItem, PhotoCommentItem, PhotoItem } from "@/lib/profile";
@@ -32,9 +32,10 @@ function Chevron({ className, dir }: { className?: string; dir: "left" | "right"
 }
 
 /**
- * Полноэкранный просмотр фото (VK-стиль): чистая картинка по центру, стрелки и счётчик
- * прямо на фото, справа панель «прилегает» к фото по высоте. Переключение — клик по левой/
- * правой части фото, стрелки на клавиатуре. Клик вне фото — закрыть.
+ * Полноэкранный просмотр фото (VK-стиль): чуть затемнённый фон галереи, чистая картинка
+ * по центру, стрелки и счётчик прямо на фото. Справа панель высотой ровно как фото:
+ * мета сверху, комментарии скроллятся отдельно (без видимого скроллбара).
+ * Клик вне фото — закрыть, ← → / клавиши — переключение.
  */
 export default function PhotoLightbox({
   photos,
@@ -63,6 +64,8 @@ export default function PhotoLightbox({
   const [caption, setCaption] = useState(photos[index]?.caption ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [panelH, setPanelH] = useState<number | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   const photo = photos[index];
   const isOwner = !!viewerId && photo?.userId === viewerId;
@@ -119,6 +122,24 @@ export default function PhotoLightbox({
     };
   }, []);
 
+  // панель справа — строго по высоте фото, но не выше экрана
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    const update = () => {
+      const h = img.offsetHeight;
+      if (h > 0) setPanelH(Math.min(h, window.innerHeight - 24));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(img);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [photo?.id]);
+
   async function addComment(text: string, parentId: number | null): Promise<boolean> {
     if (!photo) return false;
     try {
@@ -137,6 +158,30 @@ export default function PhotoLightbox({
       return false;
     } catch {
       return false;
+    }
+  }
+
+  async function toggleLike(commentId: number) {
+    if (!photo) return;
+    try {
+      const res = await fetch(`/api/photos/${photo.id}/comments/${commentId}/like`, { method: "POST" });
+      if (res.ok) {
+        const r = (await res.json()) as {
+          liked: boolean;
+          likeCount: number;
+          likedByMe: boolean;
+          likers: { nickname: string; skinUrl: string | null }[];
+        };
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId
+              ? { ...c, likedByMe: r.likedByMe, likeCount: r.likeCount, likers: r.likers }
+              : c
+          )
+        );
+      }
+    } catch {
+      // молча: лайк не критичен
     }
   }
 
@@ -187,20 +232,15 @@ export default function PhotoLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden cursor-default"
+      className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center overflow-hidden cursor-default"
       onClick={onClose}
     >
-      <div
-        className="relative flex items-stretch shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
         {/* ---- Фото: чистая картинка, стрелки и счётчик прямо на ней ---- */}
-        <div
-          className="relative group cursor-pointer"
-          onClick={handleImageClick}
-        >
+        <div className="relative group cursor-pointer" onClick={handleImageClick}>
           <img
             key={photo.id}
+            ref={imgRef}
             src={photo.url}
             alt={photo.caption || "Фото"}
             className="max-h-screen max-w-[calc(100vw-412px)] object-contain select-none block"
@@ -239,9 +279,12 @@ export default function PhotoLightbox({
           )}
         </div>
 
-        {/* ---- Панель информации: прилегает к фото по высоте (как в VK) ---- */}
-        <aside className="w-[400px] max-w-[46vw] shrink-0 bg-[var(--card)] flex flex-col">
-          <div className="px-5 py-4 border-b border-[var(--border)]">
+        {/* ---- Панель информации: по высоте фото, комментарии скроллятся отдельно ---- */}
+        <aside
+          className="w-[400px] max-w-[46vw] shrink-0 bg-[var(--card)] flex flex-col overflow-hidden"
+          style={{ height: panelH ?? "auto" }}
+        >
+          <div className="px-5 py-4 border-b border-[var(--border)] shrink-0">
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <Link
@@ -267,9 +310,9 @@ export default function PhotoLightbox({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
-            <div className="px-5 py-4 space-y-4">
-              {/* Мета */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Основной блок (мета, подпись, правка) — не участвует в скролле комментариев */}
+            <div className="shrink overflow-y-auto no-scrollbar min-h-0 px-5 pt-4 pb-4 space-y-4">
               <div className="text-sm space-y-1.5">
                 <div className="flex gap-2">
                   <span className="text-[var(--text-muted)] shrink-0 w-32">Автор</span>
@@ -369,18 +412,28 @@ export default function PhotoLightbox({
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Комментарии */}
+            {/* Комментарии: отдельный скролл без видимого скроллбара */}
+            <div className="border-t border-[var(--border)] pt-3 px-5 pb-4 min-h-0 flex-1 flex flex-col overflow-hidden">
               {isLoggedIn ? (
-                <div className="border-t border-[var(--border)] pt-3">
-                  <h3 className="text-sm font-semibold mb-3">
+                <>
+                  <h3 className="text-sm font-semibold mb-2 shrink-0">
                     Комментарии{" "}
                     <span className="text-[var(--text-muted)] font-normal">({comments.length})</span>
                   </h3>
-                  <CommentTree comments={comments} viewerNickname={viewerNickname} onAddComment={addComment} />
-                </div>
+                  <div className="flex-1 min-h-0">
+                    <CommentTree
+                      panel
+                      comments={comments}
+                      viewerNickname={viewerNickname}
+                      onAddComment={addComment}
+                      onToggleLike={(commentId) => toggleLike(commentId)}
+                    />
+                  </div>
+                </>
               ) : (
-                <h3 className="text-sm font-semibold text-[var(--text-muted)] border-t border-[var(--border)] pt-3">
+                <h3 className="text-sm font-semibold text-[var(--text-muted)]">
                   Комментарии видны только зарегистрированным.
                 </h3>
               )}
