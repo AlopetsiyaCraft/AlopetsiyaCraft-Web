@@ -92,7 +92,10 @@ interface Node {
   children: Node[];
 }
 
-/** Строит дерево из плоского списка (по parentId). */
+/** Строит дерево из плоского списка (по parentId).
+ *  Ветвится только один уровень: ответы на корневой комментарий. Ответы на ответы
+ *  не углубляют дерево, а встают в ряд под этим же корневым комментарием
+ *  (как в соцсетях: весь тред — один плоский уровень с @-упоминанием адресата). */
 function buildTree(comments: AnyComment[]): Node[] {
   const byId = new Map<number, Node>();
   for (const c of comments) byId.set(c.id, { item: c, children: [] });
@@ -100,7 +103,12 @@ function buildTree(comments: AnyComment[]): Node[] {
   for (const c of comments) {
     const node = byId.get(c.id)!;
     if (c.parentId != null && byId.has(c.parentId)) {
-      byId.get(c.parentId)!.children.push(node);
+      // Поднимаемся к корневому комментарию и вешаем ответ под него (плоский тред).
+      let anchor = byId.get(c.parentId)!;
+      while (anchor.item.parentId != null && byId.has(anchor.item.parentId)) {
+        anchor = byId.get(anchor.item.parentId)!;
+      }
+      anchor.children.push(node);
     } else {
       roots.push(node);
     }
