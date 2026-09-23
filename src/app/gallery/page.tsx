@@ -9,7 +9,12 @@ import GalleryFeed from "@/components/GalleryFeed";
  * Общая галерея фото по сезонам. Открыта всем (в т.ч. без входа):
  * анонимам видны только фото «для всех», комментарии скрыты.
  */
-export default async function GalleryPage() {
+export default async function GalleryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ photo?: string; season?: string }>;
+}) {
+  const sp = await searchParams;
   const session = await auth();
   const seasonRows = await db.select().from(seasons).orderBy(desc(seasons.number)).all();
 
@@ -22,6 +27,8 @@ export default async function GalleryPage() {
     : null;
 
   const seasonOptions = seasonRows.map((s) => ({ id: s.id, number: s.number, name: s.name }));
+  const seasonId = sp?.season ? parseInt(sp.season, 10) : null;
+  const photoId = sp?.photo ? parseInt(sp.photo, 10) : null;
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
@@ -44,6 +51,8 @@ export default async function GalleryPage() {
           isLoggedIn={!!session}
           viewerId={viewer?.id ?? null}
           viewerNickname={viewer?.name ?? null}
+          initialSeasonId={seasonId}
+          openPhotoId={photoId}
         />
       </main>
     </div>

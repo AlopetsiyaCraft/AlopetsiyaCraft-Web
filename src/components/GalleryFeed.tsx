@@ -16,37 +16,51 @@ export default function GalleryFeed({
   viewerId,
   viewerNickname,
   fixedSeasonId,
+  initialSeasonId,
+  openPhotoId,
 }: {
   seasons: SeasonOption[];
   isLoggedIn: boolean;
   viewerId: number | null;
   viewerNickname?: string | null;
   fixedSeasonId?: number | null;
+  /** Сезон по умолчанию из ссылки (не фиксированный — фильтр можно менять). */
+  initialSeasonId?: number | null;
+  /** ID фото для открытия из ссылки (/gallery?photo=ID) — открывает лайтбокс на этом фото. */
+  openPhotoId?: number | null;
 }) {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [seasonFilter, setSeasonFilter] = useState<number | "all">(fixedSeasonId ?? "all");
+  const [seasonFilter, setSeasonFilter] = useState<number | "all">(initialSeasonId ?? fixedSeasonId ?? "all");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [openedPhoto, setOpenedPhoto] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const query = fixedSeasonId
-        ? `?seasonId=${fixedSeasonId}`
-        : seasonFilter === "all"
-          ? ""
-          : `?seasonId=${seasonFilter}`;
+      // По ссылке на конкретное фото грузим все фото (без фильтра сезона), чтобы его найти.
+      const season = openPhotoId != null ? "all" : fixedSeasonId ?? seasonFilter;
+      const query = season === "all" ? "" : `?seasonId=${season}`;
       const res = await fetch(`/api/photos${query}`);
       if (!res.ok) throw new Error("Ошибка загрузки");
-      setPhotos((await res.json()) as PhotoItem[]);
+      const list = (await res.json()) as PhotoItem[];
+      setPhotos(list);
       setError(null);
+      // Автооткрываем лайтбокс по ссылке (только один раз на этот ID).
+      if (openPhotoId != null && openedPhoto !== openPhotoId) {
+        const idx = list.findIndex((p) => p.id === openPhotoId);
+        if (idx >= 0) {
+          setLightboxIndex(idx);
+          setOpenedPhoto(openPhotoId);
+        }
+      }
     } catch {
       setError("Не удалось загрузить фото");
     } finally {
       setLoading(false);
     }
-  }, [seasonFilter, fixedSeasonId]);
+  }, [seasonFilter, fixedSeasonId, openPhotoId, openedPhoto]);
 
   useEffect(() => {
     refresh();

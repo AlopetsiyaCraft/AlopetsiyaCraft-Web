@@ -69,6 +69,27 @@ function MiniHead({ url, nickname }: { url: string | null; nickname: string }) {
   );
 }
 
+/** Маленькая голова 24px (для плашки «Ответ @ник…» — меньше, чем в комментариях). */
+function ReplyAvatar({ url, nickname }: { url: string | null; nickname: string }) {
+  return (
+    <div className="w-6 h-6 shrink-0 rounded overflow-hidden bg-[var(--hover)] flex items-center justify-center text-[10px] font-bold">
+      {url ? (
+        <div
+          className="w-6 h-6"
+          style={{
+            backgroundImage: `url(${url})`,
+            backgroundSize: "192px 192px",
+            backgroundPosition: "-24px -24px",
+            imageRendering: "pixelated",
+          }}
+        />
+      ) : (
+        <span className="text-[var(--text-secondary)]">{nickname[0]?.toUpperCase() ?? "?"}</span>
+      )}
+    </div>
+  );
+}
+
 interface CommentTreeProps {
   /** Плоский список комментариев (порядок: старшие раньше, ответы после родителей). */
   comments: AnyComment[];
@@ -82,9 +103,12 @@ interface CommentTreeProps {
   loginHint?: string;
   /**
    * Режим панели (лайтбокс): список скроллится в отдельной области без видимого
-   * скроллбара, а форма ввода закреплена снизу, не скроллится вместе со списком.
+   * скроллбара, а форма ввода закреплена снизу (отделена чертой) и при клике
+   * на поле раскрывается кнопками «Отмена» и «Отправить».
    */
   panel?: boolean;
+  /** Заголовок над списком (для режима панели), напр. «Комментарии (3)». */
+  listTitle?: string;
 }
 
 interface Node {
@@ -183,10 +207,12 @@ export default function CommentTree({
   onToggleLike,
   loginHint,
   panel = false,
+  listTitle,
 }: CommentTreeProps) {
   const [text, setText] = useState("");
   const [replyingTo, setReplyingTo] = useState<AnyComment | null>(null);
   const [sending, setSending] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const tree = useMemo(() => buildTree(comments), [comments]);
 
@@ -200,7 +226,15 @@ export default function CommentTree({
     if (ok) {
       setText("");
       setReplyingTo(null);
+      setFocused(false);
     }
+  }
+
+  /** «Отмена» в режиме поля сверху: сворачивает форму и чистит ответ/текст. */
+  function cancelComment() {
+    setText("");
+    setReplyingTo(null);
+    setFocused(false);
   }
 
   function renderNode(node: Node, depth: number) {
@@ -271,8 +305,12 @@ export default function CommentTree({
 
   return (
     <div className={panel ? "flex flex-col min-h-0 h-full" : "flex flex-col gap-3"}>
+      {listTitle && (
+        <h3 className={`text-sm font-semibold mb-2 shrink-0 ${panel ? "px-5 pt-3" : ""}`}>{listTitle}</h3>
+      )}
+
       {/* Список (в панели — отдельная скроллируемая область без видимого скроллбара) */}
-      <div className={panel ? "flex-1 min-h-0 overflow-y-auto no-scrollbar pr-1 -mr-1" : "space-y-3"}>
+      <div className={panel ? "flex-1 min-h-0 overflow-y-auto no-scrollbar pr-1 -mr-1 px-5" : "space-y-3"}>
         {tree.length === 0 ? (
           <p className="text-[var(--text-muted)] text-sm">Комментариев пока нет</p>
         ) : (
@@ -282,40 +320,92 @@ export default function CommentTree({
 
       {/* Ввод */}
       {viewerNickname ? (
-        <form className={panel ? "shrink-0 mt-2 flex flex-col gap-2" : "mt-0.5 flex flex-col gap-2"} onSubmit={submit}>
-          {replyingTo && (
-            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-1.5">
-              <span>
-                Ответ @{replyingTo.authorNickname}
-                {replyingTo.text ? `: «${replyingTo.text.slice(0, 40)}${replyingTo.text.length > 40 ? "…" : ""}»` : ""}
-              </span>
+        panel ? (
+          <>
+            {replyingTo && (
+              <div className="shrink-0 flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-1.5 mx-5 my-3">
+                <ReplyAvatar url={replyingTo.authorSkinUrl} nickname={replyingTo.authorNickname} />
+                <span className="min-w-0">
+                  Ответ <span className="text-[var(--text)] font-medium">@{replyingTo.authorNickname}</span>
+                  {replyingTo.text ? `: «${replyingTo.text.slice(0, 40)}${replyingTo.text.length > 40 ? "…" : ""}»` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="ml-auto shrink-0 text-[var(--text-muted)] hover:text-red-400"
+                  title="Отменить ответ"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {/* Полоса ввода: высота ровно как у нижнего блока под фото, черта — на одном уровне с ним */}
+            <form className="shrink-0 h-14 border-t border-[var(--border)] flex items-center gap-2 px-5" onSubmit={submit}>
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onFocus={() => setFocused(true)}
+                maxLength={500}
+                placeholder={replyingTo ? `Ответить ${replyingTo.authorNickname}…` : "Написать комментарий…"}
+                className="flex-1 min-w-0 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
+              />
+              {focused && (
+                <>
+                  <button
+                    type="button"
+                    onClick={cancelComment}
+                    className="px-2.5 py-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg transition-colors shrink-0 whitespace-nowrap"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!text.trim() || sending}
+                    className="px-3.5 py-1.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50 shrink-0 whitespace-nowrap"
+                  >
+                    {sending ? "…" : "Отправить"}
+                  </button>
+                </>
+              )}
+            </form>
+          </>
+        ) : (
+          <form className="mt-0.5 flex flex-col gap-2" onSubmit={submit}>
+            {replyingTo && (
+              <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-1.5">
+                <ReplyAvatar url={replyingTo.authorSkinUrl} nickname={replyingTo.authorNickname} />
+                <span className="min-w-0">
+                  Ответ <span className="text-[var(--text)] font-medium">@{replyingTo.authorNickname}</span>
+                  {replyingTo.text ? `: «${replyingTo.text.slice(0, 40)}${replyingTo.text.length > 40 ? "…" : ""}»` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="ml-auto shrink-0 text-[var(--text-muted)] hover:text-red-400"
+                  title="Отменить ответ"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                maxLength={500}
+                placeholder={replyingTo ? `Ответить ${replyingTo.authorNickname}…` : "Написать комментарий…"}
+                className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
+              />
               <button
-                type="button"
-                onClick={() => setReplyingTo(null)}
-                className="ml-auto text-[var(--text-muted)] hover:text-red-400"
-                title="Отменить ответ"
+                type="submit"
+                disabled={!text.trim() || sending}
+                className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
               >
-                ✕
+                {sending ? "…" : "Отправить"}
               </button>
             </div>
-          )}
-          <div className="flex gap-2">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              maxLength={500}
-              placeholder={replyingTo ? `Ответить ${replyingTo.authorNickname}…` : "Написать комментарий…"}
-              className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
-            />
-            <button
-              type="submit"
-              disabled={!text.trim() || sending}
-              className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
-            >
-              {sending ? "…" : "Отправить"}
-            </button>
-          </div>
-        </form>
+          </form>
+        )
       ) : (
         loginHint &&
         (panel ? (
