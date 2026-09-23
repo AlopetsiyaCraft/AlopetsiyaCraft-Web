@@ -208,9 +208,9 @@ export default function CommentTree({
     return (
       <div
         key={c.id}
-        className={depth > 0 ? "ml-9 pl-1.5 border-l border-[var(--border)] flex flex-col gap-3" : "flex flex-col gap-3"}
+        className={depth > 0 ? "ml-9 pl-1.5 flex flex-col gap-3" : "flex flex-col gap-3"}
       >
-        <div className="flex gap-2.5">
+        <div className="group/comment flex gap-2.5">
           <CommentAvatar url={c.authorSkinUrl} nickname={c.authorNickname} />
           <div className="flex-1 min-w-0">
             {/* Строка 1: имя (аватар слева от него) */}
@@ -252,7 +252,9 @@ export default function CommentTree({
               )}
               {viewerNickname && onToggleLike && (
                 <span
-                  className="cursor-pointer"
+                  className={`cursor-pointer inline-flex ml-auto transition-opacity duration-200 ${
+                    c.likeCount > 0 ? "opacity-100" : "opacity-0 group-hover/comment:opacity-100"
+                  }`}
                   onClick={() => onToggleLike(c.id)}
                   title={c.likedByMe ? "Убрать оценку" : "Оценить"}
                 >
