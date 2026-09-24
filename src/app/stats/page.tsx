@@ -146,15 +146,6 @@ export default async function StatsPage({
   const { rows } = await getLeaderboard(categoryKey);
   const viewerNickname = viewer?.name?.toLowerCase() ?? null;
 
-  const medalClass = (rank: number) =>
-    rank === 1
-      ? "bg-amber-400 text-black"
-      : rank === 2
-        ? "bg-slate-300 text-black"
-        : rank === 3
-          ? "bg-orange-600 text-white"
-          : "";
-
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Header
@@ -207,7 +198,7 @@ export default async function StatsPage({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)] bg-[var(--bg-alt)]">
-                    <th className="px-4 py-3 w-12 font-medium">#</th>
+                    <th className="px-4 py-3 w-16 text-right font-medium">#</th>
                     <th className="px-4 py-3 font-medium">Игрок</th>
                     {category.format !== "playtime" && (
                       <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
@@ -230,7 +221,9 @@ export default async function StatsPage({
                           isViewer ? "bg-[#7c3aed]/10" : "hover:bg-[var(--hover)]"
                         }`}
                       >
-                        <td className={`px-4 py-3 font-semibold ${medalClass(rank)}`}>{rank}</td>
+                        <td className="px-4 py-3 font-mono font-semibold text-[var(--text-muted)] text-right">
+                          #{rank}
+                        </td>
                         <td className="px-4 py-3">
                           <Link
                             href={`/profile/${encodeURIComponent(row.nickname)}`}
