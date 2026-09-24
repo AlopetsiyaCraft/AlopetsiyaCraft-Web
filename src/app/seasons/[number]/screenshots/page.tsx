@@ -42,12 +42,6 @@ export default async function SeasonScreenshotsPage({
 
   return (
     <div className="py-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Фото сезона {season.number}</h2>
-        <p className="text-[var(--text-muted)] text-sm mt-1">
-          Скриншоты и фото этого сезона. Загружать может любой зарегистрированный.
-        </p>
-      </div>
       <GalleryFeed
         seasons={seasonOptions}
         isLoggedIn={!!session}
