@@ -12,7 +12,10 @@ interface ChatMessage {
 }
 
 function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: string }) {
-  if (!skinUrl) {
+  // У «Системы» своя аватарка — голова скина из /avatars/system.png (CSS-кроп как у игроков).
+  const url = nickname === "System" ? "/avatars/system.png" : skinUrl;
+
+  if (!url) {
     return (
       <div className="w-10 h-10 flex-shrink-0 bg-[#7c3aed] flex items-center justify-center text-sm font-bold rounded">
         {nickname[0]?.toUpperCase() || "?"}
@@ -25,7 +28,7 @@ function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: str
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `url(${skinUrl})`,
+          backgroundImage: `url(${url})`,
           backgroundSize: "320px 320px",
           backgroundPosition: "-40px -40px",
           imageRendering: "pixelated",
@@ -34,7 +37,7 @@ function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: str
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `url(${skinUrl})`,
+          backgroundImage: `url(${url})`,
           backgroundSize: "320px 320px",
           backgroundPosition: "-200px -40px",
           imageRendering: "pixelated",
@@ -177,17 +180,29 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
         ) : (
           messages.map((msg) => (
             <div key={msg.id} className="flex items-start gap-3">
-              <Link href={`/profile?user=${msg.nickname}`} className="mt-1">
-                <ChatHead skinUrl={msg.skinUrl} nickname={msg.nickname} />
-              </Link>
+              {msg.nickname === "System" ? (
+                <div className="mt-1">
+                  <ChatHead skinUrl={msg.skinUrl} nickname={msg.nickname} />
+                </div>
+              ) : (
+                <Link href={`/profile?user=${msg.nickname}`} className="mt-1">
+                  <ChatHead skinUrl={msg.skinUrl} nickname={msg.nickname} />
+                </Link>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="mb-1">
-                  <Link
-                    href={`/profile?user=${msg.nickname}`}
-                    className="font-semibold text-sm text-[var(--text)] hover:underline"
-                  >
-                    {msg.nickname}
-                  </Link>
+                  {msg.nickname === "System" ? (
+                    <span className="font-semibold text-sm text-[var(--text-muted)]">
+                      {msg.nickname}
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/profile?user=${msg.nickname}`}
+                      className="font-semibold text-sm text-[var(--text)] hover:underline"
+                    >
+                      {msg.nickname}
+                    </Link>
+                  )}
                 </div>
                 <div className="flex items-end gap-2 pr-1">
                   <div className="bg-[var(--bubble)] rounded-2xl rounded-tl-sm px-4 py-2" style={{ maxWidth: "calc(100% - 60px)" }}>
