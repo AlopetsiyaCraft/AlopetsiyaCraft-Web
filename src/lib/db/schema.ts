@@ -468,3 +468,26 @@ export const playerStats = sqliteTable(
     categoryValue: index("idx_player_stats_category_value").on(t.category, t.value),
   })
 );
+
+/**
+ * Сессии входа на Minecraft-сервер по паролю сайта (мод AlopetsiyaAuth).
+ * Создаются при успешном POST /api/auth/mc-login: игрок ввёл ник+пароль
+ * (те же, что на сайте), сайт выдаёт сессию с привязкой к IP и сроком жизни
+ * (MC_SESSION_TTL_DAYS, по умолчанию 7 дней). При следующем входе мод
+ * спрашивает /api/auth/mc-check: если сессия с того же IP ещё жива — пароль
+ * не требуется. Один пользователь — одна активная сессия (новая заменяет старую).
+ */
+export const mcSessions = sqliteTable("mc_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  // Ник как в игре (canonical — как на сайте) и IP, с которого логинился.
+  nickname: text("nickname").notNull(),
+  ip: text("ip").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});

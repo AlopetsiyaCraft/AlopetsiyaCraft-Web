@@ -230,6 +230,18 @@ export const bootstrapSql = `
     UNIQUE(nickname, category)
   );
   CREATE INDEX IF NOT EXISTS idx_player_stats_category_value ON player_stats(category, value);
+
+  CREATE TABLE IF NOT EXISTS mc_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    nickname TEXT NOT NULL,
+    ip TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    expires_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_mc_sessions_nickname ON mc_sessions(nickname);
+  CREATE INDEX IF NOT EXISTS idx_mc_sessions_user ON mc_sessions(user_id);
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */
