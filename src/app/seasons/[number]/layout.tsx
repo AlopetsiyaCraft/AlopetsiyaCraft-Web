@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { seasons, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import Header from "@/components/Header";
+import SeasonTabs from "@/components/SeasonTabs";
 
 export default async function SeasonLayout({
   children,
@@ -66,17 +66,7 @@ export default async function SeasonLayout({
           )}
         </div>
 
-        <nav className="flex gap-1 border-b border-[var(--border)] mb-8">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="px-6 py-3 text-[var(--text-muted)] hover:text-[var(--text)] hover:border-b-2 hover:border-[#7c3aed] transition-colors"
-            >
-              {tab.name}
-            </Link>
-          ))}
-        </nav>
+        <SeasonTabs tabs={tabs} />
 
         {children}
       </main>

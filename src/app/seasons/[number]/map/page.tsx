@@ -1,5 +1,5 @@
 import BlueMapSection from "@/components/BlueMapSection";
 
 export default function SeasonMapPage() {
-  return <BlueMapSection />;
+  return <BlueMapSection showTitle={false} />;
 }

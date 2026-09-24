@@ -8,7 +8,7 @@ const BLUEMAP_URL = (process.env.BLUEMAP_URL ?? "http://127.0.0.1:8100").replace
  * скролла), без внутреннего скролла и без фокуса.
  * Если веб-сервер мода не отвечает — заглушка.
  */
-export default async function BlueMapSection() {
+export default async function BlueMapSection({ showTitle = true }: { showTitle?: boolean }) {
   let available = false;
   try {
     const controller = new AbortController();
@@ -22,7 +22,7 @@ export default async function BlueMapSection() {
 
   return (
     <section className="mt-8">
-      <h2 className="text-xl font-semibold mb-3">Карта мира</h2>
+      {showTitle && <h2 className="text-xl font-semibold mb-3">Карта мира</h2>}
       {available ? (
         <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-black">
           <iframe
