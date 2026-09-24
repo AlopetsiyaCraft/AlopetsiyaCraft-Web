@@ -179,10 +179,10 @@ export default async function StatsPage({
                   {STAT_CATEGORIES.map((c) => {
                     const active = c.key === sortKey;
                     return (
-                      <th key={c.key} className="px-2 py-2 text-center font-semibold">
+                      <th key={c.key} className="text-center font-semibold">
                         <Link
                           href={`/stats?sort=${c.key}`}
-                          className={`cursor-pointer transition-colors ${
+                          className={`flex items-center justify-center w-full h-full px-2 py-2 cursor-pointer transition-colors ${
                             active
                               ? "text-[var(--text)]"
                               : "text-[var(--text-muted)] hover:text-[var(--text)]"
