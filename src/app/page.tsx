@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { seasons, users } from "@/lib/db/schema";
@@ -6,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import LiveChat from "@/components/LiveChat";
 import PlayersOnline from "@/components/PlayersOnline";
+import BlueMapSection from "@/components/BlueMapSection";
 
 export default async function Home() {
   const session = await auth();
@@ -38,6 +38,8 @@ export default async function Home() {
               <PlayersOnline />
             </div>
           </div>
+
+          <BlueMapSection />
         </div>
       </main>
 
