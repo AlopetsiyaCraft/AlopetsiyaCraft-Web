@@ -26,17 +26,17 @@ export default function Header({
 }) {
   const [seasonsOpen, setSeasonsOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    // Инициализация сразу из localStorage — без setState в эффекте.
-    const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-    if (saved) {
-      document.documentElement.classList.toggle("light", saved === "light");
-      return saved;
-    }
-    return "dark";
-  });
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const seasonsRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme") as "dark" | "light" | null;
+    if (saved) {
+      setTheme(saved);
+      document.documentElement.classList.toggle("light", saved === "light");
+    }
+  }, []);
 
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
