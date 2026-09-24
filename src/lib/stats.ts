@@ -55,13 +55,6 @@ export const STAT_CATEGORIES: StatCategory[] = [
     format: "raw",
   },
   {
-    key: "items_crafted",
-    label: "Предметов создано",
-    hint: "Сколько предметов скрафчено (все виды суммарно)",
-    vanillas: ["сумма всех minecraft:crafted:minecraft:*"],
-    format: "raw",
-  },
-  {
     key: "walk_one_cm",
     label: "Пройдено пешком",
     hint: "Дистанция, пройденная пешком за всё время",
