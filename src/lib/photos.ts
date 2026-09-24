@@ -38,15 +38,22 @@ export function photoUrl(fileName: string): string {
  * Миниатюры фото, генерируются на сервере (sharp, JPEG) и лежат рядом с
  * оригиналом под детерминированными именами — новых колонок в БД не нужно:
  *  - <base>-thumb.jpg — ≤480px, для квадратиков «Фото» на стене и сеток;
- *  - <base>-post.jpg  — ≤576px (+20%), для вложений фото в постах стены
- *                       (они выводятся крупнее и при 480px мылятся).
+ *  - <base>-post.jpg  — ≤640px и мягче JPEG (quality 90), для вложений
+ *                       фото в постах стены (они выводятся крупнее и
+ *                       сильнее сжимать нельзя — мылятся).
  */
 
 /** Максимальная сторона миниатюры для сеток/блока «Фото» (px). */
 export const PHOTO_THUMB_MAX = 480;
 
 /** Максимальная сторона миниатюры для фото в постах стены (px). */
-export const PHOTO_POST_MAX = 576;
+export const PHOTO_POST_MAX = 640;
+
+/** Качество JPEG миниатюр (выше — меньше сжатие). */
+export const PHOTO_JPEG_QUALITY = 82;
+
+/** Качество JPEG миниатюр для постов (чуть мягче сжатие). */
+export const PHOTO_POST_JPEG_QUALITY = 90;
 
 /** Имя миниатюры для сеток/блока «Фото». */
 export function photoThumbFileName(fileName: string): string {

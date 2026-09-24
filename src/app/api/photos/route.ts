@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { photoAlbums, photos, seasons, users } from "@/lib/db/schema";
 import {
   MAX_PHOTO_BYTES,
+  PHOTO_JPEG_QUALITY,
+  PHOTO_POST_JPEG_QUALITY,
   PHOTO_POST_MAX,
   PHOTO_THUMB_MAX,
   generatePhotoFileName,
@@ -19,11 +21,11 @@ import {
 import { photoCommentCounts, toPhotoItem } from "@/lib/photoRows";
 
 /** Миниатюра фото: JPEG, не больше `max` по большей стороне, пропорции сохранены. */
-async function makePhotoThumb(bytes: Buffer, max: number): Promise<Buffer> {
+async function makePhotoThumb(bytes: Buffer, max: number, quality: number): Promise<Buffer> {
   return sharp(bytes)
     .rotate()
     .resize(max, max, { fit: "inside", withoutEnlargement: true })
-    .jpeg({ quality: 82 })
+    .jpeg({ quality })
     .toBuffer();
 }
 
@@ -148,8 +150,8 @@ export async function POST(request: NextRequest) {
     // именами: -thumb.jpg для квадратиков/сеток, -post.jpg для вложений
     // постов (чуть выше разрешение — посты выводят фото крупнее).
     // Сбой генерации не роняет загрузку — UI умеет фолбэчиться на оригинал.
-    const thumbBuf = await makePhotoThumb(bytes, PHOTO_THUMB_MAX).catch(() => null);
-    const postBuf = await makePhotoThumb(bytes, PHOTO_POST_MAX).catch(() => null);
+    const thumbBuf = await makePhotoThumb(bytes, PHOTO_THUMB_MAX, PHOTO_JPEG_QUALITY).catch(() => null);
+    const postBuf = await makePhotoThumb(bytes, PHOTO_POST_MAX, PHOTO_POST_JPEG_QUALITY).catch(() => null);
     await Promise.all([
       thumbBuf ? writeFile(photoRoot(photoThumbFileName(fileName)), thumbBuf) : Promise.resolve(),
       postBuf ? writeFile(photoRoot(photoPostFileName(fileName)), postBuf) : Promise.resolve(),
