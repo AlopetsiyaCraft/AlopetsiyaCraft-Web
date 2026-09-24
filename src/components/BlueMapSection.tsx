@@ -21,7 +21,7 @@ export default async function BlueMapSection({ showTitle = true }: { showTitle?:
   }
 
   return (
-    <section className="mt-8">
+    <section className="mb-8">
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
         {showTitle && (
           <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
