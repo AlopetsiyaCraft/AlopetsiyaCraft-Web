@@ -61,9 +61,6 @@ export default async function SeasonLayout({
         <div className="mb-8">
           <div className="text-sm text-[#7c3aed] mb-1">Сезон {season.number}</div>
           <h1 className="text-3xl font-bold">{season.name}</h1>
-          {season.description && (
-            <p className="text-[var(--text-secondary)] mt-2">{season.description}</p>
-          )}
         </div>
 
         <SeasonTabs tabs={tabs} />

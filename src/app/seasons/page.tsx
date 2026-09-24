@@ -47,9 +47,6 @@ export default async function SeasonsPage() {
                       Сезон {season.number}
                     </div>
                     <h2 className="text-2xl font-bold mb-3">{season.name}</h2>
-                    {season.description && (
-                      <p className="text-[var(--text-secondary)]">{season.description}</p>
-                    )}
                   </div>
                   {season.isActive && (
                     <span className="px-3 py-1 text-xs bg-green-900 text-green-300 rounded-full">

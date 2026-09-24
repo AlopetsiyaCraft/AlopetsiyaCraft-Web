@@ -7,25 +7,21 @@ const seedSeasons = [
   {
     number: 1,
     name: "АлопецияКрафт Сезон 1",
-    description: "Первый сезон нашего сервера",
     isActive: false,
   },
   {
     number: 2,
     name: "АлопецияКрафт Сезон 2",
-    description: "Второй сезон с новыми модами",
     isActive: false,
   },
   {
     number: 3,
     name: "АлопецияКрафт Сезон 3",
-    description: "Третий сезон с интеграцией Discord",
     isActive: false,
   },
   {
     number: 4,
     name: "АлопецияКрафт Сезон 4",
-    description: "Четвёртый сезон — Готовься!",
     isActive: true,
   },
 ];
