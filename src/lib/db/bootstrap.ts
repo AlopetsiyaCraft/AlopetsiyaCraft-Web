@@ -220,6 +220,16 @@ export const bootstrapSql = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
   CREATE INDEX IF NOT EXISTS idx_achievements_created ON achievements(created_at);
+
+  CREATE TABLE IF NOT EXISTS player_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname TEXT NOT NULL,
+    category TEXT NOT NULL,
+    value INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(nickname, category)
+  );
+  CREATE INDEX IF NOT EXISTS idx_player_stats_category_value ON player_stats(category, value);
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */

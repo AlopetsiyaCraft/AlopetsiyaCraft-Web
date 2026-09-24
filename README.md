@@ -31,7 +31,7 @@ npm run dev         # или: npm run build && npm start
 | `AUTH_SECRET` | Секрет NextAuth. Генерация: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `DATABASE_URL` | **`file:./data/database.db`** — локальный файл (по умолчанию) или **`libsql://...`** — облачная база |
 | `DATABASE_AUTH_TOKEN` | Токен Turso (только для облачной базы) |
-| `CHAT_API_KEY` | Ключ чат-моста для мода Minecraft и Discord-бота (заголовок `x-api-key`) |
+| `CHAT_API_KEY` | Ключ моста для мода Minecraft и Discord-бота (заголовок `x-api-key`): чат и статистика |
 | `DISCORD_WEBHOOK_URL` | Вебхук Discord (сайт/MC → Discord), пусто = выключено |
 | `DISCORD_BOT_TOKEN` | Токен бота Discord (Discord → сайт/сервер), пусто = выключено |
 | `DISCORD_CHANNEL_ID` | ID канала для бота, пусто = все каналы серверов |
@@ -70,8 +70,11 @@ npm run dev         # или: npm run build && npm start
 
 ## Структура базы
 
-9 таблиц: `users`, `seasons`, `screenshots`, `comments`, `chat_logs`,
-`players_online`, `skin_history`, `name_history`, `cape_history`.
+Таблицы: `users`, `seasons`, `screenshots`, `comments`, `chat_logs`,
+`players_online`, `skin_history`, `name_history`, `cape_history`, `audio_tracks`,
+`disc_requests`, фото/стена (`photo_*`, `wall_posts`, `post_*`), `friends`,
+`achievements`, `player_stats` (статистика игроков для лидербордов). Таблицы
+создаются автоматически при старте (`npm run db:init`).
 
 ## Что не хранится в git
 
@@ -94,6 +97,49 @@ npm run dev         # или: npm run build && npm start
   в миллисекундах, как ожидает мод.
 - **Настройка на сервере**: в `config/chatbridge-common.toml` укажи
   `websiteUrl` (URL сайта) и `chatApiKey`, совпадающий с `CHAT_API_KEY` в `.env`.
+
+## Статистика сервера (лидерборды)
+
+Страница **Статистика** (`/stats`, кнопка в шапке) показывает топ игроков по
+категориям: смерти, убийства, добытые блоки, время в игре и т.д. Все
+зарегистрированные пользователи сайта видны в таблицах всегда — даже если ещё
+не заходили на сервер (у них 0 и они внизу списка); игроки без аккаунта на
+сайте тоже появляются, как только сервер пришлёт их статы.
+
+Сам Minecraft уже пишет статистику каждого игрока в
+`world/stats/<uuid>.json` (смерти, убийства мобов/игроков, пройденное
+расстояние, время в игре...) — мод для игроков не нужен. Осталось только
+переслать её на сайт: это делает серверный NeoForge-мод **AlopetsiyaStats**
+(читает `world/stats/<uuid>.json` и шлёт по расписанию и при входе/выходе
+игрока; альтернатива — скрипт на хосте сервера). Мод шлёт на
+
+```
+POST /api/stats/from-server
+x-api-key: <CHAT_API_KEY>
+{
+  "players": [
+    { "nickname": "Steve", "stats": { "deaths": 12, "mob_kills": 340, "play_time": 720000, ... } }
+  ]
+}
+```
+
+Ключи категорий (из `src/lib/stats.ts`):
+
+| Ключ | Значение | Единицы |
+|---|---|---|
+| `deaths` | смертей всего | шт. |
+| `mob_kills` | убито мобов (сумма всех `minecraft:killed:*`) | шт. |
+| `player_kills` | убито игроков | шт. |
+| `blocks_mined` | добыто блоков (сумма всех `minecraft:mined:*`) | шт. |
+| `items_crafted` | создано предметов (сумма всех `minecraft:crafted:*`) | шт. |
+| `walk_one_cm` | пройдено пешком | см |
+| `damage_dealt` / `damage_taken` | урон нанесён/получен | хп |
+| `jumps` | прыжков | шт. |
+| `play_time` | время в игре | тики (20 = 1 сек) |
+
+`play_time` показывается отдельной колонкой в каждой таблице. Неизвестные
+категории сайт игнорирует (мод может слать больше ключей, чем таблица выше).
+Повторная отправка перезаписывает значения.
 
 ## Discord-мост
 

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 export const audioTracks = sqliteTable("audio_tracks", {
@@ -444,3 +444,27 @@ export const capeHistory = sqliteTable("cape_history", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/**
+ * Статистика игроков с Minecraft-сервера (шлёт мод/скрипт моста через
+ * POST /api/stats/from-server с ключом CHAT_API_KEY). По игроку и категории
+ * хранится одно число; мод переприсылает актуальные значения — старые
+ * перезаписываются.
+ */
+export const playerStats = sqliteTable(
+  "player_stats",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    nickname: text("nickname").notNull(),
+    // Ключ категории из src/lib/stats.ts (deaths, mob_kills, play_time, ...).
+    category: text("category").notNull(),
+    value: integer("value").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    nicknameCategory: uniqueIndex("uq_player_stats_nickname_category").on(t.nickname, t.category),
+    categoryValue: index("idx_player_stats_category_value").on(t.category, t.value),
+  })
+);

@@ -67,6 +67,13 @@ export default function Header({
 
         <nav className="flex items-center gap-4">
           <Link
+            href="/stats"
+            className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors px-3 py-2 rounded-lg"
+          >
+            Статистика
+          </Link>
+
+          <Link
             href="/gallery"
             className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors px-3 py-2 rounded-lg"
           >
