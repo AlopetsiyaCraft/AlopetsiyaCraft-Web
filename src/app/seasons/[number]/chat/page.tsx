@@ -20,8 +20,6 @@ export default async function SeasonChatPage({
 
   return (
     <div className="py-8">
-      <h2 className="text-2xl font-bold mb-6">Лог чата</h2>
-
       {messages.length === 0 ? (
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-12 text-center">
           <div className="text-6xl mb-4">💬</div>

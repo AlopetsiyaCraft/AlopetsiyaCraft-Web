@@ -18,8 +18,6 @@ export default async function SeasonBuildPage({
 
   return (
     <div className="py-8">
-      <h2 className="text-2xl font-bold mb-6">Сборка</h2>
-
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-8">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">📦</div>
