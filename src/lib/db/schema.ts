@@ -470,6 +470,30 @@ export const playerStats = sqliteTable(
 );
 
 /**
+ * Снимки инвентаря игроков (шлёт мод AlopetsiyaInventory через
+ * POST /api/inventory/from-server при выходе игрока с сервера). Страница
+ * /inventory показывает текущий снимок владельца аккаунта. Ник хранится в
+ * нижнем регистре (серверные ники регистронезависимы), display_nickname —
+ * регистр, как прислал сервер. data — JSON с контейнерами (main/armor/
+ * offhand/enderChest) и здоровьем игрока.
+ */
+export const playerInventories = sqliteTable(
+  "player_inventories",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    nickname: text("nickname").notNull().unique(),
+    displayNickname: text("display_nickname").notNull().default(""),
+    data: text("data").notNull().default("{}"),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    nicknameIndex: uniqueIndex("uq_player_inventories_nickname").on(t.nickname),
+  })
+);
+
+/**
  * Сессии входа на Minecraft-сервер по паролю сайта (мод AlopetsiyaAuth).
  * Создаются при успешном POST /api/auth/mc-login: игрок ввёл ник+пароль
  * (те же, что на сайте), сайт выдаёт сессию с привязкой к IP и сроком жизни

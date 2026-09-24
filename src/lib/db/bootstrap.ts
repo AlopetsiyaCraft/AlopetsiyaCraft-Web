@@ -231,6 +231,14 @@ export const bootstrapSql = `
   );
   CREATE INDEX IF NOT EXISTS idx_player_stats_category_value ON player_stats(category, value);
 
+  CREATE TABLE IF NOT EXISTS player_inventories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname TEXT NOT NULL UNIQUE,
+    display_nickname TEXT NOT NULL DEFAULT '',
+    data TEXT NOT NULL DEFAULT '{}',
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
   CREATE TABLE IF NOT EXISTS mc_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),

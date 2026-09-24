@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, nameHistory, playerStats, mcSessions } from "@/lib/db/schema";
+import { users, nameHistory, playerStats, playerInventories, mcSessions } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
@@ -89,6 +89,14 @@ export async function POST(request: NextRequest) {
       .update(playerStats)
       .set({ nickname: trimmed })
       .where(sql`lower(${playerStats.nickname}) = ${oldNickname.toLowerCase()}`)
+      .run();
+
+    // Снимок инвентаря тоже ключуется по нику — переносим его на новый ник,
+    // чтобы новая страница /inventory не оказалась пустой.
+    await db
+      .update(playerInventories)
+      .set({ nickname: trimmed.toLowerCase(), displayNickname: trimmed })
+      .where(sql`lower(${playerInventories.nickname}) = ${oldNickname.toLowerCase()}`)
       .run();
 
     await db.delete(mcSessions).where(eq(mcSessions.userId, userId)).run();
