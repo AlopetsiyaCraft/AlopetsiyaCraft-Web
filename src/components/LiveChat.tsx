@@ -50,7 +50,6 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
 
   const checkIfAtBottom = useCallback(() => {
@@ -64,14 +63,12 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
   }
 
   /**
-   * Прокручиваем именно контейнер чата до маркера в конце списка.
-   * scrollIntoView({ block: "end" }) сам находит ближайший скроллящийся
-   * предок — то есть наш h-96 блок — и не трогает страницу.
+   * Прокручиваем только контейнер чата до конца.
+   * Никакого scrollIntoView: он умеет прокручивать ВСЕ внешние контейнеры,
+   * то есть и саму страницу — из-за этого при скролле вниз мимо чата
+   * страницу каждые полсекунды рвало обратно наверх.
    */
   const scrollToBottom = useCallback(() => {
-    const end = endRef.current;
-    if (!end) return;
-    end.scrollIntoView({ block: "end" });
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
@@ -91,9 +88,26 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
   }
 
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 500);
-    return () => clearInterval(interval);
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/chat?limit=50");
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) setMessages(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch chat:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    const interval = setInterval(load, 500);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -188,7 +202,6 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
             </div>
           ))
         )}
-        <div ref={endRef} aria-hidden="true" className="h-px" />
       </div>
 
       <div className="px-4 py-3 border-t border-[var(--border)]">
