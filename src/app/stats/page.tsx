@@ -185,7 +185,6 @@ export default async function StatsPage({
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)]">
             <h2 className="font-semibold">{category.label}</h2>
-            <p className="text-[var(--text-muted)] text-xs mt-0.5">{category.hint}</p>
           </div>
 
           {rows.length === 0 ? (
@@ -198,10 +197,13 @@ export default async function StatsPage({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)] bg-[var(--bg-alt)]">
-                    {/* Пустые заглушки вместо «#» и «Игрок» — чтобы колонки
-                        не сдвигались и заголовки категорий остались на своих местах. */}
-                    <th className="px-4 py-3 w-16" aria-hidden="true"></th>
-                    <th className="px-4 py-3" aria-hidden="true"></th>
+                    {/* Заголовок таблицы на месте «#» и «Игрок»: категория + подсказка. */}
+                    <th colSpan={2} className="px-4 py-3">
+                      <span className="font-semibold text-[var(--text)]">{category.label}</span>
+                      <span className="block text-xs font-normal text-[var(--text-muted)] mt-0.5">
+                        {category.hint}
+                      </span>
+                    </th>
                     {category.format !== "playtime" && (
                       <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         Время в игре
