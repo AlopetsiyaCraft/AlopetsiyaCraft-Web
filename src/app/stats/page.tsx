@@ -182,14 +182,13 @@ export default async function StatsPage({
           })}
         </div>
 
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-          {rows.length === 0 ? (
-            <div className="p-8 text-center text-[var(--text-muted)] text-sm">
-              Пока нет данных — статистика появится, когда сервер начнёт присылать её на сайт
-              (мод chatbridge или скрипт, читающий <span className="font-mono">world/stats/*.json</span>).
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+        {rows.length === 0 ? (
+          <div className="p-8 text-center text-[var(--text-muted)] text-sm border border-[var(--border)] rounded-lg">
+            Пока нет данных — статистика появится, когда сервер начнёт присылать её на сайт
+            (мод chatbridge или скрипт, читающий <span className="font-mono">world/stats/*.json</span>).
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-[var(--text-muted)]">
@@ -250,9 +249,8 @@ export default async function StatsPage({
                   })}
                 </tbody>
               </table>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );
