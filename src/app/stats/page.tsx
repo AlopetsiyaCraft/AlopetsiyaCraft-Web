@@ -189,25 +189,39 @@ export default async function StatsPage({
           </div>
         ) : (
           <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-[var(--text-muted)]">
-                    {/* Колонки ранга и игрока — без заголовков (как на osu!);
-                        надписи только над колонками данных, значения под ними
-                        по центру; сортируемая колонка категории выделена
-                        акцентным цветом. */}
-                    <th className="px-4 py-2 w-16" aria-hidden="true"></th>
-                    <th className="px-4 py-2" aria-hidden="true"></th>
-                    {category.format !== "playtime" && (
-                      <th className="px-4 py-2 text-center font-medium whitespace-nowrap">
-                        Время в игре
-                      </th>
-                    )}
-                    <th className="px-4 py-2 text-center font-semibold whitespace-nowrap text-[#7c3aed]">
-                      {category.label}
+            {/* Заголовки колонок висят над карточкой — у них нет фона;
+                фон только у таблицы со списком игроков ниже. */}
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-16" />
+                <col />
+                {category.format !== "playtime" && <col className="w-36" />}
+                <col className="w-44" />
+              </colgroup>
+              <thead>
+                <tr className="text-[var(--text-muted)]">
+                  <th className="px-4 py-2" aria-hidden="true"></th>
+                  <th className="px-4 py-2" aria-hidden="true"></th>
+                  {category.format !== "playtime" && (
+                    <th className="px-4 py-2 text-center font-medium whitespace-nowrap">
+                      Время в игре
                     </th>
-                  </tr>
-                </thead>
+                  )}
+                  <th className="px-4 py-2 text-center font-semibold whitespace-nowrap text-[#7c3aed]">
+                    {category.label}
+                  </th>
+                </tr>
+              </thead>
+            </table>
+
+            <div className="mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col className="w-16" />
+                  <col />
+                  {category.format !== "playtime" && <col className="w-36" />}
+                  <col className="w-44" />
+                </colgroup>
                 <tbody>
                   {rows.map((row, index) => {
                     const rank = index + 1;
@@ -249,6 +263,7 @@ export default async function StatsPage({
                   })}
                 </tbody>
               </table>
+            </div>
           </div>
         )}
       </main>
