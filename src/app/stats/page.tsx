@@ -198,8 +198,6 @@ export default async function StatsPage({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)] bg-[var(--bg-alt)]">
-                    <th className="px-4 py-3 w-16 text-right font-medium">#</th>
-                    <th className="px-4 py-3 font-medium">Игрок</th>
                     {category.format !== "playtime" && (
                       <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         Время в игре
