@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       createdAt: t.createdAt.getTime(),
       url: `/api/audio/${t.id}/file`,
       coverUrl: t.coverFileName ? `/api/audio/${t.id}/cover` : null,
+      coverThumbUrl: t.coverFileName ? `/api/audio/${t.id}/cover/thumb` : null,
     }))
   );
 }

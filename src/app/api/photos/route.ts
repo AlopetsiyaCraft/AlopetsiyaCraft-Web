@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
+import sharp from "sharp";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { photoAlbums, photos, seasons, users } from "@/lib/db/schema";
-import { MAX_PHOTO_BYTES, generatePhotoFileName, isPhotoExt, photoRoot } from "@/lib/photos";
+import {
+  MAX_PHOTO_BYTES,
+  generatePhotoFileName,
+  isPhotoExt,
+  photoRoot,
+  photoThumbFileName,
+} from "@/lib/photos";
 import { photoCommentCounts, toPhotoItem } from "@/lib/photoRows";
 
 /**
@@ -125,6 +132,20 @@ export async function POST(request: NextRequest) {
     mkdirSync(dir, { recursive: true });
     await writeFile(photoRoot(fileName), bytes);
 
+    // Миниатюра (JPEG, ≤480px по большей стороне) лежит рядом с оригиналом
+    // под детерминированным именем; в сетках/превью отдаём её, а не оригинал.
+    // Сбой генерации не роняет загрузку — UI умеет фолбэчиться на оригинал.
+    try {
+      const thumb = await sharp(bytes)
+        .rotate()
+        .resize(480, 480, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 82 })
+        .toBuffer();
+      await writeFile(photoRoot(photoThumbFileName(fileName)), thumb);
+    } catch (e) {
+      console.error("Не удалось сделать миниатюру фото:", e);
+    }
+
     const row = await db
       .insert(photos)
       .values({
@@ -144,6 +165,7 @@ export async function POST(request: NextRequest) {
       {
         id: row.id,
         url: `/uploads/photos/${fileName}`,
+        thumbUrl: `/uploads/photos/${photoThumbFileName(fileName)}`,
         message: "Фото загружено",
       },
       { status: 201 }

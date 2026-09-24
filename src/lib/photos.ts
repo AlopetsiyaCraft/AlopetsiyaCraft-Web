@@ -1,4 +1,4 @@
-import { extname, join } from "path";
+import { extname } from "path";
 import { randomUUID } from "crypto";
 import { uploadsDir } from "./uploads";
 
@@ -32,4 +32,18 @@ export function generatePhotoFileName(originalName: string): string {
 /** Публичный URL фото (отдаётся роутером /uploads). */
 export function photoUrl(fileName: string): string {
   return `/uploads/photos/${fileName}`;
+}
+
+/**
+ * Миниатюра фото: генерируется на сервере (sharp, JPEG до 480px по
+ * большей стороне) и лежит рядом с оригиналом под детерминированным
+ * именем — <base>-thumb.jpg. Новые колонки в БД не нужны.
+ */
+export function photoThumbFileName(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, "") + "-thumb.jpg";
+}
+
+/** Публичный URL миниатюры фото (для сеток и превью на стене). */
+export function photoThumbUrl(fileName: string): string {
+  return `/uploads/photos/${photoThumbFileName(fileName)}`;
 }

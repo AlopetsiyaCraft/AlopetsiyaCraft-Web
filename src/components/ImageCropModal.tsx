@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { pixelateRect, type CropRect } from "@/lib/discpixel";
+import { squareCropBlob, type CropRect } from "@/lib/discpixel";
 
 export interface PickedCover {
   blob: Blob;
@@ -189,8 +189,8 @@ export default function ImageCropModal({
     setError(null);
     try {
       const rect = currentCropRect(img);
-      const cover = await pixelateRect(img, rect);
-      onConfirm(cover);
+      const blob = await squareCropBlob(img, rect);
+      onConfirm({ blob, preview: URL.createObjectURL(blob) });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось обработать фото");
       setBusy(false);

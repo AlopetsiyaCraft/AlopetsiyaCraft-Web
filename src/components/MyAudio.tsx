@@ -11,6 +11,7 @@ interface Track {
   createdAt: number;
   url: string;
   coverUrl: string | null;
+  coverThumbUrl: string | null;
 }
 
 interface DiscState {
@@ -200,7 +201,8 @@ export default function MyAudio({
         {isOwn ? (
           <p className="text-[var(--text-muted)] text-sm mt-1">
             Нажимай «Загрузить песню» — внутри выбери песню (.mp3) и фото обложки:
-            фото кадрируется в квадрате 1:1 и станет пиксельным (16×16) на пластинке в игре.
+            обложка кадрируется в квадрате 1:1 (на сайте — обычная фотка), а на
+            пластинке в игре станет пиксельной (16×16).
           </p>
         ) : (
           <p className="text-[var(--text-muted)] text-sm mt-1">Публичная библиотека игрока.</p>
@@ -264,15 +266,10 @@ export default function MyAudio({
                   {isPlaying ? <PauseIcon /> : <PlayIcon />}
                 </button>
 
-                {track.coverUrl && (
+                {track.coverThumbUrl && (
                   <div className="w-9 h-9 rounded border border-[var(--border)] overflow-hidden shrink-0 bg-[var(--hover)]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={track.coverUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      style={{ imageRendering: "pixelated" }}
-                    />
+                    <img src={track.coverThumbUrl} alt="" className="w-full h-full object-cover" />
                   </div>
                 )}
 

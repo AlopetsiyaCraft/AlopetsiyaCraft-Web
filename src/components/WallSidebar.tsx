@@ -53,8 +53,8 @@ function AudioBlock({
             className="flex items-center gap-3 py-2 -mx-2 px-2 rounded-lg hover:bg-[var(--bg)] transition-colors"
           >
             <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed]">
-              {t.coverUrl ? (
-                <img src={t.coverUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+              {t.coverThumbUrl || t.coverUrl ? (
+                <img src={t.coverThumbUrl ?? (t.coverUrl as string)} alt="" className="w-full h-full object-cover" loading="lazy" />
               ) : (
                 <MusicIcon />
               )}
@@ -90,7 +90,12 @@ function PhotoBlock({
             href={`${baseHref}/foto`}
             className="relative aspect-square rounded-lg overflow-hidden border border-[var(--border)] block bg-[var(--bg)]"
           >
-            <img src={p.url} alt={p.caption ?? "Фото"} loading="lazy" className="w-full h-full object-cover" />
+            <img
+              src={p.thumbUrl}
+              alt={p.caption ?? "Фото"}
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
             {i === photos.length - 1 && total > photos.length && (
               <span className="absolute inset-0 bg-black/60 text-white text-sm font-semibold flex items-center justify-center">
                 +{total - photos.length}

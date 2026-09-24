@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { audioTracks, discRequests } from "@/lib/db/schema";
-import { resolveAudioPath } from "@/lib/audio";
+import { resolveAudioPath, pixelCoverFileName, thumbCoverFileName } from "@/lib/audio";
 
 /**
  * DELETE /api/audio/[id] — удаление трека (только владелец).
@@ -66,6 +66,15 @@ export async function DELETE(
     const coverPath = resolveAudioPath(String(track.userId), track.coverFileName);
     if (coverPath) {
       unlink(coverPath).catch(() => {});
+    }
+    // Производные миниатюры обложки (пиксель для пака, thumb для списков).
+    const pixelPath = resolveAudioPath(String(track.userId), pixelCoverFileName(track.coverFileName));
+    if (pixelPath) {
+      unlink(pixelPath).catch(() => {});
+    }
+    const thumbPath = resolveAudioPath(String(track.userId), thumbCoverFileName(track.coverFileName));
+    if (thumbPath) {
+      unlink(thumbPath).catch(() => {});
     }
   }
 

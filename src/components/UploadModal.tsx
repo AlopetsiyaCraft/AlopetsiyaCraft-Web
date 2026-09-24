@@ -163,15 +163,10 @@ export default function UploadModal({
               <div className="flex items-end gap-2">
                 <div
                   className="w-16 h-16 rounded-lg border border-[var(--border)] bg-[var(--hover)] overflow-hidden"
-                  title="Превью пиксельной обложки (16×16, увеличено)"
+                  title="Превью обложки"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={cover.preview}
-                    alt="Превью обложки"
-                    className="w-full h-full object-cover"
-                    style={{ imageRendering: "pixelated" }}
-                  />
+                  <img src={cover.preview} alt="Превью обложки" className="w-full h-full object-cover" />
                 </div>
                 <button
                   onClick={clearCover}

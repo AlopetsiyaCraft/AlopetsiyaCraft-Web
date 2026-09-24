@@ -1,12 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 import CommentTree from "./CommentTree";
 import PhotoLightbox from "./PhotoLightbox";
 import type { PhotoItem, PostCommentItem, PostItem } from "@/lib/profile";
 
 function ruDate(ts: number): string {
   return new Date(ts).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+}
+
+/** Если у старого фото нет миниатюры на диске — показываем оригинал. */
+function fallbackToOriginal(e: SyntheticEvent<HTMLImageElement>, url: string) {
+  e.currentTarget.onerror = null;
+  e.currentTarget.src = url;
 }
 
 /** Записи со стены профиля: публикация (своей стены), лента, комментарии. */
@@ -194,7 +200,12 @@ export default function WallFeed({
                     selectedPhotoIds.includes(p.id) ? "border-[#7c3aed]" : "border-transparent"
                   }`}
                 >
-                  <img src={p.url} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={p.thumbUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => fallbackToOriginal(e, p.url)}
+                  />
                 </div>
               ))}
             </div>
@@ -244,7 +255,13 @@ export default function WallFeed({
               <div className={`grid gap-2 mt-3 ${post.photos.length === 1 ? "grid-cols-1" : post.photos.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
                 {post.photos.map((p, i) => (
                   <div key={p.id} className="rounded-lg overflow-hidden cursor-pointer border border-[var(--border)]" onClick={() => setLightbox({ photos: post.photos, index: i })}>
-                    <img src={p.url} alt={p.caption || "Фото"} loading="lazy" className="w-full h-full object-cover max-h-72" />
+                    <img
+                      src={p.thumbUrl}
+                      alt={p.caption || "Фото"}
+                      loading="lazy"
+                      className="w-full h-full object-cover max-h-72"
+                      onError={(e) => fallbackToOriginal(e, p.url)}
+                    />
                   </div>
                 ))}
               </div>

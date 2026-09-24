@@ -1,6 +1,8 @@
 import { and, count, desc, eq, inArray, or } from "drizzle-orm";
+import { existsSync } from "fs";
 import { db } from "./db";
 import { audioTracks, friends, photos, users } from "./db/schema";
+import { photoRoot, photoThumbFileName, photoThumbUrl } from "./photos";
 
 /** Превью трека для блока «Аудио» на стене (VK-стиль). */
 export interface AudioPreviewItem {
@@ -9,12 +11,16 @@ export interface AudioPreviewItem {
   artist: string | null;
   createdAt: number;
   coverUrl: string | null;
+  /** Миниатюра обложки (128×128) — для лёгкой стены; null если обложки нет. */
+  coverThumbUrl: string | null;
 }
 
 /** Превью фото для блока «Фото» на стене (VK-стиль). */
 export interface PhotoPreviewItem {
   id: number;
   url: string;
+  /** Миниатюра фото (JPEG ≤480px) — грузится быстро даже в сетке. */
+  thumbUrl: string;
   caption: string | null;
   createdAt: number;
 }
@@ -49,6 +55,7 @@ export async function loadAudioPreview(userId: number, limit = 5): Promise<Audio
     artist: t.artist,
     createdAt: t.createdAt.getTime(),
     coverUrl: t.coverFileName ? `/api/audio/${t.id}/cover` : null,
+    coverThumbUrl: t.coverFileName ? `/api/audio/${t.id}/cover/thumb` : null,
   }));
 }
 
@@ -77,12 +84,20 @@ export async function loadPhotoPreview(userId: number, limit = 6): Promise<Photo
     .limit(limit)
     .all();
 
-  return rows.map((p) => ({
-    id: p.id,
-    url: `/uploads/photos/${p.fileName}`,
-    caption: p.caption,
-    createdAt: p.createdAt.getTime(),
-  }));
+  return rows.map((p) => {
+    // Миниатюра есть на диске только у новых фото (или после бэкфилла).
+    // Если файла нет — отдаём оригинал, чтобы не вешать битую картинку.
+    const thumbExists = existsSync(photoRoot(photoThumbFileName(p.fileName)));
+    return {
+      id: p.id,
+      url: `/uploads/photos/${p.fileName}`,
+      thumbUrl: thumbExists
+        ? photoThumbUrl(p.fileName)
+        : `/uploads/photos/${p.fileName}`,
+      caption: p.caption,
+      createdAt: p.createdAt.getTime(),
+    };
+  });
 }
 
 /** Количество фото пользователя. */

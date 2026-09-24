@@ -25,6 +25,7 @@
     "next-auth": "^5.0.0-beta.32",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sharp": "^0.35.4",
     "skinview3d": "^3.4.2",
     "three": "~0.156.1",
     "uuid": "^14.0.1"

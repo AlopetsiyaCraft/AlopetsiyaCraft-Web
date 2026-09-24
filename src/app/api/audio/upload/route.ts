@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { writeFile, mkdir } from "fs/promises";
+import sharp from "sharp";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { audioTracks } from "@/lib/db/schema";
@@ -12,13 +13,36 @@ import {
   audioRoot,
   trackFilePath,
   coverFilePath,
+  coverPixelFilePath,
+  coverThumbFilePath,
 } from "@/lib/audio";
+
+/** Пиксельная 16×16-обложка для ресурспака пластинок. */
+async function makePixelCover(buffer: Buffer): Promise<Buffer | null> {
+  try {
+    return await sharp(buffer).resize(16, 16, { fit: "cover" }).png().toBuffer();
+  } catch (e) {
+    console.error("Не удалось сделать пиксельную обложку:", e);
+    return null;
+  }
+}
+
+/** Миниатюра 128×128 для списков песен и стены. */
+async function makeCoverThumb(buffer: Buffer): Promise<Buffer | null> {
+  try {
+    return await sharp(buffer).resize(128, 128, { fit: "cover" }).png().toBuffer();
+  } catch (e) {
+    console.error("Не удалось сделать миниатюру обложки:", e);
+    return null;
+  }
+}
 
 /**
  * POST /api/audio/upload — загрузка mp3 в личную библиотеку.
  * Только авторизованный пользователь; файл кладётся в data/audio/<userId>/.
- * Обложка (фото альбома) обязательна: клиент заранее пикселизирует её
- * в 16×16 PNG — этот PNG и сохраняется рядом с треком.
+ * Обложка (фото альбома) обязательна: клиент кадрирует квадрат 1:1 и шлёт
+ * обычную PNG-фотку (512×512). Сервер рядом сохраняет миниатюру 128×128
+ * (для списков/стены) и пиксельную 16×16 PNG (для ресурспака пластинок).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -86,6 +110,16 @@ export async function POST(request: NextRequest) {
     await writeFile(trackFilePath(userId, fileName), audioBuffer);
     await writeFile(coverFilePath(userId, coverFileName), coverBuffer);
 
+    // Производные файлы рядом с оригиналом: пиксель для пака, миниатюра
+    // для списков/стены. Сбой генерации не должен ронять загрузку — тогда
+    // просто отдаём оригинальную обложку (роуты умеют в fallback).
+    const [pixel, thumb] = await Promise.all([
+      makePixelCover(coverBuffer),
+      makeCoverThumb(coverBuffer),
+    ]);
+    if (pixel) await writeFile(coverPixelFilePath(userId, coverFileName), pixel);
+    if (thumb) await writeFile(coverThumbFilePath(userId, coverFileName), thumb);
+
     const cleanTitle = file.name.replace(/\.mp3$/i, "").trim().slice(0, 100) || "Без названия";
 
     const result = await db
@@ -106,6 +140,7 @@ export async function POST(request: NextRequest) {
         title: result.title,
         url: `/api/audio/${result.id}/file`,
         coverUrl: `/api/audio/${result.id}/cover`,
+        coverThumbUrl: `/api/audio/${result.id}/cover/thumb`,
       },
       { status: 201 }
     );

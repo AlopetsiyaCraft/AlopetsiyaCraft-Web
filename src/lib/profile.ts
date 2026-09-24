@@ -13,6 +13,7 @@ export interface PhotoItem {
   size: number;
   originalName: string;
   url: string;
+  thumbUrl: string;
   authorNickname: string;
   albumName: string | null;
   seasonNumber: number | null;

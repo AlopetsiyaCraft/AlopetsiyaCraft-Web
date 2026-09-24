@@ -19,10 +19,15 @@ export default function PhotoCard({
     >
       <div className="aspect-video bg-[var(--bg)] overflow-hidden">
         <img
-          src={photo.url}
+          src={photo.thumbUrl}
           alt={photo.caption || "Фото"}
           loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+          onError={(e) => {
+            // Старое фото без миниатюры на диске — показываем оригинал.
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = photo.url;
+          }}
         />
       </div>
       <div className="p-3">

@@ -6,8 +6,10 @@ import { audioTracks } from "@/lib/db/schema";
 import { resolveAudioPath } from "@/lib/audio";
 
 /**
- * GET /api/audio/[id]/cover — пиксельная обложка трека (16×16 PNG).
- * Публичный: используется в UI и в ресурспаке пластинок.
+ * GET /api/audio/[id]/cover — обложка трека (обычное фото 512×512 PNG).
+ * Публичный: используется в UI (полноразмерный просмотр); для маленьких
+ * картинок есть /cover/thumb (128×128). Пиксельная 16×16 уходит только
+ * в ресурспак пластинок, собираемый на сервере.
  */
 export async function GET(
   _request: NextRequest,

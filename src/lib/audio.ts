@@ -62,3 +62,37 @@ export function coverFilePath(userId: number, fileName: string): string {
 export function coverFileUrl(trackId: number): string {
   return `${getSiteBaseUrl()}/api/audio/${trackId}/cover`;
 }
+
+/**
+ * Производные файлы обложки (генерируются на сервере через sharp)
+ * называются детерминированно от имени оригинала, поэтому никаких
+ * новых колонок в БД не нужно:
+ *  - <uuid>.png        — обычная обложка (фото качества, для сайта)
+ *  - <uuid>-pixel.png  — 16×16 для ресурспака пластинок
+ *  - <uuid>-thumb.png  — миниатюра 128×128 для списков и стены
+ */
+
+/** Имя файла пиксельной обложки (16×16) для ресурспака пластинок. */
+export function pixelCoverFileName(coverFileName: string): string {
+  return coverFileName.replace(/\.[^.]+$/, "") + "-pixel.png";
+}
+
+/** Имя файла миниатюры обложки (128×128) для списков/стены. */
+export function thumbCoverFileName(coverFileName: string): string {
+  return coverFileName.replace(/\.[^.]+$/, "") + "-thumb.png";
+}
+
+/** Путь к пиксельной обложке на диске. */
+export function coverPixelFilePath(userId: number, coverFileName: string): string {
+  return audioRoot(String(userId), pixelCoverFileName(coverFileName));
+}
+
+/** Путь к миниатюре обложки на диске. */
+export function coverThumbFilePath(userId: number, coverFileName: string): string {
+  return audioRoot(String(userId), thumbCoverFileName(coverFileName));
+}
+
+/** Публичный URL миниатюры обложки (для списков и стены). */
+export function coverThumbFileUrl(trackId: number): string {
+  return `/api/audio/${trackId}/cover/thumb`;
+}

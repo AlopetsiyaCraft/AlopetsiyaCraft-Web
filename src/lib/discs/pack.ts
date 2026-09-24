@@ -1,11 +1,12 @@
 import { createHash } from "crypto";
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
+import sharp from "sharp";
 import { zipSync } from "fflate";
 import { asc, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { audioTracks } from "@/lib/db/schema";
-import { coverFilePath } from "@/lib/audio";
+import { coverFilePath, coverPixelFilePath } from "@/lib/audio";
 
 /**
  * Сборка динамического ресурспака с пиксельными обложками пластинок.
@@ -94,9 +95,18 @@ export async function buildDiscPack(): Promise<DiscPackInfo> {
     const coverPath = coverFilePath(t.userId, t.coverFileName as string);
     let png: Buffer;
     try {
-      png = await readFile(coverPath);
+      // Пиксельная 16×16 для текстуры диска: берём готовый файл (если есть)
+      // либо генерируем из оригинала через sharp и сохраняем рядом.
+      const pixelPath = coverPixelFilePath(t.userId, t.coverFileName as string);
+      try {
+        png = await readFile(pixelPath);
+      } catch {
+        const original = await readFile(coverPath);
+        png = await sharp(original).resize(16, 16, { fit: "cover" }).png().toBuffer();
+        await writeFile(pixelPath, png);
+      }
     } catch {
-      continue; // файл обложки пропал — пропускаем трек
+      continue; // файл обложки пропал или не читается — пропускаем трек
     }
     const model = modelTpl
       .replace('"1": "item/13"', `"1": "alopetsiyacraft:item/disc/${t.id}"`)
