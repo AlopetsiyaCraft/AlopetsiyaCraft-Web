@@ -183,10 +183,6 @@ export default async function StatsPage({
         </div>
 
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-[var(--border)]">
-            <h2 className="font-semibold">{category.label}</h2>
-          </div>
-
           {rows.length === 0 ? (
             <div className="p-8 text-center text-[var(--text-muted)] text-sm">
               Пока нет данных — статистика появится, когда сервер начнёт присылать её на сайт
@@ -197,21 +193,15 @@ export default async function StatsPage({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)] bg-[var(--bg-alt)]">
-                    {/* Заголовок таблицы на месте «#» и «Игрок»: категория + подсказка. */}
+                    {/* Заголовок таблицы — только название категории, над списком игроков. */}
                     <th colSpan={2} className="px-4 py-3">
                       <span className="font-semibold text-[var(--text)]">{category.label}</span>
-                      <span className="block text-xs font-normal text-[var(--text-muted)] mt-0.5">
-                        {category.hint}
-                      </span>
                     </th>
                     {category.format !== "playtime" && (
                       <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         Время в игре
                       </th>
                     )}
-                    <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                      {category.label}
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
