@@ -35,14 +35,14 @@ export const STAT_CATEGORIES: StatCategory[] = [
   },
   {
     key: "mob_kills",
-    label: "Убийства мобов",
+    label: "Убито мобов",
     hint: "Сколько мобов убито (все виды суммарно)",
     vanillas: ["сумма всех minecraft:killed:minecraft:*"],
     format: "raw",
   },
   {
     key: "player_kills",
-    label: "Убийства игроков",
+    label: "Убито игроков",
     hint: "Сколько раз убиты другие игроки",
     vanillas: ["minecraft:custom:minecraft:player_kills"],
     format: "raw",
