@@ -8,9 +8,7 @@ import {
   STAT_CATEGORIES,
   STAT_CATEGORY_KEYS,
   PLAY_TIME_KEY,
-  getStatCategory,
   formatStatValue,
-  formatPlayTimeTicks,
 } from "@/lib/stats";
 
 /**
@@ -54,12 +52,12 @@ function PlayerHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: s
 interface Row {
   nickname: string;
   skinUrl: string | null;
-  playtime: number;
-  value: number;
+  /** Значения по всем категориям: ключ категории → число (0, если данных нет). */
+  values: Map<string, number>;
 }
 
 async function getLeaderboard(
-  categoryKey: string
+  sortKey: string
 ): Promise<{ rows: Row[]; total: number }> {
   // База лидерборда — все зарегистрированные пользователи сайта: они видны
   // всегда, даже если ещё не заходили на сервер (у них 0 по всем категориям,
@@ -70,50 +68,47 @@ async function getLeaderboard(
     .from(users)
     .all();
 
-  const playtimeRows = await db
+  const statRows = await db
     .select({
       nickname: playerStats.nickname,
+      category: playerStats.category,
       value: playerStats.value,
     })
     .from(playerStats)
-    .where(eq(playerStats.category, PLAY_TIME_KEY))
-    .all();
-
-  const categoryRows = await db
-    .select({
-      nickname: playerStats.nickname,
-      value: playerStats.value,
-    })
-    .from(playerStats)
-    .where(eq(playerStats.category, categoryKey))
     .all();
 
   // Ключи — в нижнем регистре: никнеймы Minecraft уникальны без учёта регистра,
   // а на сайте регистрация может отличаться по регистру (AlexMilash vs alexmilash).
-  const playtimeByNick = new Map(playtimeRows.map((r) => [r.nickname.toLowerCase(), r.value]));
-  const valueByNick = new Map(categoryRows.map((r) => [r.nickname.toLowerCase(), r.value]));
+  const valuesByNick = new Map<string, Map<string, number>>();
+  const nicks = new Set<string>();
+  for (const u of registeredUsers) nicks.add(u.nickname.toLowerCase());
+  for (const s of statRows) {
+    const key = s.nickname.toLowerCase();
+    nicks.add(key);
+    if (!valuesByNick.has(key)) valuesByNick.set(key, new Map());
+    valuesByNick.get(key)!.set(s.category, s.value);
+  }
 
   // Отображаем ник как в профиле (для зарегистрированных), иначе — как прислал сервер.
   const displayNick = new Map<string, string>();
   for (const u of registeredUsers) displayNick.set(u.nickname.toLowerCase(), u.nickname);
-  for (const n of [...playtimeByNick.keys(), ...valueByNick.keys()]) {
-    if (!displayNick.has(n)) displayNick.set(n, n);
-  }
+  for (const n of nicks) if (!displayNick.has(n)) displayNick.set(n, n);
 
   const skinByNick = new Map<string, string | null>();
   for (const u of registeredUsers) skinByNick.set(u.nickname.toLowerCase(), u.skinUrl);
 
-  const rows = [...displayNick.keys()]
+  const playtime = (values: Map<string, number>) => values.get(PLAY_TIME_KEY) ?? 0;
+
+  const rows = [...nicks]
     .map((key) => ({
       nickname: displayNick.get(key)!,
       skinUrl: skinByNick.get(key) ?? null,
-      playtime: playtimeByNick.get(key) ?? 0,
-      value: valueByNick.get(key) ?? 0,
+      values: valuesByNick.get(key) ?? new Map(),
     }))
     .sort(
       (a, b) =>
-        b.value - a.value ||
-        b.playtime - a.playtime ||
+        (b.values.get(sortKey) ?? 0) - (a.values.get(sortKey) ?? 0) ||
+        playtime(b.values) - playtime(a.values) ||
         a.nickname.localeCompare(b.nickname, "ru")
     );
 
@@ -123,7 +118,7 @@ async function getLeaderboard(
 export default async function StatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ sort?: string }>;
 }) {
   const sp = await searchParams;
   const session = await auth();
@@ -137,13 +132,14 @@ export default async function StatsPage({
         .get()
     : null;
 
-  const categoryKey =
-    typeof sp?.category === "string" && STAT_CATEGORY_KEYS.has(sp.category)
-      ? sp.category
-      : "deaths";
-  const category = getStatCategory(categoryKey)!;
+  // Сортировка по умолчанию — «Время в игре»; клик по заголовку столбца
+  // переключает её через ?sort=ключ_категории.
+  const sortKey =
+    typeof sp?.sort === "string" && STAT_CATEGORY_KEYS.has(sp.sort)
+      ? sp.sort
+      : PLAY_TIME_KEY;
 
-  const { rows } = await getLeaderboard(categoryKey);
+  const { rows } = await getLeaderboard(sortKey);
   const viewerNickname = viewer?.name?.toLowerCase() ?? null;
 
   return (
@@ -158,28 +154,9 @@ export default async function StatsPage({
         <div>
           <h1 className="text-3xl font-bold">Статистика</h1>
           <p className="text-[var(--text-muted)] text-sm mt-1">
-            Топ игроков сервера по выбранной категории.
+            Топ игроков сервера по всем категориям — нажмите на заголовок столбца,
+            чтобы отсортировать по нему.
           </p>
-        </div>
-
-        {/* Переключатель категорий */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
-          {STAT_CATEGORIES.map((c) => {
-            const active = c.key === categoryKey;
-            return (
-              <Link
-                key={c.key}
-                href={`/stats?category=${c.key}`}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer ${
-                  active
-                    ? "bg-[#7c3aed] text-white"
-                    : "bg-[var(--card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)]"
-                }`}
-              >
-                {c.label}
-              </Link>
-            );
-          })}
         </div>
 
         {rows.length === 0 ? (
@@ -195,21 +172,29 @@ export default async function StatsPage({
               <colgroup>
                 <col className="w-16" />
                 <col />
-                {category.format !== "playtime" && <col className="w-36" />}
-                <col className="w-44" />
+                {STAT_CATEGORIES.map((c) => (
+                  <col key={c.key} className="min-w-16" />
+                ))}
               </colgroup>
               <thead>
                 <tr className="text-[var(--text-muted)]">
                   <th className="px-4 py-2" aria-hidden="true"></th>
                   <th className="px-4 py-2" aria-hidden="true"></th>
-                  {category.format !== "playtime" && (
-                    <th className="px-4 py-2 text-center font-medium whitespace-nowrap">
-                      Время в игре
-                    </th>
-                  )}
-                  <th className="px-4 py-2 text-center font-semibold whitespace-nowrap text-[#7c3aed]">
-                    {category.label}
-                  </th>
+                  {STAT_CATEGORIES.map((c) => {
+                    const active = c.key === sortKey;
+                    return (
+                      <th key={c.key} className="px-2 py-2 text-center font-semibold">
+                        <Link
+                          href={`/stats?sort=${c.key}`}
+                          className={`cursor-pointer transition-colors ${
+                            active ? "text-[#7c3aed]" : "hover:text-[var(--text)]"
+                          }`}
+                        >
+                          {c.label}
+                        </Link>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
             </table>
@@ -219,8 +204,9 @@ export default async function StatsPage({
                 <colgroup>
                   <col className="w-16" />
                   <col />
-                  {category.format !== "playtime" && <col className="w-36" />}
-                  <col className="w-44" />
+                  {STAT_CATEGORIES.map((c) => (
+                    <col key={c.key} className="min-w-16" />
+                  ))}
                 </colgroup>
                 <tbody>
                   {rows.map((row, index) => {
@@ -247,14 +233,14 @@ export default async function StatsPage({
                             <span className="font-medium">{row.nickname}</span>
                           </Link>
                         </td>
-                        {category.format !== "playtime" && (
-                          <td className="px-4 py-3 text-center font-mono text-[var(--text-muted)] whitespace-nowrap">
-                            {formatPlayTimeTicks(row.playtime)}
+                        {STAT_CATEGORIES.map((c) => (
+                          <td
+                            key={c.key}
+                            className="px-2 py-3 text-center font-mono whitespace-nowrap"
+                          >
+                            {formatStatValue(c, row.values.get(c.key) ?? 0)}
                           </td>
-                        )}
-                        <td className="px-4 py-3 text-center font-mono font-semibold whitespace-nowrap">
-                          {formatStatValue(category, row.value)}
-                        </td>
+                        ))}
                       </tr>
                     );
                   })}
@@ -270,5 +256,5 @@ export default async function StatsPage({
 
 export const metadata = {
   title: "Статистика — АлопецияКрафт",
-  description: "Топ игроков сервера по категориям статистики",
+  description: "Топ игроков сервера по всем категориям статистики, сортировка по клику",
 };
