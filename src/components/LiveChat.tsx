@@ -4,6 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useChatDock } from "@/lib/chat-dock";
 
+/** Обработчики для шапки чата в режиме «перетаскиваемого окна» (передаёт FloatingChat). */
+export interface HeaderDragProps {
+  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
+  dragging: boolean;
+}
+
 interface ChatMessage {
   id: number;
   nickname: string;
@@ -48,7 +56,14 @@ function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: str
   );
 }
 
-export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
+export default function LiveChat({
+  isLoggedIn,
+  headerDragProps,
+}: {
+  isLoggedIn: boolean;
+  /** В плавающем окне шапка — ручка перетаскивания; в закреплённом чате не передаётся. */
+  headerDragProps?: HeaderDragProps;
+}) {
   const { pinned, setPinned } = useChatDock();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,10 +87,17 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
    * Никакого scrollIntoView: он умеет прокручивать ВСЕ внешние контейнеры,
    * то есть и саму страницу — из-за этого при скролле вниз мимо чата
    * страницу каждые полсекунды рвало обратно наверх.
+   * requestAnimationFrame: скроллимся уже по свежему layout — после отрисовки
+   * только что полученных сообщений, иначе ScrollHeight не успевает учесть их.
    */
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    });
   }, []);
 
   async function fetchMessages() {
@@ -136,6 +158,8 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
         setInput("");
         shouldAutoScroll.current = true;
         await fetchMessages();
+        // Принудительно прокручиваем к самому новому сообщению после отправки.
+        scrollToBottom();
       }
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -161,7 +185,22 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
+      <div
+        className={`px-4 py-3 border-b border-[var(--border)] flex items-center gap-2${
+          headerDragProps ? " select-none" : ""
+        }`}
+        {...(headerDragProps
+          ? {
+              onPointerDown: headerDragProps.onPointerDown,
+              onPointerMove: headerDragProps.onPointerMove,
+              onPointerUp: headerDragProps.onPointerUp,
+              style: {
+                touchAction: "none",
+                cursor: headerDragProps.dragging ? "grabbing" : "grab",
+              },
+            }
+          : {})}
+      >
         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
         <h2 className="font-semibold">Чат сервера</h2>
         <button
