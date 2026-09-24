@@ -153,10 +153,6 @@ export default async function StatsPage({
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-bold">Статистика</h1>
-          <p className="text-[var(--text-muted)] text-sm mt-1">
-            Топ игроков сервера по всем категориям — нажмите на заголовок столбца,
-            чтобы отсортировать по нему.
-          </p>
         </div>
 
         {rows.length === 0 ? (
