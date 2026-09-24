@@ -215,7 +215,7 @@ export default async function StatsPage({
             </table>
 
             <div className="mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-              <table className="w-full text-sm table-fixed">
+              <table className="w-full text-sm table-fixed border-separate border-spacing-y-[3px]">
                 <colgroup>
                   <col className="w-16" />
                   <col />
@@ -229,9 +229,11 @@ export default async function StatsPage({
                     return (
                       <tr
                         key={row.nickname}
-                        className={`border-b border-[var(--border)] last:border-0 ${
-                          isViewer ? "bg-[#7c3aed]/10" : "hover:bg-[var(--hover)]"
-                        }`}
+                        className={
+                          isViewer
+                            ? "bg-[#7c3aed]/10"
+                            : "bg-[var(--bubble)] hover:bg-[var(--hover)]"
+                        }
                       >
                         <td className="px-4 py-3 font-mono font-semibold text-[var(--text-muted)] text-center">
                           #{rank}
