@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -51,9 +52,9 @@ export default async function SettingsPage({
 
       <div className="max-w-4xl mx-auto py-12 px-4">
         <div className="mb-6">
-          <a href="/profile" className="text-[#7c3aed] hover:underline text-sm">
+          <Link href="/profile" className="text-[#7c3aed] hover:underline text-sm">
             ← Назад к профилю
-          </a>
+          </Link>
         </div>
 
         <h1 className="text-2xl font-bold mb-8">Настройки аккаунта</h1>
