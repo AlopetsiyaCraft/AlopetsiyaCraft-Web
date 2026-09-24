@@ -245,11 +245,6 @@ export default async function StatsPage({
                           >
                             <PlayerHead skinUrl={row.skinUrl} nickname={row.nickname} />
                             <span className="font-medium">{row.nickname}</span>
-                            {isViewer && (
-                              <span className="text-xs px-1.5 py-0.5 bg-[#7c3aed] text-white rounded-full">
-                                вы
-                              </span>
-                            )}
                           </Link>
                         </td>
                         {category.format !== "playtime" && (
