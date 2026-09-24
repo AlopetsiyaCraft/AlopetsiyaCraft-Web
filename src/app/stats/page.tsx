@@ -190,20 +190,21 @@ export default async function StatsPage({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm border-separate border-spacing-y-[3px]">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-[var(--text-muted)]">
-                    {/* Как на osu!: колонки ранга и игрока — без заголовков,
-                        надписи только над колонками данных; сортируемая
-                        колонка категории выделена акцентным цветом. */}
+                  <tr className="text-[var(--text-muted)]">
+                    {/* Колонки ранга и игрока — без заголовков (как на osu!);
+                        надписи только над колонками данных, значения под ними
+                        по центру; сортируемая колонка категории выделена
+                        акцентным цветом. */}
                     <th className="px-4 py-2 w-16" aria-hidden="true"></th>
                     <th className="px-4 py-2" aria-hidden="true"></th>
                     {category.format !== "playtime" && (
-                      <th className="px-4 py-2 text-right font-medium whitespace-nowrap">
+                      <th className="px-4 py-2 text-center font-medium whitespace-nowrap">
                         Время в игре
                       </th>
                     )}
-                    <th className="px-4 py-2 text-right font-semibold whitespace-nowrap text-[#7c3aed]">
+                    <th className="px-4 py-2 text-center font-semibold whitespace-nowrap text-[#7c3aed]">
                       {category.label}
                     </th>
                   </tr>
@@ -215,13 +216,11 @@ export default async function StatsPage({
                     return (
                       <tr
                         key={row.nickname}
-                        className={
-                          isViewer
-                            ? "bg-[#7c3aed]/10"
-                            : "bg-[var(--bubble)] hover:bg-[var(--hover)]"
-                        }
+                        className={`border-b border-[var(--border)] last:border-0 ${
+                          isViewer ? "bg-[#7c3aed]/10" : "hover:bg-[var(--hover)]"
+                        }`}
                       >
-                        <td className="px-4 py-3 font-mono font-semibold text-[var(--text-muted)] text-right">
+                        <td className="px-4 py-3 font-mono font-semibold text-[var(--text-muted)] text-center">
                           #{rank}
                         </td>
                         <td className="px-4 py-3">
@@ -239,11 +238,11 @@ export default async function StatsPage({
                           </Link>
                         </td>
                         {category.format !== "playtime" && (
-                          <td className="px-4 py-3 text-right font-mono text-[var(--text-muted)] whitespace-nowrap">
+                          <td className="px-4 py-3 text-center font-mono text-[var(--text-muted)] whitespace-nowrap">
                             {formatPlayTimeTicks(row.playtime)}
                           </td>
                         )}
-                        <td className="px-4 py-3 text-right font-mono font-semibold whitespace-nowrap">
+                        <td className="px-4 py-3 text-center font-mono font-semibold whitespace-nowrap">
                           {formatStatValue(category, row.value)}
                         </td>
                       </tr>
