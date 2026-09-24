@@ -29,7 +29,7 @@ export default async function BlueMapSection({ showTitle = true }: { showTitle?:
             src={`${BLUEMAP_URL}/`}
             title="Карта мира BlueMap"
             className="w-full"
-            style={{ height: "70vh" }}
+            style={{ height: "56vh" }}
             scrolling="no"
             tabIndex={-1}
             allowFullScreen
