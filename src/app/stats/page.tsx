@@ -183,7 +183,9 @@ export default async function StatsPage({
                         <Link
                           href={`/stats?sort=${c.key}`}
                           className={`cursor-pointer transition-colors ${
-                            active ? "text-[#7c3aed]" : "hover:text-[var(--text)]"
+                            active
+                              ? "text-[var(--text)]"
+                              : "text-[var(--text-muted)] hover:text-[var(--text)]"
                           }`}
                         >
                           {c.label}
@@ -232,7 +234,11 @@ export default async function StatsPage({
                         {STAT_CATEGORIES.map((c) => (
                           <td
                             key={c.key}
-                            className="px-2 py-3 text-center font-mono whitespace-nowrap"
+                            className={`px-2 py-3 text-center font-mono whitespace-nowrap ${
+                              c.key === sortKey
+                                ? "text-[var(--text)]"
+                                : "text-[var(--text-muted)]"
+                            }`}
                           >
                             {formatStatValue(c, row.values.get(c.key) ?? 0)}
                           </td>
