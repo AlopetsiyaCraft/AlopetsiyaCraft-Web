@@ -1,7 +1,7 @@
 import { count, inArray } from "drizzle-orm";
 import { db } from "./db";
 import { photoComments } from "./db/schema";
-import { photoThumbUrl, photoUrl } from "./photos";
+import { photoPostUrl, photoThumbUrl, photoUrl } from "./photos";
 import type { PhotoItem } from "./profile";
 
 /** Строка-результат join-запроса по фото (photo + автор + альбом + сезон). */
@@ -38,6 +38,7 @@ export function toPhotoItem(row: PhotoRow, countMap?: Map<number, number>): Phot
     originalName: row.originalName,
     url: photoUrl(row.fileName),
     thumbUrl: photoThumbUrl(row.fileName),
+    postUrl: photoPostUrl(row.fileName),
     authorNickname: row.authorNickname ?? "unknown",
     albumName: row.albumName,
     seasonNumber: row.seasonNumber,

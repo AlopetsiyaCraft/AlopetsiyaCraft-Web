@@ -35,15 +35,35 @@ export function photoUrl(fileName: string): string {
 }
 
 /**
- * Миниатюра фото: генерируется на сервере (sharp, JPEG до 480px по
- * большей стороне) и лежит рядом с оригиналом под детерминированным
- * именем — <base>-thumb.jpg. Новые колонки в БД не нужны.
+ * Миниатюры фото, генерируются на сервере (sharp, JPEG) и лежат рядом с
+ * оригиналом под детерминированными именами — новых колонок в БД не нужно:
+ *  - <base>-thumb.jpg — ≤480px, для квадратиков «Фото» на стене и сеток;
+ *  - <base>-post.jpg  — ≤576px (+20%), для вложений фото в постах стены
+ *                       (они выводятся крупнее и при 480px мылятся).
  */
+
+/** Максимальная сторона миниатюры для сеток/блока «Фото» (px). */
+export const PHOTO_THUMB_MAX = 480;
+
+/** Максимальная сторона миниатюры для фото в постах стены (px). */
+export const PHOTO_POST_MAX = 576;
+
+/** Имя миниатюры для сеток/блока «Фото». */
 export function photoThumbFileName(fileName: string): string {
   return fileName.replace(/\.[^.]+$/, "") + "-thumb.jpg";
 }
 
-/** Публичный URL миниатюры фото (для сеток и превью на стене). */
+/** Имя миниатюры для фото в постах стены. */
+export function photoPostFileName(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, "") + "-post.jpg";
+}
+
+/** Публичный URL миниатюры для сеток/блока «Фото». */
 export function photoThumbUrl(fileName: string): string {
   return `/uploads/photos/${photoThumbFileName(fileName)}`;
+}
+
+/** Публичный URL миниатюры для фото в постах стены. */
+export function photoPostUrl(fileName: string): string {
+  return `/uploads/photos/${photoPostFileName(fileName)}`;
 }

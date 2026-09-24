@@ -256,7 +256,7 @@ export default function WallFeed({
                 {post.photos.map((p, i) => (
                   <div key={p.id} className="rounded-lg overflow-hidden cursor-pointer border border-[var(--border)]" onClick={() => setLightbox({ photos: post.photos, index: i })}>
                     <img
-                      src={p.thumbUrl}
+                      src={p.postUrl}
                       alt={p.caption || "Фото"}
                       loading="lazy"
                       className="w-full h-full object-cover max-h-72"

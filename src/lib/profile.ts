@@ -14,6 +14,8 @@ export interface PhotoItem {
   originalName: string;
   url: string;
   thumbUrl: string;
+  /** Миниатюра для вложений фото в постах стены (чуть выше качество). */
+  postUrl: string;
   authorNickname: string;
   albumName: string | null;
   seasonNumber: number | null;

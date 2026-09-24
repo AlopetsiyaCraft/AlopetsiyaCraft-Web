@@ -8,12 +8,24 @@ import { db } from "@/lib/db";
 import { photoAlbums, photos, seasons, users } from "@/lib/db/schema";
 import {
   MAX_PHOTO_BYTES,
+  PHOTO_POST_MAX,
+  PHOTO_THUMB_MAX,
   generatePhotoFileName,
   isPhotoExt,
+  photoPostFileName,
   photoRoot,
   photoThumbFileName,
 } from "@/lib/photos";
 import { photoCommentCounts, toPhotoItem } from "@/lib/photoRows";
+
+/** Миниатюра фото: JPEG, не больше `max` по большей стороне, пропорции сохранены. */
+async function makePhotoThumb(bytes: Buffer, max: number): Promise<Buffer> {
+  return sharp(bytes)
+    .rotate()
+    .resize(max, max, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 82 })
+    .toBuffer();
+}
 
 /**
  * GET /api/photos — список фото.
@@ -132,19 +144,16 @@ export async function POST(request: NextRequest) {
     mkdirSync(dir, { recursive: true });
     await writeFile(photoRoot(fileName), bytes);
 
-    // Миниатюра (JPEG, ≤480px по большей стороне) лежит рядом с оригиналом
-    // под детерминированным именем; в сетках/превью отдаём её, а не оригинал.
+    // Миниатюры (JPEG) лежат рядом с оригиналом под детерминированными
+    // именами: -thumb.jpg для квадратиков/сеток, -post.jpg для вложений
+    // постов (чуть выше разрешение — посты выводят фото крупнее).
     // Сбой генерации не роняет загрузку — UI умеет фолбэчиться на оригинал.
-    try {
-      const thumb = await sharp(bytes)
-        .rotate()
-        .resize(480, 480, { fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 82 })
-        .toBuffer();
-      await writeFile(photoRoot(photoThumbFileName(fileName)), thumb);
-    } catch (e) {
-      console.error("Не удалось сделать миниатюру фото:", e);
-    }
+    const thumbBuf = await makePhotoThumb(bytes, PHOTO_THUMB_MAX).catch(() => null);
+    const postBuf = await makePhotoThumb(bytes, PHOTO_POST_MAX).catch(() => null);
+    await Promise.all([
+      thumbBuf ? writeFile(photoRoot(photoThumbFileName(fileName)), thumbBuf) : Promise.resolve(),
+      postBuf ? writeFile(photoRoot(photoPostFileName(fileName)), postBuf) : Promise.resolve(),
+    ]);
 
     const row = await db
       .insert(photos)
@@ -166,6 +175,7 @@ export async function POST(request: NextRequest) {
         id: row.id,
         url: `/uploads/photos/${fileName}`,
         thumbUrl: `/uploads/photos/${photoThumbFileName(fileName)}`,
+        postUrl: `/uploads/photos/${photoPostFileName(fileName)}`,
         message: "Фото загружено",
       },
       { status: 201 }
