@@ -84,7 +84,7 @@ function Tooltip({ stack }: { stack: PreparedStack }) {
           : "text-red-400";
 
   return (
-    <div className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-50 w-max max-w-[280px]">
+    <div className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-50 w-max max-w-[280px] opacity-0 transition-opacity duration-100 group-hover:opacity-100">
       <div className="bg-[#100018]/95 backdrop-blur border border-[#7c3aed]/60 rounded-lg px-3 py-2.5 shadow-2xl">
         <div className="text-sm font-semibold text-white">{stack.name}</div>
         {stack.count > 1 && <div className="text-xs text-[var(--text-secondary)]">Кол-во: {stack.count}</div>}
