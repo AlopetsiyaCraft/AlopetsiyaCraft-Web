@@ -5,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import DockedChat from "@/components/DockedChat";
 import PlayersOnline from "@/components/PlayersOnline";
+import AchievementsFeed from "@/components/AchievementsFeed";
 import BlueMapSection from "@/components/BlueMapSection";
 
 export default async function Home() {
@@ -35,8 +36,9 @@ export default async function Home() {
               <BlueMapSection />
               <DockedChat isLoggedIn={!!session} />
             </div>
-            <div>
+            <div className="flex flex-col gap-8">
               <PlayersOnline />
+              <AchievementsFeed />
             </div>
           </div>
         </div>

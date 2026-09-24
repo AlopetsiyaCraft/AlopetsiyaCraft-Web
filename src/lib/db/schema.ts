@@ -107,6 +107,29 @@ export const chatLogs = sqliteTable("chat_logs", {
     .$defaultFn(() => new Date()),
 });
 
+/**
+ * Достижения игроков (Minecraft advancements 1.12+). Присылает мод на сервере
+ * через POST /api/achievements/from-server — как чат: ник игрока, заголовок,
+ * рамка (task/goal/challenge) и т.д. Блок «Последние достижения» на главной
+ * медленно прокручивает эту ленту.
+ */
+export const achievements = sqliteTable("achievements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  // Игровой ник (как в chat_logs) — без жёсткой привязки к аккаунту сайта.
+  nickname: text("nickname").notNull(),
+  // Minecraft-ид прогрессии, например "minecraft:story/mine_stone".
+  advancementId: text("advancement_id").notNull().default(""),
+  title: text("title").notNull(),
+  description: text("description"),
+  // Рамка достижения: task (зелёная) / goal (жёлтая) / challenge (фиолетовая).
+  frame: text("frame", { enum: ["task", "goal", "challenge"] }).notNull().default("task"),
+  // Id предмета-иконки, например "minecraft:stone_pickaxe" (пока для будущего).
+  icon: text("icon").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   screenshots: many(screenshots),
   comments: many(comments),

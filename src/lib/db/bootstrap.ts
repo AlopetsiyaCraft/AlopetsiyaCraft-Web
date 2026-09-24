@@ -208,6 +208,18 @@ export const bootstrapSql = `
   CREATE INDEX IF NOT EXISTS idx_post_comment_likes_comment ON post_comment_likes(comment_id);
   CREATE INDEX IF NOT EXISTS idx_friends_a ON friends(user_id);
   CREATE INDEX IF NOT EXISTS idx_friends_b ON friends(friend_id);
+
+  CREATE TABLE IF NOT EXISTS achievements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname TEXT NOT NULL,
+    advancement_id TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL,
+    description TEXT,
+    frame TEXT NOT NULL DEFAULT 'task',
+    icon TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_achievements_created ON achievements(created_at);
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */
