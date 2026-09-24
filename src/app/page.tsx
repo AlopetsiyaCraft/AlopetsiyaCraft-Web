@@ -5,7 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import LiveChat from "@/components/LiveChat";
 import PlayersOnline from "@/components/PlayersOnline";
-import BlueMapSection from "@/components/BlueMapSection";
+import MapSection from "@/components/MapSection";
 
 export default async function Home() {
   const session = await auth();
@@ -39,7 +39,7 @@ export default async function Home() {
             </div>
           </div>
 
-          <BlueMapSection />
+          <MapSection />
         </div>
       </main>
 
