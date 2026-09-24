@@ -14,10 +14,10 @@ const MAX_NICKNAME = 32;
  *   - registered — зарегистрирован ли такой ник на сайте (вайтлист: если нет —
  *     мод кикает игрока с сообщением «зарегистрируйтесь на сайте»);
  *   - authorized — есть ли живая сессия с этого IP (пароль при входе не нужен);
- *   - previousNickname — предыдущий ник аккаунта (если игрок менял ник на
- *     сайте): мод при входе под новым ником копирует инвентарь (playerdata) и
- *     ванильную статистику с offline-UUID предыдущего ника на новый, чтобы
- *     смена ника не обнуляла предметы и прогресс.
+ *   - previousNickname / previousNicknames — прошлые ники аккаунта (если игрок
+ *     менял ник на сайте): мод при входе под новым ником копирует инвентарь
+ *     (playerdata) и ванильную статистику с offline-UUID какого-то из прошлых
+ *     ников на новый, чтобы смена ника не обнуляла предметы и прогресс.
  *
  * `ip` опционален (нужен только для проверки активной сессии; мод спрашивает
  * этот эндпоинт ещё до создания игрока — тогда IP ещё неизвестен). Ник ищется
@@ -49,8 +49,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ registered: false, authorized: false });
   }
 
-  // Последний предыдущий ник этого аккаунта — мод переносит под него прогресс.
-  const prev = await db
+  // Все прошлые ники этого аккаунта (новые первыми) — мод берёт самый свежий
+  // из них, у которого на сервере есть реальные данные (вещи/опыт), и
+  // переносит прогресс под текущий ник. Цепочку A -> B(пустой вход) -> C
+  // это тоже отрабатывает: пустой спас B пропускается, берётся A.
+  const history = await db
     .select({ nickname: nameHistory.nickname })
     .from(nameHistory)
     .where(
@@ -60,8 +63,9 @@ export async function POST(request: NextRequest) {
       )
     )
     .orderBy(desc(nameHistory.id))
-    .limit(1)
-    .get();
+    .limit(20);
+
+  const previousNicknames = history.map((h) => h.nickname);
 
   let authorized = false;
   if (ip) {
@@ -85,7 +89,12 @@ export async function POST(request: NextRequest) {
     authorized,
     // Канонический ник сайта (регистр) — мод пускает под ним.
     nickname: user.nickname,
-    // null, если игрок не менял ник.
-    previousNickname: prev && prev.nickname.toLowerCase() !== lower ? prev.nickname : null,
+    // null, если игрок не менял ник; иначе самый свежий предыдущий ник.
+    previousNickname:
+      previousNicknames.length > 0 && previousNicknames[0].toLowerCase() !== lower
+        ? previousNicknames[0]
+        : null,
+    // Все прошлые ники (самые свежие первыми) для переноса прогресса.
+    previousNicknames,
   });
 }

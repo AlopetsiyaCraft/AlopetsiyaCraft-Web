@@ -83,18 +83,15 @@ export async function POST(request: NextRequest) {
 
     // Переносим весь прогресс аккаунта на новый ник:
     // - статистику с сервера (лидерборд, профиль);
-    // - активную сессию входа на MC-сервер (чтобы не пришлось логиниться заново).
+    // - активную сессию входа на MC-сервер НЕ переносим: смена ника для нас —
+    //   «новое лицо», игрок должен заново ввести пароль /login под новым ником.
     await db
       .update(playerStats)
       .set({ nickname: trimmed })
       .where(sql`lower(${playerStats.nickname}) = ${oldNickname.toLowerCase()}`)
       .run();
 
-    await db
-      .update(mcSessions)
-      .set({ nickname: trimmed })
-      .where(eq(mcSessions.userId, userId))
-      .run();
+    await db.delete(mcSessions).where(eq(mcSessions.userId, userId)).run();
 
     return NextResponse.json({ message: "Никнейм обновлён", nickname: trimmed });
   } catch (error) {
