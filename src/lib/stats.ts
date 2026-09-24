@@ -28,7 +28,7 @@ export interface StatCategory {
 export const STAT_CATEGORIES: StatCategory[] = [
   {
     key: "deaths",
-    label: "Смерти",
+    label: "Смертей",
     hint: "Сколько раз игрок погиб на сервере",
     vanillas: ["minecraft:custom:minecraft:deaths"],
     format: "raw",

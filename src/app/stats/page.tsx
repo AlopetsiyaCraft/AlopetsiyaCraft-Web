@@ -150,7 +150,7 @@ export default async function StatsPage({
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
+      <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-bold">Статистика</h1>
           <p className="text-[var(--text-muted)] text-sm mt-1">
@@ -170,10 +170,10 @@ export default async function StatsPage({
                 фон только у таблицы со списком игроков ниже. */}
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col className="w-16" />
+                <col className="w-12" />
                 <col />
                 {STAT_CATEGORIES.map((c) => (
-                  <col key={c.key} className="min-w-16" />
+                  <col key={c.key} className="w-24" />
                 ))}
               </colgroup>
               <thead>
@@ -202,10 +202,10 @@ export default async function StatsPage({
             <div className="mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
               <table className="w-full text-sm table-fixed border-separate border-spacing-y-[3px]">
                 <colgroup>
-                  <col className="w-16" />
+                  <col className="w-12" />
                   <col />
                   {STAT_CATEGORIES.map((c) => (
-                    <col key={c.key} className="min-w-16" />
+                    <col key={c.key} className="w-24" />
                   ))}
                 </colgroup>
                 <tbody>
@@ -221,10 +221,10 @@ export default async function StatsPage({
                             : "bg-[var(--bubble)] hover:bg-[var(--hover)]"
                         }
                       >
-                        <td className="px-4 py-3 font-mono font-semibold text-[var(--text-muted)] text-center">
+                        <td className="px-2 py-3 font-mono font-semibold text-[var(--text-muted)] text-center">
                           #{rank}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="pl-3 pr-4 py-3">
                           <Link
                             href={`/profile/${encodeURIComponent(row.nickname)}`}
                             className="flex items-center gap-3 cursor-pointer"
