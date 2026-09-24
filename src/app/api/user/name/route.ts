@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, nameHistory } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { users, nameHistory, playerStats, mcSessions } from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,22 +47,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
     }
 
-    if (currentUser.nickname === trimmed) {
+    if (currentUser.nickname.toLowerCase() === trimmed.toLowerCase()) {
       return NextResponse.json({ error: "Это уже ваш никнейм" }, { status: 400 });
     }
 
+    // Проверяем занятость без учёта регистра — в игре ники регистронезависимы.
     const existing = await db
-      .select()
+      .select({ id: users.id })
       .from(users)
-      .where(eq(users.nickname, trimmed))
+      .where(sql`lower(${users.nickname}) = ${trimmed.toLowerCase()}`)
       .get();
 
-    if (existing) {
+    if (existing && existing.id !== userId) {
       return NextResponse.json(
         { error: "Этот никнейм уже занят" },
         { status: 400 }
       );
     }
+
+    const oldNickname = currentUser.nickname;
 
     await db
       .update(users)
@@ -76,6 +79,21 @@ export async function POST(request: NextRequest) {
         userId,
         nickname: trimmed,
       })
+      .run();
+
+    // Переносим весь прогресс аккаунта на новый ник:
+    // - статистику с сервера (лидерборд, профиль);
+    // - активную сессию входа на MC-сервер (чтобы не пришлось логиниться заново).
+    await db
+      .update(playerStats)
+      .set({ nickname: trimmed })
+      .where(sql`lower(${playerStats.nickname}) = ${oldNickname.toLowerCase()}`)
+      .run();
+
+    await db
+      .update(mcSessions)
+      .set({ nickname: trimmed })
+      .where(eq(mcSessions.userId, userId))
       .run();
 
     return NextResponse.json({ message: "Никнейм обновлён", nickname: trimmed });

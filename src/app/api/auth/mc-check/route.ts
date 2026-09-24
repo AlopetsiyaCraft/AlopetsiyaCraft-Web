@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, sql, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users, mcSessions } from "@/lib/db/schema";
+import { users, mcSessions, nameHistory } from "@/lib/db/schema";
 import { checkBridgeKey } from "@/lib/bridge";
 
 const MAX_NICKNAME = 32;
@@ -12,11 +12,16 @@ const MAX_NICKNAME = 32;
  * POST /api/auth/mc-check  — тело: { "nickname": "AlexMilash", "ip": "1.2.3.4" }
  *
  *   - registered — зарегистрирован ли такой ник на сайте (вайтлист: если нет —
- *     мод кикает игрока с сообщением «зарегистрируйся на сайте»);
- *   - authorized — есть ли живая сессия с этого IP (пароль при входе не нужен).
+ *     мод кикает игрока с сообщением «зарегистрируйтесь на сайте»);
+ *   - authorized — есть ли живая сессия с этого IP (пароль при входе не нужен);
+ *   - previousNickname — предыдущий ник аккаунта (если игрок менял ник на
+ *     сайте): мод при входе под новым ником копирует инвентарь (playerdata) и
+ *     ванильную статистику с offline-UUID предыдущего ника на новый, чтобы
+ *     смена ника не обнуляла предметы и прогресс.
  *
- * Ник ищется без учёта регистра, IP сравнивается как есть. Требует заголовок
- * `x-api-key` = CHAT_API_KEY (тот же, что у чат-моста).
+ * `ip` опционален (нужен только для проверки активной сессии; мод спрашивает
+ * этот эндпоинт ещё до создания игрока — тогда IP ещё неизвестен). Ник ищется
+ * без учёта регистра. Требует заголовок `x-api-key` = CHAT_API_KEY.
  */
 export async function POST(request: NextRequest) {
   if (!checkBridgeKey(request.headers.get("x-api-key"))) {
@@ -28,11 +33,8 @@ export async function POST(request: NextRequest) {
     typeof body?.nickname === "string" ? body.nickname.trim().slice(0, MAX_NICKNAME) : "";
   const ip = typeof body?.ip === "string" ? body.ip.trim() : "";
 
-  if (!nickname || !ip) {
-    return NextResponse.json(
-      { error: "Поля nickname и ip обязательны" },
-      { status: 400 }
-    );
+  if (!nickname) {
+    return NextResponse.json({ error: "Поле nickname обязательно" }, { status: 400 });
   }
 
   const lower = nickname.toLowerCase();
@@ -47,23 +49,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ registered: false, authorized: false });
   }
 
-  const session = await db
-    .select({ id: mcSessions.id })
-    .from(mcSessions)
+  // Последний предыдущий ник этого аккаунта — мод переносит под него прогресс.
+  const prev = await db
+    .select({ nickname: nameHistory.nickname })
+    .from(nameHistory)
     .where(
       and(
-        sql`lower(${mcSessions.nickname}) = ${lower}`,
-        eq(mcSessions.ip, ip),
-        gt(mcSessions.expiresAt, new Date())
+        eq(nameHistory.userId, user.id),
+        sql`lower(${nameHistory.nickname}) != ${user.nickname.toLowerCase()}`
       )
     )
+    .orderBy(desc(nameHistory.id))
     .limit(1)
     .get();
 
+  let authorized = false;
+  if (ip) {
+    const session = await db
+      .select({ id: mcSessions.id })
+      .from(mcSessions)
+      .where(
+        and(
+          sql`lower(${mcSessions.nickname}) = ${lower}`,
+          eq(mcSessions.ip, ip),
+          gt(mcSessions.expiresAt, new Date())
+        )
+      )
+      .limit(1)
+      .get();
+    authorized = !!session;
+  }
+
   return NextResponse.json({
     registered: true,
-    authorized: !!session,
-    // Показываем канонический ник сайта (регистр) — мод пускает под ним.
+    authorized,
+    // Канонический ник сайта (регистр) — мод пускает под ним.
     nickname: user.nickname,
+    // null, если игрок не менял ник.
+    previousNickname: prev && prev.nickname.toLowerCase() !== lower ? prev.nickname : null,
   });
 }
