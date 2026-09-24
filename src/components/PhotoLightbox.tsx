@@ -5,6 +5,14 @@ import Link from "next/link";
 import CommentTree from "./CommentTree";
 import type { PhotoCommentItem, PhotoItem } from "@/lib/profile";
 
+/** Состояние комментариев конкретного фото в лайтбоксе.
+ *  data считается достоверной только при status "loaded" — пустой список
+ *  «Комментариев пока нет» не должен мелькать до завершения загрузки. */
+interface CommentsState {
+  status: "loading" | "loaded" | "error";
+  data: PhotoCommentItem[];
+}
+
 function ruDate(ts: number): string {
   return new Date(ts).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 }
@@ -55,13 +63,17 @@ export default function PhotoLightbox({
   onDeleted?: (photoId: number) => void;
 }) {
   const [index, setIndex] = useState(Math.min(Math.max(initialIndex, 0), photos.length - 1));
-  const [comments, setComments] = useState<PhotoCommentItem[]>([]);
+  const [commentsByPhoto, setCommentsByPhoto] = useState<Record<number, CommentsState>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [panelH, setPanelH] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const colRef = useRef<HTMLDivElement | null>(null);
 
   const photo = photos[index];
+  /** Комментарии текущего фото. data показываем только после успешной загрузки
+   *  (status "loaded"), иначе — «Загрузка…» или ошибка, но не пустое состояние. */
+  const cs = photo ? commentsByPhoto[photo.id] : undefined;
+  const comments = cs?.status === "loaded" ? cs.data : undefined;
 
   const go = useCallback(
     (delta: number) => {
@@ -75,13 +87,24 @@ export default function PhotoLightbox({
 
   const refreshComments = useCallback(async () => {
     if (!isLoggedIn || !photo) return;
-    const res = await fetch(`/api/photos/${photo.id}/comments`);
-    if (res.ok) setComments((await res.json()) as PhotoCommentItem[]);
+    const id = photo.id;
+    try {
+      const res = await fetch(`/api/photos/${id}/comments`);
+      if (!res.ok) throw new Error(`comments ${res.status}`);
+      const list = (await res.json()) as PhotoCommentItem[];
+      setCommentsByPhoto((prev) => ({ ...prev, [id]: { status: "loaded", data: list } }));
+    } catch {
+      // Ошибка сети/сервера: в кэш ничего не пишем (иначе «Комментариев пока нет»
+      // мелькнуло бы раньше данных). Показываем ошибку, можно нажать «Повторить».
+      setCommentsByPhoto((prev) => {
+        if (prev[id]?.status === "loaded") return prev; // уже есть данные — не ломаем
+        return { ...prev, [id]: { status: "error", data: [] } };
+      });
+    }
   }, [photo?.id, isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // сбрасываем состояние на новом фото
+  // сбрасываем состояние на новом фото (комментарии не трогаем — они в кэше по id)
   useEffect(() => {
-    setComments([]);
     setMessage(null);
     setCopied(false);
     refreshComments();
@@ -135,7 +158,10 @@ export default function PhotoLightbox({
       });
       if (res.ok) {
         const item = (await res.json()) as PhotoCommentItem;
-        setComments((c) => [...c, item]);
+        setCommentsByPhoto((prev) => {
+          const cur = prev[photo.id];
+          return { ...prev, [photo.id]: { status: "loaded", data: [...(cur?.data ?? []), item] } };
+        });
         return true;
       }
       const j = await res.json().catch(() => null);
@@ -157,13 +183,20 @@ export default function PhotoLightbox({
           likedByMe: boolean;
           likers: { nickname: string; skinUrl: string | null }[];
         };
-        setComments((prev) =>
-          prev.map((c) =>
-            c.id === commentId
-              ? { ...c, likedByMe: r.likedByMe, likeCount: r.likeCount, likers: r.likers }
-              : c
-          )
-        );
+        setCommentsByPhoto((prev) => {
+          const cur = prev[photo.id];
+          return {
+            ...prev,
+            [photo.id]: {
+              status: cur?.status ?? "loaded",
+              data: (cur?.data ?? []).map((c) =>
+                c.id === commentId
+                  ? { ...c, likedByMe: r.likedByMe, likeCount: r.likeCount, likers: r.likers }
+                  : c
+              ),
+            },
+          };
+        });
       }
     } catch {
       // молча: лайк не критичен
@@ -255,15 +288,15 @@ export default function PhotoLightbox({
             )}
           </div>
 
-          {/* ---- Нижний блок под фото (VK-стиль): сезон слева снизу, «Поделиться» справа ---- */}
-          <div className="h-14 shrink-0 bg-[var(--card)] border-t border-[var(--border)] flex items-end justify-between gap-3 px-5 pb-2.5">
+          {/* ---- Нижний блок под фото (VK-стиль): сезон слева, «Поделиться» справа ---- */}
+          <div className="h-14 shrink-0 bg-[var(--card)] border-t border-[var(--border)] flex items-center justify-between gap-3 px-5">
             <span className="text-sm text-[var(--text-secondary)]">
               {photo.seasonNumber ? (
                 <Link
                   href={`/gallery?season=${photo.seasonId}`}
                   className="hover:text-[#7c3aed] transition-colors"
                 >
-                  Фотографии сезона ({photo.seasonNumber})
+                  Фотографии сезона {photo.seasonNumber}
                 </Link>
               ) : (
                 "Фотографии"
@@ -362,9 +395,12 @@ export default function PhotoLightbox({
               {message && <p className="text-xs text-red-400 shrink-0 px-5 pt-2">{message}</p>}
               {isLoggedIn ? (
                 <CommentTree
+                  key={photo.id}
                   panel
-                  listTitle={`Комментарии (${comments.length})`}
-                  comments={comments}
+                  listTitle={cs?.status === "loaded" ? `Комментарии (${cs.data.length})` : "Комментарии"}
+                  comments={comments ?? []}
+                  status={cs?.status ?? "loading"}
+                  onRetry={refreshComments}
                   viewerNickname={viewerNickname}
                   onAddComment={addComment}
                   onToggleLike={(commentId) => toggleLike(commentId)}

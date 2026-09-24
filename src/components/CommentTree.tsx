@@ -109,6 +109,10 @@ interface CommentTreeProps {
   panel?: boolean;
   /** Заголовок над списком (для режима панели), напр. «Комментарии (3)». */
   listTitle?: string;
+  /** Статус загрузки списка: loading — «Загрузка…», error — «Повторить», иначе пустое состояние. */
+  status?: "loading" | "loaded" | "error";
+  /** Повторная загрузка при status "error". */
+  onRetry?: () => void;
 }
 
 interface Node {
@@ -207,7 +211,9 @@ export default function CommentTree({
   onToggleLike,
   loginHint,
   panel = false,
+  status = "loaded",
   listTitle,
+  onRetry,
 }: CommentTreeProps) {
   const [text, setText] = useState("");
   const [replyingTo, setReplyingTo] = useState<AnyComment | null>(null);
@@ -310,9 +316,24 @@ export default function CommentTree({
       )}
 
       {/* Список (в панели — отдельная скроллируемая область без видимого скроллбара) */}
-      <div className={panel ? "flex-1 min-h-0 overflow-y-auto no-scrollbar pr-1 -mr-1 px-5" : "space-y-3"}>
+      <div className={panel ? "flex-1 min-h-0 overflow-y-auto no-scrollbar px-5" : "space-y-3"}>
         {tree.length === 0 ? (
-          <p className="text-[var(--text-muted)] text-sm">Комментариев пока нет</p>
+          status === "loading" ? (
+            <p className="text-[var(--text-muted)] text-sm">Загрузка…</p>
+          ) : status === "error" ? (
+            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+              Не удалось загрузить комментарии
+              <button
+                type="button"
+                onClick={onRetry}
+                className="text-[#7c3aed] hover:underline shrink-0"
+              >
+                Повторить
+              </button>
+            </div>
+          ) : (
+            <p className="text-[var(--text-muted)] text-sm">Комментариев пока нет</p>
+          )
         ) : (
           tree.map((node) => renderNode(node, 0))
         )}
