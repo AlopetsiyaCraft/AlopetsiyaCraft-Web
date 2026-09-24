@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { seasons, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
-import LiveChat from "@/components/LiveChat";
+import DockedChat from "@/components/DockedChat";
 import PlayersOnline from "@/components/PlayersOnline";
 import BlueMapSection from "@/components/BlueMapSection";
 
@@ -33,7 +33,7 @@ export default async function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <BlueMapSection />
-              <LiveChat isLoggedIn={!!session} />
+              <DockedChat isLoggedIn={!!session} />
             </div>
             <div>
               <PlayersOnline />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useChatDock } from "@/lib/chat-dock";
 
 interface ChatMessage {
   id: number;
@@ -48,6 +49,7 @@ function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: str
 }
 
 export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const { pinned, setPinned } = useChatDock();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
@@ -162,6 +164,27 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
         <h2 className="font-semibold">Чат сервера</h2>
+        <button
+          type="button"
+          onClick={() => setPinned(!pinned)}
+          title={pinned ? "Открепить чат (в плавающее окно)" : "Закрепить чат на главной"}
+          aria-label={pinned ? "Открепить чат" : "Закрепить чат"}
+          className="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--hover)] transition-colors cursor-pointer"
+        >
+          {pinned ? (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M15 3h6v6" />
+              <path d="M10 14L21 3" />
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M9 21H3v-6" />
+              <path d="M14 10L3 21" />
+              <path d="M6 13V6a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-6" />
+            </svg>
+          )}
+        </button>
       </div>
 
       <div
