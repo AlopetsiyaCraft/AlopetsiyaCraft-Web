@@ -5,9 +5,9 @@
  * Иконки: модель предмета (assets/minecraft/models/item/<id>.json) указывает
  * текстуру (textures/item/... или textures/block/...), файл которой и отдаём
  * клиенту. Чтобы не дёргать GitHub на каждом запросе, результат кэшируется в
- * data/item-texture-cache.json; русские имена из lang/ru_ru.json кэшируются в
- * data/item-lang-ru.json. Настройки сети при неудаче — просто fallback на имя,
- * которое прислал сервер, и «угаданную» текстуру.
+ * data/item-texture-cache-v2.json + data/texture-exists-cache.json; русские
+ * имена из lang/ru_ru.json кэшируются в data/item-lang-ru.json. При неудаче
+ * сети — fallback на имя, которое прислал сервер, и заглушку вместо иконки.
  */
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
@@ -18,7 +18,7 @@ const ASSETS_VERSION = "1.21.1";
 const ASSETS_BASE = `https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/${ASSETS_VERSION}/assets/minecraft/`;
 
 const DATA_DIR = join(process.cwd(), "data");
-const TEXTURE_CACHE_FILE = join(DATA_DIR, "item-texture-cache.json");
+const TEXTURE_CACHE_FILE = join(DATA_DIR, "item-texture-cache-v2.json");
 const LANG_CACHE_FILE = join(DATA_DIR, "item-lang-ru.json");
 const EN_CACHE_FILE = join(DATA_DIR, "item-lang-en.json");
 
@@ -218,63 +218,146 @@ export async function localizeItemSmart(id: string, serverName: string): Promise
 
 // ---------- текстуры предметов (модель → путь текстуры) ----------
 
-function guessTexturePath(name: string): string {
-  // Для большинства предметов файл текстуры совпадает с id.
-  return `item/${name}`;
+/**
+ * Как устроены модели в 1.21.1:
+ *  - предметы: {"parent": "item/generated", "textures": {"layer0": "item/diamond"}};
+ *  - блоки: item/<блок> обычно = {"parent": "block/<блок>"} — текстуры задаёт сам
+ *    блок («all», либо «front»/«side»/«top», либо «end»/«side», ...), а шаблоны
+ *    (cube_all, orientable, cube_column...) ссылаются на них через "#all".
+ *
+ * Раньше для блока с parent "block/<блок>" иконка бралась как "block/<блок>",
+ * но такого png у большинства блоков нет (furnace, chest, hay_block,
+ * dispenser...) — картинки пропадали. Теперь собираем текстуры по всей цепочке
+ * родителей и выбираем характерную переменную (у предметов layer0; у блоков
+ * all → front → top → side/end → particle), а существование файла проверяем
+ * HEAD-запросом и кэшируем (png нет — предмет рисуется заглушкой).
+ */
+const TEXTURE_KEY_PRIORITY = [
+  "layer0", "all", "front", "top", "side", "end", "particle",
+  "north", "south", "east", "west", "up", "down", "bottom",
+];
+
+/** Модель, с ретраем на случай транзиентного сбоя сети (иначе null кэшируется надолго). */
+async function fetchModelJson(modelName: string): Promise<Record<string, any> | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const model = await fetchJson(`${ASSETS_BASE}models/${modelName}.json`);
+    if (model) return model;
+  }
+  return null;
 }
 
-async function resolveModelTexture(modelName: string, depth: number): Promise<string | null> {
-  if (depth > 6) return null;
-  const cacheKey = `model:${modelName}`;
-  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
-  if (model404.has(modelName)) return null;
-
-  const model = await fetchJson(`${ASSETS_BASE}models/${modelName}.json`);
-  if (!model) {
-    model404.add(modelName);
-    return null;
-  }
-
-  // Текстуры из самой модели (самый надёжный случай).
-  const textures = model.textures;
-  if (textures && typeof textures === "object") {
-    const layer0 = textures["layer0"];
-    const all = textures["all"];
-    const first = Object.values(textures as Record<string, string>)[0];
-    const pick = (layer0 ?? all ?? first) as string | undefined;
-    if (pick && typeof pick === "string") {
-      const path = normalizeTexture(pick);
-      if (path) {
-        textureCache.set(cacheKey, path);
-        return path;
+async function collectModelChain(modelName: string): Promise<{
+  merged: Record<string, string>;
+  origins: Record<string, "item" | "block">;
+} | null> {
+  const merged: Record<string, string> = {};
+  const origins: Record<string, "item" | "block"> = {};
+  let cur: string | null = modelName;
+  for (let i = 0; i <= 8 && cur; i++) {
+    if (model404.has(cur)) break;
+    const model = await fetchModelJson(cur);
+    if (!model) {
+      model404.add(cur);
+      break;
+    }
+    const own = model.textures;
+    if (own && typeof own === "object") {
+      const folder: "item" | "block" = cur.startsWith("block/") ? "block" : "item";
+      for (const [k, v] of Object.entries(own as Record<string, unknown>)) {
+        if (typeof v === "string") {
+          merged[k] = v;
+          origins[k] = folder;
+        }
       }
     }
+    const parent = typeof model.parent === "string" ? model.parent : null;
+    cur = parent ? parent.replace(/^minecraft:/, "") : null;
+    // Шаблоны вне item//block/ (generated, handheld, builtin/entity...) — тупик.
+    if (cur && !cur.startsWith("item/") && !cur.startsWith("block/")) cur = null;
   }
-
-  let parent = typeof model.parent === "string" ? model.parent : null;
-  if (!parent) return null;
-  const norm = normalizeTexture(parent);
-  if (!norm) return null;
-
-  // parent вида "block/cube_all" → текстура = та же блочная модель (обычно у
-  // предмета уже есть override textures; если нет — берём картинку блока).
-  if (norm.startsWith("block/")) {
-    textureCache.set(cacheKey, norm);
-    return norm;
-  }
-
-  // Проваливаемся дальше по цепочке parent-ов.
-  const next = await resolveModelTexture(norm.replace(/^minecraft:/, ""), depth + 1);
-  textureCache.set(cacheKey, next);
-  return next;
+  return Object.keys(merged).length ? { merged, origins } : null;
 }
 
-/** Убирает namespace/алиасы, оставляет путь вида "item/foo" или "block/foo". */
-function normalizeTexture(value: string): string | null {
-  let v = value.trim();
-  if (v.startsWith("minecraft:")) v = v.slice("minecraft:".length);
-  if (v.startsWith("item/") || v.startsWith("block/")) return v;
+/** Раскрывает ссылку "#переменная" в итоговом словаре текстур цепочки. */
+function resolveTextureValue(merged: Record<string, string>, key: string): string | null {
+  let v = merged[key];
+  const seen = new Set<string>([key]);
+  while (typeof v === "string" && v.startsWith("#")) {
+    const next = v.slice(1);
+    if (seen.has(next)) return null;
+    seen.add(next);
+    v = merged[next];
+  }
+  return typeof v === "string" ? v.replace(/^minecraft:/, "") : null;
+}
+
+/**
+ * Путь текстуры из значения. Значения без "item/"/"block/" в ванили относительны
+ * к папке модели, где заданы (у блоков → "block/<имя>", у предметов → "item/<имя>").
+ */
+function texturePathFromValue(
+  value: string,
+  origin: "item" | "block" | undefined
+): string | null {
+  const v = value.trim().replace(/^minecraft:/, "");
+  if (/^(item|block)\//.test(v)) return v;
+  return origin ? `${origin}/${v}` : null;
+}
+
+/** Лучшая текстура по модели предмета/блока (путь без .png), или null. */
+async function resolveModelTexture(modelName: string): Promise<string | null> {
+  const cacheKey = `model:${modelName}`;
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
+  const chain = await collectModelChain(modelName);
+  if (!chain) {
+    textureCache.set(cacheKey, null);
+    return null;
+  }
+  const { merged, origins } = chain;
+  for (const key of TEXTURE_KEY_PRIORITY) {
+    const value = resolveTextureValue(merged, key);
+    if (!value) continue;
+    const path = texturePathFromValue(value, origins[key]);
+    // Проверяем существование файла — если кандидат не существует, пробуем следующий.
+    if (path && (await textureFileExists(path))) {
+      textureCache.set(cacheKey, path);
+      return path;
+    }
+  }
+  textureCache.set(cacheKey, null);
   return null;
+}
+
+// ---------- проверка существования файла текстуры ----------
+
+const EXISTENCE_CACHE_FILE = join(DATA_DIR, "texture-exists-cache.json");
+const existsInMemory = new Map<string, boolean>();
+let existsOnDisk: Record<string, boolean> | null = null;
+
+async function textureFileExists(texturePath: string): Promise<boolean> {
+  if (existsInMemory.has(texturePath)) return existsInMemory.get(texturePath)!;
+  if (existsOnDisk === null) {
+    existsOnDisk = loadMapCache(EXISTENCE_CACHE_FILE) as unknown as Record<string, boolean>;
+  }
+  if (Object.prototype.hasOwnProperty.call(existsOnDisk, texturePath)) {
+    const known = !!existsOnDisk[texturePath];
+    existsInMemory.set(texturePath, known);
+    return known;
+  }
+  let ok = false;
+  try {
+    const res = await fetch(`${ASSETS_BASE}textures/${texturePath}.png`, {
+      method: "HEAD",
+      cache: "no-store",
+    });
+    ok = res.ok;
+  } catch {
+    ok = false;
+  }
+  existsInMemory.set(texturePath, ok);
+  existsOnDisk[texturePath] = ok;
+  saveMapCache(EXISTENCE_CACHE_FILE, existsOnDisk as Record<string, string | null>);
+  return ok;
 }
 
 /** Путь текстуры предмета относительно assets/minecraft/textures/ (без .png). */
@@ -282,7 +365,7 @@ export async function resolveItemTexture(itemId: string): Promise<string | null>
   const id = itemId.includes(":") ? itemId.toLowerCase() : `minecraft:${itemId.toLowerCase()}`;
   if (textureCache.has(id)) return textureCache.get(id)!;
 
-  // Сохранённый кэш с диска.
+  // Сохранённый кэш с диска (item-texture-cache-v2.json).
   const disk = loadMapCache(TEXTURE_CACHE_FILE);
   if (Object.prototype.hasOwnProperty.call(disk, id)) {
     const v = disk[id];
@@ -293,13 +376,11 @@ export async function resolveItemTexture(itemId: string): Promise<string | null>
   let resolved: string | null = null;
   if (id.startsWith("minecraft:")) {
     const name = id.slice("minecraft:".length);
-    // У многих предметов модель прямо ссылается на текстуру.
-    resolved = await resolveModelTexture(`item/${name}`, 0);
-    if (!resolved) resolved = guessTexturePath(name);
-  } else {
-    // Модный предмет: текстуры в зеркале нет — вернём ничего, отрисуем заглушку.
-    resolved = null;
+    resolved = await resolveModelTexture(`item/${name}`);
+    if (!resolved) resolved = `item/${name}`; // на крайний случай — файл с именем предмета
+    if (resolved && !(await textureFileExists(resolved))) resolved = null;
   }
+  // Модный предмет: текстуры в зеркале нет — вернём ничего, отрисуем заглушку.
 
   textureCache.set(id, resolved);
   disk[id] = resolved;
