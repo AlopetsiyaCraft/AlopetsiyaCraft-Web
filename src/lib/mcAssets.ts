@@ -356,7 +356,7 @@ async function textureFileExists(texturePath: string): Promise<boolean> {
   }
   existsInMemory.set(texturePath, ok);
   existsOnDisk[texturePath] = ok;
-  saveMapCache(EXISTENCE_CACHE_FILE, existsOnDisk as Record<string, string | null>);
+  saveMapCache(EXISTENCE_CACHE_FILE, existsOnDisk as unknown as Record<string, string | null>);
   return ok;
 }
 

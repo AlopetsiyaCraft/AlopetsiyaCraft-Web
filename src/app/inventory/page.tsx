@@ -1,13 +1,16 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { seasons, users, playerInventories } from "@/lib/db/schema";
+import { seasons, users, playerInventories, inventorySnapshots } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import InventoryGrid, {
   type PreparedContainers,
   type PreparedStack,
 } from "@/components/InventoryGrid";
+import SnapshotHistory, {
+  type SnapshotSummary,
+} from "@/components/SnapshotHistory";
 import {
   parseInventoryData,
   type InventoryData,
@@ -22,6 +25,11 @@ const CONTAINER_KEYS = ["main", "armor", "offhand", "enderChest"] as const;
  * аккаунта (иконки из ванильных ассетов 1.21.1, русские имена предметов).
  * Снимок шлёт серверный мод AlopetsiyaInventory при выходе игрока с сервера
  * (и при входе / остановке сервера) в POST /api/inventory/from-server.
+ *
+ * Админ (users.role = "admin"): селектор игроков и ?nick=xxx — просмотр
+ * чужого инвентаря + история снимков и отложенный откат к точке истории
+ * (применяется модом при следующем входе игрока). Обычные пользователи
+ * видят только свой инвентарь, без истории.
  *
  * Страница личная: данные инвентаря привязаны к нику Minecraft владельца
  * аккаунта (ключ — ник в нижнем регистре), поэтому без логина недоступна.
@@ -93,7 +101,11 @@ function Vital({ icon, value, color }: { icon: string; value: string; color: str
   );
 }
 
-export default async function InventoryPage() {
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nick?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect(`/auth/login?callbackUrl=${encodeURIComponent("/inventory")}`);
@@ -101,7 +113,7 @@ export default async function InventoryPage() {
 
   const [viewer, allSeasons] = await Promise.all([
     db
-      .select({ name: users.nickname, skinUrl: users.skinUrl })
+      .select({ name: users.nickname, skinUrl: users.skinUrl, role: users.role })
       .from(users)
       .where(eq(users.id, parseInt(session.user.id, 10)))
       .get(),
@@ -110,16 +122,93 @@ export default async function InventoryPage() {
 
   if (!viewer) redirect("/auth/login");
 
-  // Ключ снимка — ник владельца аккаунта в нижнем регистре (как хранит мост).
-  const row = await db
-    .select()
-    .from(playerInventories)
-    .where(eq(playerInventories.nickname, viewer.name.toLowerCase()))
-    .get();
+  const isAdmin = viewer.role === "admin";
+  const sp = await searchParams;
+  const nickParam = typeof sp.nick === "string" ? sp.nick.trim().toLowerCase() : "";
+  const ownNick = viewer.name.toLowerCase();
+  // Админ может смотреть других через ?nick=; обычный пользователь — только себя.
+  const targetNick = isAdmin && nickParam ? nickParam : ownNick;
+  const viewingOther = targetNick !== ownNick;
+
+  const [row, playersRows, historyRows] = await Promise.all([
+    db
+      .select()
+      .from(playerInventories)
+      .where(eq(playerInventories.nickname, targetNick))
+      .get(),
+    isAdmin
+      ? db.$client.execute({
+          sql: "SELECT nickname, display_nickname, MAX(captured_at) AS last_captured FROM inventory_snapshots GROUP BY nickname ORDER BY last_captured DESC",
+        })
+      : null,
+    isAdmin
+      ? db
+          .select({
+            id: inventorySnapshots.id,
+            displayNickname: inventorySnapshots.displayNickname,
+            data: inventorySnapshots.data,
+            reason: inventorySnapshots.reason,
+            capturedAt: inventorySnapshots.capturedAt,
+          })
+          .from(inventorySnapshots)
+          .where(eq(inventorySnapshots.nickname, targetNick))
+          .orderBy(desc(inventorySnapshots.id))
+          .limit(50)
+      : null,
+  ]);
 
   const data = row ? parseInventoryData(row.data) : null;
   const prepared = data ? await prepareInventory(data) : null;
   const updatedAt = row?.updatedAt ?? null;
+  const displayNickname = row?.displayNickname || targetNick;
+
+  // Суммарии истории для панели отката (считаем на сервере).
+  type HistoryRow = {
+    id: number;
+    displayNickname: string;
+    data: string;
+    reason: string;
+    capturedAt: number;
+  };
+  const history: SnapshotSummary[] = (historyRows ?? []).map((h: HistoryRow) => {
+    const inv = parseInventoryData(h.data);
+    let itemCount = 0;
+    let totalCount = 0;
+    if (inv) {
+      for (const key of CONTAINER_KEYS) {
+        for (const stack of inv.containers[key]) {
+          if (stack) {
+            itemCount++;
+            totalCount += stack.count;
+          }
+        }
+      }
+    }
+    return {
+      id: h.id,
+      displayNickname: h.displayNickname || targetNick,
+      reason: h.reason,
+      capturedAt: h.capturedAt,
+      itemCount,
+      totalCount,
+      xpLevel: inv?.xpLevel ?? 0,
+      health: inv?.health ?? 0,
+      food: inv?.food ?? 0,
+    };
+  });
+
+  const adminPlayers: { nickname: string; displayNickname: string; lastCaptured: number }[] =
+    playersRows
+      ? (playersRows.rows as unknown as {
+          nickname: string;
+          display_nickname: string;
+          last_captured: number;
+        }[]).map((r) => ({
+          nickname: r.nickname,
+          displayNickname: r.display_nickname || r.nickname,
+          lastCaptured: r.last_captured,
+        }))
+      : [];
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
@@ -132,8 +221,39 @@ export default async function InventoryPage() {
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">Инвентарь</h1>
-          <span className="text-[var(--text-muted)]">· {viewer.name}</span>
+          <span className="text-[var(--text-muted)]">
+            {viewingOther ? `· ${displayNickname} (просмотр админа)` : `· ${viewer.name}`}
+          </span>
         </div>
+
+        {isAdmin && (
+          <section className="flex flex-wrap items-center gap-2 px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)]">
+            <span className="text-sm text-[var(--text-muted)] mr-1">Игроки:</span>
+            <a
+              href="/inventory"
+              className={`px-3 py-1 rounded-md text-sm border transition-colors ${
+                !viewingOther
+                  ? "bg-[var(--accent)]/15 border-[var(--accent)]/40 text-[var(--accent)]"
+                  : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+              }`}
+            >
+              {viewer.name}
+            </a>
+            {adminPlayers.map((p) => (
+              <a
+                key={p.nickname}
+                href={`/inventory?nick=${encodeURIComponent(p.nickname)}`}
+                className={`px-3 py-1 rounded-md text-sm border transition-colors ${
+                  targetNick === p.nickname && viewingOther
+                    ? "bg-[var(--accent)]/15 border-[var(--accent)]/40 text-[var(--accent)]"
+                    : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+                }`}
+              >
+                {p.displayNickname}
+              </a>
+            ))}
+          </section>
+        )}
 
         {!prepared ? (
           <div className="p-8 text-center text-[var(--text-muted)] text-sm border border-[var(--border)] rounded-lg flex flex-col items-center gap-4">
@@ -163,9 +283,18 @@ export default async function InventoryPage() {
 
             <InventoryGrid containers={prepared.containers} updatedAt={updatedAt} />
 
+            {isAdmin && (
+              <SnapshotHistory
+                snapshots={history}
+                nickname={viewingOther ? displayNickname : viewer.name}
+              />
+            )}
+
             <div className="text-sm text-[var(--text-muted)] border-t border-[var(--border)] pt-4">
               Нет снимка онлайн — сайт показывает последний сохранённый при
-              выходе с сервера. Данные присылает мод{" "}
+              выходе с сервера (админ видит историю и может откатить к любой
+              точке — применится при следующем входе игрока). Данные присылает
+              мод{" "}
               <span className="font-mono text-[var(--text-secondary)]">AlopetsiyaInventory</span>.
             </div>
           </>

@@ -494,6 +494,48 @@ export const playerInventories = sqliteTable(
 );
 
 /**
+ * История снимков инвентаря (админ-откаты). Каждый снимок от моста
+ * AlopetsiyaInventory (вход/выход/остановка/периодика) дополнительно пишется
+ * сюда; текущий снимок хранится в player_inventories. Ник — в нижнем регистре.
+ */
+export const inventorySnapshots = sqliteTable(
+  "inventory_snapshots",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    nickname: text("nickname").notNull(),
+    displayNickname: text("display_nickname").notNull().default(""),
+    data: text("data").notNull(),
+    reason: text("reason").notNull().default("snapshot"),
+    capturedAt: integer("captured_at").notNull(),
+  },
+  (t) => ({
+    nicknameCaptured: index("idx_inv_snapshots_nickname_captured").on(
+      t.nickname,
+      t.capturedAt
+    ),
+  })
+);
+
+/**
+ * Отложенный откат инвентаря: админ выбрал точку истории, она ждёт, пока мод
+ * применит её при следующем входе игрока. Один ник — один pending (новая
+ * команда заменяет старую). data — копия снимка на момент команды.
+ */
+export const pendingInventoryRestores = sqliteTable(
+  "pending_inventory_restores",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    nickname: text("nickname").notNull(),
+    snapshotId: integer("snapshot_id").notNull(),
+    data: text("data").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => ({
+    nicknameUnique: uniqueIndex("uq_pending_restore_nickname").on(t.nickname),
+  })
+);
+
+/**
  * Сессии входа на Minecraft-сервер по паролю сайта (мод AlopetsiyaAuth).
  * Создаются при успешном POST /api/auth/mc-login: игрок ввёл ник+пароль
  * (те же, что на сайте), сайт выдаёт сессию с привязкой к IP и сроком жизни

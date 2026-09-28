@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { playerInventories } from "@/lib/db/schema";
+import { playerInventories, inventorySnapshots } from "@/lib/db/schema";
 import { checkBridgeKey } from "@/lib/bridge";
 import { CONTAINER_SIZES, type InventoryStack } from "@/lib/inventory";
-import { sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 const MAX_NICKNAME = 32;
 const MAX_STACK_NAME = 120;
@@ -14,6 +14,21 @@ const MAX_LORE_CHARS = 300;
 const MAX_ENCHANTMENTS = 32;
 /** Лимит на размер JSON, чтобы мод не мог положить сайт гигантским ответом. */
 const MAX_DATA_BYTES = 512 * 1024;
+/** Сколько последних снимков истории хранить на игрока. */
+const MAX_SNAPSHOTS = 50;
+/** Причины снимков, которые шлёт мод. */
+const SNAPSHOT_REASONS = new Set(["join", "leave", "stop", "periodic", "snapshot"]);
+
+/** JSON без поля updatedAt (ключ дедупликации истории). */
+function stripUpdatedAt(json: string): string {
+  try {
+    const o = JSON.parse(json) as Record<string, unknown>;
+    delete o.updatedAt;
+    return JSON.stringify(o);
+  } catch {
+    return json;
+  }
+}
 
 /**
  * Мост инвентарей: мод AlopetsiyaInventory шлёт снимок инвентаря игрока при
@@ -79,6 +94,13 @@ export async function POST(request: NextRequest) {
       cleaned[num] = body[num];
     }
   }
+  const cleanedJson = JSON.stringify(cleaned);
+
+  // Ключ для дедупликации истории: content без updatedAt (он меняется на
+  // каждой отправке и ломал бы сравнение «ничего не изменилось»).
+  const dedupObject = { ...cleaned } as Record<string, unknown>;
+  delete dedupObject.updatedAt;
+  const dedupKey = JSON.stringify(dedupObject);
 
   try {
     await db
@@ -86,7 +108,7 @@ export async function POST(request: NextRequest) {
       .values({
         nickname: nickname.toLowerCase(),
         displayNickname: nickname,
-        data: JSON.stringify(cleaned),
+        data: cleanedJson,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -98,6 +120,46 @@ export async function POST(request: NextRequest) {
         },
       })
       .run();
+
+    // История снимков: пропускаем, если содержимое не изменилось с прошлого
+    // раза (иначе АФК-игрок каждые 10 минут плодил бы одинаковые записи).
+    const reason =
+      typeof body.reason === "string" && SNAPSHOT_REASONS.has(body.reason)
+        ? body.reason
+        : "snapshot";
+    const last = await db
+      .select({ data: inventorySnapshots.data })
+      .from(inventorySnapshots)
+      .where(eq(inventorySnapshots.nickname, nickname.toLowerCase()))
+      .orderBy(desc(inventorySnapshots.id))
+      .limit(1)
+      .get();
+    if (!last || stripUpdatedAt(last.data) !== dedupKey) {
+      await db
+        .insert(inventorySnapshots)
+        .values({
+          nickname: nickname.toLowerCase(),
+          displayNickname: nickname,
+          data: cleanedJson,
+          reason,
+          capturedAt: Math.floor(Date.now()),
+        })
+        .run();
+    }
+
+    // Оставляем последние MAX_SNAPSHOTS записей на игрока.
+    const nick = nickname.toLowerCase();
+    await db.$client.execute({
+      sql: `DELETE FROM inventory_snapshots WHERE nickname = ? AND id NOT IN (
+        SELECT id FROM (
+          SELECT id FROM inventory_snapshots
+          WHERE nickname = ?
+          ORDER BY id DESC
+          LIMIT ?
+        )
+      )`,
+      args: [nick, nick, MAX_SNAPSHOTS],
+    });
   } catch (error) {
     console.error("Inventory bridge error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });

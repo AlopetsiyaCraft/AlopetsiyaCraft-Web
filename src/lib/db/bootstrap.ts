@@ -239,6 +239,25 @@ export const bootstrapSql = `
     updated_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
 
+  CREATE TABLE IF NOT EXISTS inventory_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname TEXT NOT NULL,
+    display_nickname TEXT NOT NULL DEFAULT '',
+    data TEXT NOT NULL,
+    reason TEXT NOT NULL DEFAULT 'snapshot',
+    captured_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_inv_snapshots_nickname_captured ON inventory_snapshots(nickname, captured_at);
+
+  CREATE TABLE IF NOT EXISTS pending_inventory_restores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname TEXT NOT NULL,
+    snapshot_id INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(nickname)
+  );
+
   CREATE TABLE IF NOT EXISTS mc_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),
