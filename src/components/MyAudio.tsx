@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import UploadModal from "./UploadModal";
+import { DISC_PRICE_BLD } from "@/lib/currency";
 
 interface Track {
   id: number;
@@ -184,7 +185,7 @@ export default function MyAudio({
       <button
         onClick={() => makeDisc(track)}
         className="px-3 py-1.5 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-medium transition-colors whitespace-nowrap"
-        title="Выдать пластинку с этой песней в игре (нужно быть онлайн)"
+        title={`Выдать пластинку с этой песней в игре (нужно быть онлайн) — ${DISC_PRICE_BLD} BLD`}
       >
         💿 Пластинка
       </button>

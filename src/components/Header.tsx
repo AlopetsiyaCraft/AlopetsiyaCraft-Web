@@ -82,6 +82,13 @@ export default function Header({
             Галерея
           </Link>
 
+          <Link
+            href="/shop"
+            className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors px-3 py-2 rounded-lg"
+          >
+            Магазин
+          </Link>
+
           <div ref={seasonsRef} className="relative">
             <button
               onClick={() => { setSeasonsOpen(!seasonsOpen); setUserOpen(false); }}
@@ -222,6 +229,16 @@ export default function Header({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
                       Инвентарь
+                    </Link>
+                    <Link
+                      href="/wallet"
+                      onClick={() => setUserOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer text-[var(--text)]"
+                    >
+                      <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16m15 0H3m16 0a2 2 0 002-2v-4a2 2 0 00-2-2h-3a2 2 0 00-2 2v2a2 2 0 002 2h3z" />
+                      </svg>
+                      Кошелёк
                     </Link>
 
                     <div className="border-t border-[var(--border)]" />

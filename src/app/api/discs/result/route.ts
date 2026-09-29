@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { discRequests } from "@/lib/db/schema";
+import { discRequests, users } from "@/lib/db/schema";
 import { checkBridgeKey } from "@/lib/bridge";
+import { DISC_PRICE_BLD } from "@/lib/currency";
 
 /**
  * POST /api/discs/result — мод сообщает итог обработки заявки (x-api-key).
  * body: { requestId: number, ok: boolean, error?: string }
  * Переводит заявку pending → done | failed.
+ * При failed возвращаем игроку болды за неудачную выдачу.
  */
 export async function POST(request: NextRequest) {
   if (!checkBridgeKey(request.headers.get("x-api-key"))) {
@@ -37,6 +39,22 @@ export async function POST(request: NextRequest) {
 
   if (result.rowsAffected === 0) {
     return NextResponse.json({ message: "Заявка уже обработана" }, { status: 200 });
+  }
+
+  // Пластинка не выдана — возвращаем болды заказчику.
+  if (!ok) {
+    const req = await db
+      .select({ userId: discRequests.userId })
+      .from(discRequests)
+      .where(eq(discRequests.id, requestId))
+      .get();
+    if (req?.userId != null) {
+      await db
+        .update(users)
+        .set({ bld: sql`bld + ${DISC_PRICE_BLD}` })
+        .where(eq(users.id, req.userId))
+        .run();
+    }
   }
 
   return NextResponse.json({ message: "OK" });

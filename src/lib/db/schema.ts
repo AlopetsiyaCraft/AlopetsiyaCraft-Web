@@ -48,6 +48,8 @@ export const users = sqliteTable("users", {
   role: text("role", { enum: ["user", "admin"] }).notNull().default("user"),
   // Болды (BLD) — внутриигровая валюта: фишки казино, кастомные пластинки и т.п.
   bld: integer("bld").notNull().default(0),
+  // Фишки казино — тратятся только за карточными столами в Minecraft.
+  chips: integer("chips").notNull().default(0),
   lastActiveAt: integer("last_active_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

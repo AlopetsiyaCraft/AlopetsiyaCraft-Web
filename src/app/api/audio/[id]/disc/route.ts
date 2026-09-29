@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { audioTracks, discRequests, users } from "@/lib/db/schema";
+import { DISC_PRICE_BLD } from "@/lib/currency";
 
 /**
  * POST /api/audio/[id]/disc — создать заявку на пластинку.
  * Только владелец трека. Мод периодически забирает pending-заявки
  * (см. GET /api/discs/poll) и выдаёт игроку пластинку в инвентарь.
+ * Заказ платный: списывается DISC_PRICE_BLD болдов (возврат при неудаче —
+ * см. POST /api/discs/result).
  */
 export async function POST(
   _request: NextRequest,
@@ -42,6 +45,24 @@ export async function POST(
       { status: 403 }
     );
   }
+
+  // Пластинка платная: проверяем болды до создания заявки, списываем сразу.
+  const me = await db
+    .select({ bld: users.bld })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  if (!me || (me.bld ?? 0) < DISC_PRICE_BLD) {
+    return NextResponse.json(
+      { error: `Недостаточно болдов: пластинка стоит ${DISC_PRICE_BLD} BLD` },
+      { status: 402 }
+    );
+  }
+  await db
+    .update(users)
+    .set({ bld: sql`bld - ${DISC_PRICE_BLD}` })
+    .where(eq(users.id, userId))
+    .run();
 
   // Ник должен совпадать с ником аккаунта (по нему мод найдёт игрока на сервере).
   const result = await db

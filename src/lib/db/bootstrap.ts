@@ -31,6 +31,7 @@ export const bootstrapSql = `
     discord_id TEXT,
     role TEXT NOT NULL DEFAULT 'user',
     bld INTEGER NOT NULL DEFAULT 0,
+    chips INTEGER NOT NULL DEFAULT 0,
     last_active_at INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
@@ -315,6 +316,12 @@ export async function initDatabase() {
   try {
     // legacy: Болды (BLD) — внутриигровая валюта
     await client.execute(`ALTER TABLE users ADD COLUMN bld INTEGER NOT NULL DEFAULT 0`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: Фишки казино — отдельная валюта для столов в Minecraft
+    await client.execute(`ALTER TABLE users ADD COLUMN chips INTEGER NOT NULL DEFAULT 0`);
   } catch (e) {
     // column already exists
   }
