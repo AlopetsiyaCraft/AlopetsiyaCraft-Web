@@ -28,7 +28,7 @@ export default async function ProfileLayout({
   }
 
   const me = await db
-    .select({ id: users.id, name: users.nickname, skinUrl: users.skinUrl })
+    .select({ id: users.id, name: users.nickname, skinUrl: users.skinUrl, bld: users.bld })
     .from(users)
     .where(eq(users.id, parseInt(session.user.id, 10)))
     .get();
@@ -61,7 +61,7 @@ export default async function ProfileLayout({
     <div className="min-h-screen bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
-        user={{ name: me.name, skinUrl: me.skinUrl }}
+        user={{ name: me.name, skinUrl: me.skinUrl, bld: me.bld }}
         isLoggedIn={!!session}
       />
 

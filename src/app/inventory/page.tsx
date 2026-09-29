@@ -113,7 +113,7 @@ export default async function InventoryPage({
 
   const [viewer, allSeasons] = await Promise.all([
     db
-      .select({ name: users.nickname, skinUrl: users.skinUrl, role: users.role })
+.select({ name: users.nickname, skinUrl: users.skinUrl, role: users.role, bld: users.bld })
       .from(users)
       .where(eq(users.id, parseInt(session.user.id, 10)))
       .get(),
@@ -214,7 +214,7 @@ export default async function InventoryPage({
     <div className="min-h-screen bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
-        user={viewer ? { name: viewer.name, skinUrl: viewer.skinUrl } : undefined}
+        user={viewer ? { name: viewer.name, skinUrl: viewer.skinUrl, bld: viewer.bld } : undefined}
         isLoggedIn={!!session}
       />
 

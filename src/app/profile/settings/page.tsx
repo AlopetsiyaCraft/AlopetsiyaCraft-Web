@@ -46,7 +46,7 @@ export default async function SettingsPage({
     <div className="min-h-screen bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
-        user={{ name: user.nickname, skinUrl: user.skinUrl }}
+        user={{ name: user.nickname, skinUrl: user.skinUrl, bld: user.bld }}
         isLoggedIn={true}
       />
 

@@ -126,7 +126,7 @@ export default async function StatsPage({
 
   const viewer = session?.user?.id
     ? await db
-        .select({ name: users.nickname, skinUrl: users.skinUrl })
+        .select({ name: users.nickname, skinUrl: users.skinUrl, bld: users.bld })
         .from(users)
         .where(eq(users.id, parseInt(session.user.id, 10)))
         .get()
@@ -146,7 +146,7 @@ export default async function StatsPage({
     <div className="min-h-screen bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
-        user={viewer ? { name: viewer.name, skinUrl: viewer.skinUrl } : undefined}
+        user={viewer ? { name: viewer.name, skinUrl: viewer.skinUrl, bld: viewer.bld } : undefined}
         isLoggedIn={!!session}
       />
 

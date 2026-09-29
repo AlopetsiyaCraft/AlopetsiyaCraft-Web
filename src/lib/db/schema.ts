@@ -46,6 +46,8 @@ export const users = sqliteTable("users", {
   skinModel: text("skin_model", { enum: ["wide", "slim"] }).notNull().default("wide"),
   discordId: text("discord_id").unique(),
   role: text("role", { enum: ["user", "admin"] }).notNull().default("user"),
+  // Болды (BLD) — внутриигровая валюта: фишки казино, кастомные пластинки и т.п.
+  bld: integer("bld").notNull().default(0),
   lastActiveAt: integer("last_active_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

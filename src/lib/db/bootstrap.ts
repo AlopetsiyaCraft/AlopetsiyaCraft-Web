@@ -30,6 +30,7 @@ export const bootstrapSql = `
     skin_model TEXT NOT NULL DEFAULT 'wide',
     discord_id TEXT,
     role TEXT NOT NULL DEFAULT 'user',
+    bld INTEGER NOT NULL DEFAULT 0,
     last_active_at INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
@@ -308,6 +309,12 @@ export async function initDatabase() {
     // legacy: модель персонажа (wide = Стив, slim = Алекс) — её выбирает
     // сам игрок, PNG 64x64 сам по себе не сообщает, тонкая модель или широкая
     await client.execute(`ALTER TABLE users ADD COLUMN skin_model TEXT NOT NULL DEFAULT 'wide'`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: Болды (BLD) — внутриигровая валюта
+    await client.execute(`ALTER TABLE users ADD COLUMN bld INTEGER NOT NULL DEFAULT 0`);
   } catch (e) {
     // column already exists
   }

@@ -13,6 +13,8 @@ interface Season {
 interface User {
   name: string;
   skinUrl?: string | null;
+  /** Болды (BLD) — внутриигровая валюта. */
+  bld?: number;
 }
 
 export default function Header({
@@ -123,6 +125,20 @@ export default function Header({
                   onClick={() => { setUserOpen(!userOpen); setSeasonsOpen(false); }}
                   className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors px-2 py-1 rounded-lg cursor-pointer"
                 >
+                  {user?.bld != null && (
+                    <span
+                      className="flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--border)] bg-[var(--card)] text-xs font-semibold text-emerald-500 whitespace-nowrap"
+                      title="Болды (BLD) — внутриигровая валюта"
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M14.5 8.5a2.5 2.5 0 0 0-2.5-2.5h-1a2.5 2.5 0 0 0 0 5h2a2.5 2.5 0 0 1 0 5h-3" />
+                        <path d="M12 5v14" />
+                      </svg>
+                      {user.bld.toLocaleString("ru-RU")}
+                      <span className="text-[var(--text-muted)] font-medium">BLD</span>
+                    </span>
+                  )}
                   {user?.skinUrl ? (
                     <div className="w-8 h-8 rounded relative">
                       <div

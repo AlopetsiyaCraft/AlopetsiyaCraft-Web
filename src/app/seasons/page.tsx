@@ -12,7 +12,7 @@ export default async function SeasonsPage() {
   let user = null;
   if (session?.user?.id) {
     user = await db
-      .select({ name: users.nickname, skinUrl: users.skinUrl })
+      .select({ name: users.nickname, skinUrl: users.skinUrl, bld: users.bld })
       .from(users)
       .where(eq(users.id, parseInt(session.user.id)))
       .get();
@@ -22,7 +22,7 @@ export default async function SeasonsPage() {
     <div className="min-h-screen bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
-        user={user ? { name: user.name, skinUrl: user.skinUrl } : undefined}
+        user={user ? { name: user.name, skinUrl: user.skinUrl, bld: user.bld } : undefined}
         isLoggedIn={!!session}
       />
 
