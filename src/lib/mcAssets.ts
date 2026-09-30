@@ -8,11 +8,21 @@
  * data/item-texture-cache-v2.json + data/texture-exists-cache.json; русские
  * имена из lang/ru_ru.json кэшируются в data/item-lang-ru.json. При неудаче
  * сети — fallback на имя, которое прислал сервер, и заглушку вместо иконки.
+ *
+ * Модные предметы (id с namespace != minecraft) в зеркале отсутствуют, поэтому
+ * их ассеты читаются напрямую из .jar модов на диске (см. mcMods.ts) и
+ * отдаются через /api/mc-texture/<ns>/<path>.png.
  */
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { prettifyId } from "@/lib/inventory";
+import {
+  hasModCustomIcon,
+  hasModModel,
+  hasModTexture,
+  readModModel,
+} from "@/lib/mcMods";
 
 const ASSETS_VERSION = "1.21.1";
 const ASSETS_BASE = `https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/${ASSETS_VERSION}/assets/minecraft/`;
@@ -360,7 +370,202 @@ async function textureFileExists(texturePath: string): Promise<boolean> {
   return ok;
 }
 
-/** Путь текстуры предмета относительно assets/minecraft/textures/ (без .png). */
+// ---------- модные предметы: ассеты прямо из .jar ----------
+
+/** Разбирает "ns:path" в пару; без namespace подставляется переданный. */
+function splitRef(ref: string, defaultNs: string): { ns: string; path: string } {
+  const clean = ref.trim().replace(/^#/, "");
+  const i = clean.indexOf(":");
+  if (i >= 0) return { ns: clean.slice(0, i), path: clean.slice(i + 1) };
+  return { ns: defaultNs, path: clean };
+}
+
+/**
+ * Шаблоны, которые сами текстур не задают: за их пределами цепочка родителей
+ * не продолжается (в игре они только добавляют геометрию/отображения).
+ */
+function isTemplateModel(path: string): boolean {
+  return (
+    path.startsWith("builtin/") ||
+    path === "item/generated" ||
+    path === "item/handheld" ||
+    path === "item/handheld_rod" ||
+    path.startsWith("builtin")
+  );
+}
+
+interface ModChain {
+  /** Ключ текстуры → значение, как в JSON модели. */
+  merged: Record<string, string>;
+  /** Ключ текстуры → где задана (для относительных ссылок). */
+  origins: Record<string, { ns: string; folder: "item" | "block" }>;
+  /** Модель упёрлась в builtin/entity — предмет рисует сам мод, плоской текстуры нет. */
+  builtinEntity: boolean;
+}
+
+/** Собирает текстуры по всей цепочке моделей мода (родители перекрывают детей). */
+function collectModChain(ns: string, modelPath: string): ModChain | null {
+  const merged: Record<string, string> = {};
+  const origins: Record<string, { ns: string; folder: "item" | "block" }> = {};
+  const seen = new Set<string>();
+  let builtinEntity = false;
+  let loaded = false;
+  let cur: { ns: string; path: string } | null = { ns, path: modelPath };
+
+  for (let depth = 0; depth <= 8 && cur; depth++) {
+    const key = `${cur.ns}:${cur.path}`;
+    if (seen.has(key)) break;
+    seen.add(key);
+    if (isTemplateModel(cur.path)) {
+      // builtin/entity — в игре предмет рисует кастомный рендерер мода.
+      if (cur.path.startsWith("builtin/entity")) builtinEntity = true;
+      break;
+    }
+
+    const model = readModModel(cur.ns, cur.path);
+    if (!model) break;
+    loaded = true;
+
+    const folder: "item" | "block" = cur.path.startsWith("block/") ? "block" : "item";
+    const own = model.textures;
+    if (own && typeof own === "object") {
+      for (const [k, v] of Object.entries(own as Record<string, unknown>)) {
+        if (typeof v === "string") {
+          merged[k] = v;
+          origins[k] = { ns: cur.ns, folder };
+        }
+      }
+    }
+
+    const parent = typeof model.parent === "string" ? model.parent : null;
+    if (!parent) break;
+    const p = splitRef(parent, cur.ns);
+    // builtin/entity: в игре предмет рисует кастомный рендерер мода, своей
+    // плоской текстуры нет. Проверяем до резолва — такой модели в jar нет.
+    if (p.path.startsWith("builtin/")) {
+      if (p.path === "builtin/entity") builtinEntity = true;
+      break;
+    }
+    // Родитель без namespace ищется в namespace модели, затем в minecraft
+    // (Blockbench часто пишет "item/generated" и ссылки на ванильные текстуры).
+    const resolved = hasModModel(p.ns, p.path) ? p : { ns: "minecraft", path: p.path };
+    cur = hasModModel(resolved.ns, resolved.path) ? resolved : null;
+  }
+
+  return loaded ? { merged, origins, builtinEntity } : null;
+}
+
+/** Раскрывает "#переменная" в итоговом словаре текстур цепочки. */
+function resolveModTextureValue(chain: ModChain, key: string): { value: string; origin: { ns: string; folder: "item" | "block" } } | null {
+  let name = key;
+  const seen = new Set<string>();
+  while (seen.has(name) === false) {
+    seen.add(name);
+    const raw = chain.merged[name];
+    if (typeof raw !== "string") return null;
+    if (raw.startsWith("#")) {
+      name = raw.slice(1);
+      continue;
+    }
+    const origin = chain.origins[name];
+    if (!origin) return null;
+    return { value: raw, origin };
+  }
+  return null;
+}
+
+/**
+ * Ключи, по которым выбираем «характерную» текстуру. Числовые ключи ("0", "1"…)
+ * — это слои Blockbench, причём больший номер рисуется поверх, поэтому берём
+ * максимальный (у пива это наполнение, а не пустое стекло).
+ */
+function modPriorityKeys(merged: Record<string, string>): string[] {
+  const keys = new Set<string>();
+  for (const k of ["layer0", "all", "front", "top", "side", "end"]) {
+    if (typeof merged[k] === "string") keys.add(k);
+  }
+  const numeric = Object.keys(merged)
+    .filter((k) => /^\d+$/.test(k))
+    .sort((a, b) => Number(b) - Number(a));
+  for (const k of numeric) keys.add(k);
+  for (const k of ["planks", "log", "particle", "north", "south", "east", "west", "up", "down", "bottom"]) {
+    if (typeof merged[k] === "string") keys.add(k);
+  }
+  // Остальное — по порядку объявления, чтобы иконка точно нашлась.
+  for (const k of Object.keys(merged)) keys.add(k);
+  return [...keys];
+}
+
+/** Приводит значение текстуры к паре namespace + путь относительно textures/. */
+function normalizeModTextureRef(
+  value: string,
+  origin: { ns: string; folder: "item" | "block" }
+): { ns: string; path: string } {
+  const ref = splitRef(value, origin.ns);
+  const path = /^(item|block)\//.test(ref.path) ? ref.path : `${origin.folder}/${ref.path}`;
+  return { ns: ref.ns, path };
+}
+
+/**
+ * Текстура мода. Возвращает готовую ссылку кэша: "mod:<ns>:<path>" — наш PNG
+ * из jar, "van:<path>" — ванильная текстура из зеркала.
+ *
+ * Blockbench часто пишет ссылки на ванильные текстуры без namespace ("block/
+ * hay_block_side") — в моде их нет, поэтому проверяем мод, а затем ваниль.
+ */
+async function pickModTexture(chain: ModChain): Promise<string | null> {
+  for (const key of modPriorityKeys(chain.merged)) {
+    const resolved = resolveModTextureValue(chain, key);
+    if (!resolved) continue;
+    const ref = normalizeModTextureRef(resolved.value, resolved.origin);
+    if (ref.ns === "minecraft") {
+      if (await textureFileExists(ref.path)) return `van:${ref.path}`;
+      continue;
+    }
+    if (hasModTexture(ref.ns, ref.path)) return `mod:${ref.ns}:${ref.path}`;
+    // Ссылка без namespace указывает на ванильную текстуру.
+    if (await textureFileExists(ref.path)) return `van:${ref.path}`;
+  }
+  return null;
+}
+
+// ---------- кодирование иконки в строку кэша ----------
+
+/**
+ * Иконка хранится строкой: "van:item/diamond" — ванильная текстура из зеркала,
+ * "mod:charta:block/dealer_table" — текстура из jar мода,
+ * "icon:charta:deck" — картинка, которой мод рисует предмет сам (builtin/entity).
+ * Старые записи кэша без префикса считаем ванильными.
+ */
+export function itemIconUrl(textureRef: string | null): string | null {
+  if (!textureRef) return null;
+  if (textureRef.startsWith("van:")) return `${ASSETS_BASE}textures/${textureRef.slice(4)}.png`;
+  if (textureRef.startsWith("mod:")) {
+    const rest = textureRef.slice(4);
+    const i = rest.indexOf(":");
+    if (i < 0) return null;
+    const ns = rest.slice(0, i);
+    const path = rest.slice(i + 1);
+    if (!/^[a-z0-9_.-]+$/.test(ns)) return null;
+    const safe = path
+      .split("/")
+      .map((seg) => (seg === ".." || seg === "." ? "" : seg))
+      .filter(Boolean)
+      .join("/");
+    if (!safe) return null;
+    return `/api/mc-texture/${ns}/${safe}.png`;
+  }
+  if (textureRef.startsWith("icon:")) {
+    const rest = textureRef.slice(5);
+    const i = rest.indexOf(":");
+    if (i < 0) return null;
+    return `/api/mc-texture/${rest.slice(0, i)}/_icon/${rest.slice(i + 1)}.png`;
+  }
+  // Legacy: голый путь ванильной текстуры.
+  return `${ASSETS_BASE}textures/${textureRef}.png`;
+}
+
+/** Путь текстуры предмета: "van:…", "mod:…" или "icon:…" (null — иконки нет). */
 export async function resolveItemTexture(itemId: string): Promise<string | null> {
   const id = itemId.includes(":") ? itemId.toLowerCase() : `minecraft:${itemId.toLowerCase()}`;
   if (textureCache.has(id)) return textureCache.get(id)!;
@@ -376,22 +581,27 @@ export async function resolveItemTexture(itemId: string): Promise<string | null>
   let resolved: string | null = null;
   if (id.startsWith("minecraft:")) {
     const name = id.slice("minecraft:".length);
-    resolved = await resolveModelTexture(`item/${name}`);
-    if (!resolved) resolved = `item/${name}`; // на крайний случай — файл с именем предмета
-    if (resolved && !(await textureFileExists(resolved))) resolved = null;
+    const path = await resolveModelTexture(`item/${name}`);
+    if (path && (await textureFileExists(path))) resolved = `van:${path}`;
+  } else {
+    // Модный предмет: читаем модель и текстуру из jar мода.
+    const ns = id.slice(0, id.indexOf(":"));
+    const name = id.slice(id.indexOf(":") + 1);
+    const chain = collectModChain(ns, `item/${name}`);
+    if (chain) {
+      resolved = await pickModTexture(chain);
+      // builtin/entity (charta:deck и подобные): плоской текстуры нет — берём
+      // ту картинку, которой мод рисует предмет сам.
+      if (!resolved && chain.builtinEntity && hasModCustomIcon(ns, name)) {
+        resolved = `icon:${ns}:${name}`;
+      }
+    }
   }
-  // Модный предмет: текстуры в зеркале нет — вернём ничего, отрисуем заглушку.
 
   textureCache.set(id, resolved);
   disk[id] = resolved;
   saveMapCache(TEXTURE_CACHE_FILE, disk);
   return resolved;
-}
-
-/** Полный URL картинки предмета (или null — предмет не рисуется). */
-export function itemIconUrl(texturePath: string | null): string | null {
-  if (!texturePath) return null;
-  return `${ASSETS_BASE}textures/${texturePath}.png`;
 }
 
 /** Резолвит иконки для пачки id параллельно (6 воркеров, кэш на диске). */
