@@ -154,6 +154,10 @@ export interface NamespaceAssets {
   textures: Map<string, string>;
   /** Файлы вне assets/: "decks/standard/blue" → jar (картинки колод у charta). */
   extra: Map<string, string>;
+  /** "decks/flags/russia.json" → jar (описания колод в data/<ns>/). */
+  dataFiles: Map<string, string>;
+  /** Языковые файлы мода: путь внутри jar → jar. */
+  langFiles: Map<string, string>;
 }
 
 let indexCache: { stamp: string; data: Map<string, NamespaceAssets> } | null = null;
@@ -204,7 +208,7 @@ export function getModIndex(): Map<string, NamespaceAssets> {
   const ensure = (ns: string): NamespaceAssets => {
     let na = data.get(ns);
     if (!na) {
-      na = { models: new Map(), textures: new Map(), extra: new Map() };
+      na = { models: new Map(), textures: new Map(), extra: new Map(), dataFiles: new Map(), langFiles: new Map() };
       data.set(ns, na);
     }
     return na;
@@ -224,36 +228,53 @@ export function getModIndex(): Map<string, NamespaceAssets> {
       // namespace из META-INF/neoforge.mods.toml / mods.toml: проще всего взять
       // первый namespace, реально найденный в assets/<ns>/.
       for (const name of jar.entries.keys()) {
-        if (!name.startsWith("assets/")) continue;
         const parts = name.split("/");
         if (parts.length < 3) continue;
         const ns = parts[1];
         if (!ns || ns.includes(".")) continue;
 
-        // assets/<ns>/models/<path>.json
-        if (parts[2] === "models" && name.endsWith(".json")) {
-          const rel = parts.slice(3).join("/").replace(/\.json$/, "");
-          const na = ensure(ns);
-          if (!na.models.has(rel)) na.models.set(rel, jarPath);
+        if (parts[0] === "assets") {
+          // assets/<ns>/models/<path>.json
+          if (parts[2] === "models" && name.endsWith(".json")) {
+            const rel = parts.slice(3).join("/").replace(/\.json$/, "");
+            const na = ensure(ns);
+            if (!na.models.has(rel)) na.models.set(rel, jarPath);
+            continue;
+          }
+          // assets/<ns>/textures/<path>.png
+          if (parts[2] === "textures" && name.endsWith(".png")) {
+            const rel = parts.slice(3).join("/").replace(/\.png$/, "");
+            const na = ensure(ns);
+            if (!na.textures.has(rel)) na.textures.set(rel, jarPath);
+            continue;
+          }
+          // assets/<ns>/lang/<lang>.json — названия предметов и колод.
+          if (parts[2] === "lang" && name.endsWith(".json")) {
+            const na = ensure(ns);
+            if (!na.langFiles.has(name)) na.langFiles.set(name, jarPath);
+          }
           continue;
         }
-        // assets/<ns>/textures/<path>.png
-        if (parts[2] === "textures" && name.endsWith(".png")) {
-          const rel = parts.slice(3).join("/").replace(/\.png$/, "");
+
+        // data/<ns>/... — описания предметов (нужны, чтобы отличить варианты
+        // одного предмета, например разные колоды charta по названию стека).
+        // Ключ — путь относительно data/<ns>/: "decks/flags/russia".
+        if (parts[0] === "data" && name.endsWith(".json")) {
+          const rel = parts.slice(2).join("/").replace(/\.json$/, "");
           const na = ensure(ns);
-          if (!na.textures.has(rel)) na.textures.set(rel, jarPath);
+          if (!na.dataFiles.has(rel)) na.dataFiles.set(rel, jarPath);
         }
       }
 
       // Файлы вне assets/ — картинки, которые мод читает сам из jar
-      // (charta: decks/*.png — текстуры карт для рендера колоды).
-      const deckEntries = [...jar.entries.keys()].filter((n) => n.startsWith("decks/") && n.endsWith(".png"));
-      if (deckEntries.length) {
+      // (charta: decks/*.png — обложки колод для рендера DeckItemRenderer).
+      const extraEntries = [...jar.entries.keys()].filter((n) => n.startsWith("decks/") && n.endsWith(".png"));
+      if (extraEntries.length) {
         // namespace: ищем по наличию assets/<ns>/models/item/deck.json
         const ns = [...data.keys()].find((candidate) => data.get(candidate)!.models.has("item/deck"));
         if (ns) {
           const na = ensure(ns);
-          for (const name of deckEntries) {
+          for (const name of extraEntries) {
             const rel = name.replace(/\.png$/, "");
             if (!na.extra.has(rel)) na.extra.set(rel, jarPath);
           }
@@ -376,14 +397,79 @@ export function hasModCustomIcon(ns: string, itemName: string): boolean {
   return false;
 }
 
+/** JSON из data/<ns>/<path>.json (описания предметов/колод мода), либо null. */
+export function readModData(ns: string, path: string): Record<string, unknown> | null {
+  const na = getModIndex().get(ns);
+  if (!na) return null;
+  const jarPath = na.dataFiles.get(path);
+  if (!jarPath) return null;
+  const buf = readFromJar(jarPath, `data/${ns}/${path}.json`);
+  if (!buf) return null;
+  try {
+    const parsed = JSON.parse(buf.toString("utf8"));
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Переводы мода (en_us.json) — по ним предмет различается по названию:
+ * например, «Russia Deck» у charta:deck. Возвращает null, если языка нет.
+ */
+export function readModLang(ns: string, lang = "en_us"): Record<string, string> | null {
+  const na = getModIndex().get(ns);
+  if (!na) return null;
+  const entry = `assets/${ns}/lang/${lang}.json`;
+  const jarPath = na.langFiles.get(entry) ?? [...na.langFiles.entries()].find(([k]) => k.endsWith(`/${lang}.json`))?.[1];
+  if (!jarPath) return null;
+  const key = na.langFiles.has(entry) ? entry : [...na.langFiles.keys()].find((k) => k.endsWith(`/${lang}.json`))!;
+  const buf = readFromJar(jarPath, key);
+  if (!buf) return null;
+  try {
+    const parsed = JSON.parse(buf.toString("utf8")) as Record<string, string>;
+    const clean: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) if (typeof v === "string") clean[k] = v;
+    return clean;
+  } catch {
+    return null;
+  }
+}
+
 /** Диагностика: список namespace, найденных в модах. */
 export function listModNamespaces(): string[] {
   return [...getModIndex().keys()].sort();
 }
 
-/** Диагностика: сколько моделей/текстур у namespace. */
-export function describeNamespace(ns: string): { models: number; textures: number; extra: number } | null {
+/** Диагностика: сколько ассетов у namespace. */
+export function describeNamespace(ns: string): {
+  models: number;
+  textures: number;
+  extra: number;
+  data: number;
+  lang: number;
+} | null {
   const na = getModIndex().get(ns);
   if (!na) return null;
-  return { models: na.models.size, textures: na.textures.size, extra: na.extra.size };
+  return {
+    models: na.models.size,
+    textures: na.textures.size,
+    extra: na.extra.size,
+    data: na.dataFiles.size,
+    lang: na.langFiles.size,
+  };
+}
+
+/** Список путей внутри data/<ns>/ (для перебора описаний пред��етов). */
+export function listModData(ns: string, prefix = ""): string[] {
+  const na = getModIndex().get(ns);
+  if (!na) return [];
+  if (!prefix) return [...na.dataFiles.keys()].sort();
+  return [...na.dataFiles.keys()].filter((k) => k.startsWith(prefix)).sort();
+}
+
+/** Есть ли картинка вне assets/ по пути вида "decks/flags/russia". */
+export function hasModExtra(ns: string, path: string): boolean {
+  const na = getModIndex().get(ns);
+  return !!na?.extra.has(path);
 }

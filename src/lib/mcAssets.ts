@@ -604,18 +604,41 @@ export async function resolveItemTexture(itemId: string): Promise<string | null>
   return resolved;
 }
 
-/** Резолвит иконки для пачки id параллельно (6 воркеров, кэш на диске). */
-export async function resolveItemIcons(itemIds: string[]): Promise<Map<string, string | null>> {
-  const unique = [...new Set(itemIds.map((i) => i.toLowerCase()))];
-  const result = new Map<string, string | null>();
-  let cursor = 0;
-  const workers = Array.from({ length: Math.max(1, Math.min(6, unique.length)) }, async () => {
-    while (cursor < unique.length) {
-      const id = unique[cursor++];
-      const path = await resolveItemTexture(id);
-      result.set(id, itemIconUrl(path));
-    }
-  });
-  await Promise.all(workers);
+/**
+ * Ключ иконки в карте: предметы с одним id, но разным названием стека (колоды
+ * charta:deck) показывают разные обложки, поэтому название входит в ключ.
+ */
+export function iconKey(itemId: string, stackName?: string | null): string {
+  return `${itemId.toLowerCase()}|${stackName ?? ""}`;
+}
+
+/**
+ * Адрес иконки, которую рисует сервер из ассетов игры и модов: плоские
+ * предметы — квад со слоями, блоки — геометрия модели в изометрии.
+ *
+ * Название стека уходит параметром name: у колод и подобных вариантов оно и
+ * есть различие — по нему выбирается обложка.
+ */
+export function itemRenderIconUrl(itemId: string, stackName?: string | null): string {
+  const id = itemId.toLowerCase();
+  const i = id.indexOf(":");
+  const ns = i < 0 ? "minecraft" : id.slice(0, i);
+  const path = i < 0 ? id : id.slice(i + 1);
+  if (!/^[a-z0-9_.-]+$/.test(ns)) return "";
+  if (!/^[a-z0-9_./-]+$/.test(path)) return "";
+  const encoded = path.split("/").map(encodeURIComponent).join("/");
+  const query = stackName ? `?name=${encodeURIComponent(stackName)}` : "";
+  return `/api/mc-icon/${ns}/${encoded}${query}`;
+}
+
+/** Адреса иконок для пачки стеков, ключ — iconKey(id, name). */
+export function resolveItemIcons(
+  stacks: readonly { id: string; name?: string | null }[]
+): Map<string, string> {
+  const result = new Map<string, string>();
+  for (const stack of stacks) {
+    const url = itemRenderIconUrl(stack.id, stack.name);
+    if (url) result.set(iconKey(stack.id, stack.name), url);
+  }
   return result;
 }

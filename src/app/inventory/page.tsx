@@ -16,7 +16,7 @@ import {
   type InventoryData,
   type InventoryStack,
 } from "@/lib/inventory";
-import { localizeEnchantment, localizeItemSmart, resolveItemIcons } from "@/lib/mcAssets";
+import { iconKey, localizeEnchantment, localizeItemSmart, resolveItemIcons } from "@/lib/mcAssets";
 
 const CONTAINER_KEYS = ["main", "armor", "offhand", "enderChest"] as const;
 
@@ -45,19 +45,19 @@ interface Props {
 }
 
 async function prepareInventory(data: InventoryData): Promise<Props> {
-  // Собираем все id предметов и заклинаний — резолвим пачками, а не по одному.
-  const itemIds = new Set<string>();
+  // Собираем все стеки и id заклинаний — переводы резолвим пачками, а не по одному.
+  const stacks: InventoryStack[] = [];
   const enchantIds = new Set<string>();
   for (const key of CONTAINER_KEYS) {
     for (const stack of data.containers[key]) {
       if (!stack) continue;
-      itemIds.add(stack.id);
+      stacks.push(stack);
       for (const e of stack.enchantments ?? []) enchantIds.add(e.id);
     }
   }
 
   const [icons, enchantmentNames] = await Promise.all([
-    resolveItemIcons([...itemIds]),
+    resolveItemIcons(stacks),
     Promise.all(
       [...enchantIds].map(async (id) => [id, await localizeEnchantment(id)] as const)
     ).then((pairs) => new Map(pairs)),
@@ -71,7 +71,7 @@ async function prepareInventory(data: InventoryData): Promise<Props> {
     ]);
     return {
       ...stack,
-      icon: icons.get(stack.id) ?? null,
+      icon: icons.get(iconKey(stack.id, stack.name)) ?? null,
       name,
       enchantmentNames: enchNames.length ? enchNames : undefined,
     };

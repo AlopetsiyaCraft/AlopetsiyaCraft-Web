@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
+
 import type { InventoryStack } from "@/lib/inventory";
 
 /** Предмет, подготовленный сервером: имя уже переведено, иконка известна. */
 export interface PreparedStack extends InventoryStack {
-  /** URL картинки (ванильная текстура), или null — нет картинки. */
+  /** URL иконки, отрисованной из ассетов игры, или null — адрес не собрался. */
   icon: string | null;
   /** Переведённые названия заклинаний (null, если нет перевода). */
   enchantmentNames?: (string | null)[];
@@ -44,11 +46,22 @@ function Counter({ n }: { n: number }) {
   );
 }
 
+/**
+ * Иконка предмета. Если рендерер не смог нарисовать предмет (например, сундук или
+ * череп — их в игре рисует BlockEntityRenderer, а не модель), картинка не
+ * загрузится, и мы показываем букву от названия, как это делает игра для
+ * неизвестных предметов.
+ */
 function ItemImage({ stack }: { stack: PreparedStack }) {
-  if (!stack.icon) {
+  const [failed, setFailed] = useState(false);
+  if (!stack.icon || failed) {
+    const letter = stack.name?.trim().charAt(0).toUpperCase() || "?";
     return (
-      <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-bold opacity-60 select-none">
-        ?
+      <div
+        className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-bold opacity-60 select-none"
+        title={stack.name}
+      >
+        {letter}
       </div>
     );
   }
@@ -60,10 +73,7 @@ function ItemImage({ stack }: { stack: PreparedStack }) {
       draggable={false}
       className="w-full h-full object-contain"
       style={{ imageRendering: "pixelated" }}
-      onError={(e) => {
-        // Битый/отсутствующий файл текстуры — заглушка.
-        (e.currentTarget as HTMLImageElement).style.display = "none";
-      }}
+      onError={() => setFailed(true)}
     />
   );
 }
