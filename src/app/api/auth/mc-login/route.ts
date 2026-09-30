@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, mcSessions } from "@/lib/db/schema";
 import { checkBridgeKey } from "@/lib/bridge";
+import { normalizeIp } from "@/lib/ip";
 
 const MAX_NICKNAME = 32;
 const MAX_PASSWORD = 128;
@@ -38,7 +39,9 @@ export async function POST(request: NextRequest) {
   const nickname =
     typeof body?.nickname === "string" ? body.nickname.trim().slice(0, MAX_NICKNAME) : "";
   const password = typeof body?.password === "string" ? body.password : "";
-  const ip = typeof body?.ip === "string" ? body.ip.trim() : "";
+  // IP приходит от мода в сыром виде (IPv4 или IPv6-форма одного адреса) —
+  // приводим к канону, иначе сессия не найдётся при следующем заходе.
+  const ip = normalizeIp(body?.ip);
 
   if (!nickname || !password || !ip) {
     return NextResponse.json(

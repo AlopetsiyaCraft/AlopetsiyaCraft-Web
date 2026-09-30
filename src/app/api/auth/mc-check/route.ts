@@ -3,6 +3,7 @@ import { and, eq, gt, sql, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, mcSessions, nameHistory } from "@/lib/db/schema";
 import { checkBridgeKey } from "@/lib/bridge";
+import { normalizeIp } from "@/lib/ip";
 
 const MAX_NICKNAME = 32;
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const nickname =
     typeof body?.nickname === "string" ? body.nickname.trim().slice(0, MAX_NICKNAME) : "";
-  const ip = typeof body?.ip === "string" ? body.ip.trim() : "";
+  const ip = normalizeIp(body?.ip);
 
   if (!nickname) {
     return NextResponse.json({ error: "Поле nickname обязательно" }, { status: 400 });
