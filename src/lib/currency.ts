@@ -10,18 +10,18 @@
  *     остаток меньше одной пачки остаётся фишками на счету.
  *
  * Если позже захотим «биржевой» спред ~5% — заменить SELL_CHIPS_PER_BLD
- * на 105 (покупка фишек 1:100 без комиссии, обратный обмен 105 фишек = 1 болд).
+ * на 26 (покупка фишек 1:25 без комиссии, обратный обмен 26 фишек = 1 болд).
  */
 export type Currency = "bld" | "chips";
 
 /** Сколько фишек дают за 1 болд (и сколько фишек нужно за 1 болд обратно). */
-export const CHIPS_PER_BLD = 100;
+export const CHIPS_PER_BLD = 25;
 
 /** Сколько фишек нужно вернуть за 1 болд (сейчас = покупному курсу, без спреда). */
 export const SELL_CHIPS_PER_BLD = CHIPS_PER_BLD;
 
 /** Стоимость заказа кастомной пластинки в болдах. */
-export const DISC_PRICE_BLD = 100;
+export const DISC_PRICE_BLD = 10;
 
 /** Болды → фишки: ровно amount * CHIPS_PER_BLD. */
 export function bldToChips(amount: number): number {
