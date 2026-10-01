@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createClient } from "@libsql/client";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
+import { SYSTEM_NICKNAME, SYSTEM_SKIN } from "@/lib/chatSystem";
 
 // Local file by default; set DATABASE_URL to a libsql:// URL (e.g. Turso) to
 // keep accounts in the cloud so they survive reinstalls / machine moves.
@@ -331,5 +332,17 @@ export async function initDatabase() {
   } catch (e) {
     // column already exists
   }
+
+  // Служебный профиль "System" — от него пишутся объявления сайта в чат.
+  // Нужен, чтобы ник был настоящей учёткой со скином: и чат сайта, и мод голов
+  // в игре берут голову по нику, поэтому отдельная логика для System не нужна.
+  // Профиль скрыт (см. lib/chatSystem.ts) и недоступен для входа: пароль от
+  // него сгенерирован, не сохранён и нигде не используется — войти нельзя.
+  // INSERT OR IGNORE не трогает уже существующий профиль, поэтому выбранный
+  // скин переживает перезапуск и обновления.
+  await client.execute(
+    `INSERT OR IGNORE INTO users (nickname, password_hash, skin_url) VALUES (?, ?, ?)`,
+    [SYSTEM_NICKNAME, "$2b$10$AnIgBn/eRyesLcdXvVfh6edb6oEW4j4gNA1FgWPD8L4.s2WyD8.QO", SYSTEM_SKIN]
+  );
   client.close();
 }

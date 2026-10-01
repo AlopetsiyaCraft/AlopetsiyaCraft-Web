@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, playersOnline } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ne } from "drizzle-orm";
+import { SYSTEM_NICKNAME } from "@/lib/chatSystem";
 
 export async function GET() {
   try {
@@ -16,6 +17,7 @@ export async function GET() {
         lastActiveAt: users.lastActiveAt,
       })
       .from(users)
+      .where(ne(users.nickname, SYSTEM_NICKNAME))
       .orderBy(desc(users.lastActiveAt))
       .all();
 

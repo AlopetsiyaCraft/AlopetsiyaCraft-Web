@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useChatDock } from "@/lib/chat-dock";
+import { SYSTEM_NICKNAME } from "@/lib/chatSystem";
 
 /** Обработчики для шапки чата в режиме «перетаскиваемого окна» (передаёт FloatingChat). */
 export interface HeaderDragProps {
@@ -21,10 +22,9 @@ interface ChatMessage {
 }
 
 function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: string }) {
-  // У «Системы» своя аватарка — голова скина из /avatars/system.png (CSS-кроп как у игроков).
-  const url = nickname === "System" ? "/avatars/system.png" : skinUrl;
-
-  if (!url) {
+  // Служебные сообщения пишет ник System — у него есть профиль со скином,
+  // поэтому гола приходит из /api/chat вместе с сообщением, как у игроков.
+  if (!skinUrl) {
     return (
       <div className="w-10 h-10 flex-shrink-0 bg-[#7c3aed] flex items-center justify-center text-sm font-bold rounded">
         {nickname[0]?.toUpperCase() || "?"}
@@ -37,7 +37,7 @@ function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: str
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `url(${url})`,
+          backgroundImage: `url(${skinUrl})`,
           backgroundSize: "320px 320px",
           backgroundPosition: "-40px -40px",
           imageRendering: "pixelated",
@@ -46,7 +46,7 @@ function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: str
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `url(${url})`,
+          backgroundImage: `url(${skinUrl})`,
           backgroundSize: "320px 320px",
           backgroundPosition: "-200px -40px",
           imageRendering: "pixelated",
@@ -242,7 +242,7 @@ export default function LiveChat({
         ) : (
           messages.map((msg) => (
             <div key={msg.id} className="flex items-start gap-3">
-              {msg.nickname === "System" ? (
+              {msg.nickname === SYSTEM_NICKNAME ? (
                 <div className="mt-1">
                   <ChatHead skinUrl={msg.skinUrl} nickname={msg.nickname} />
                 </div>
@@ -253,7 +253,7 @@ export default function LiveChat({
               )}
               <div className="flex-1 min-w-0">
                 <div className="mb-1">
-                  {msg.nickname === "System" ? (
+                  {msg.nickname === SYSTEM_NICKNAME ? (
                     <span className="font-semibold text-sm text-[var(--text-muted)]">
                       {msg.nickname}
                     </span>
