@@ -3,11 +3,14 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { announceCurrencyChange } from "@/lib/chatAnnounce";
 
 /**
  * POST /api/admin/chips { nickname, amount }
  * Начислить (amount > 0) или списать (amount < 0) казино-фишки игроку.
  * Баланс не уходит ниже 0. Доступно только админам (users.role === "admin").
+ *
+ * О выдаче пишем в чат — так же, как для болдов.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const target = await db
-      .select({ id: users.id, chips: users.chips })
+      .select({ id: users.id, nickname: users.nickname, chips: users.chips })
       .from(users)
       .where(eq(users.nickname, nickname))
       .get();
@@ -48,6 +51,14 @@ export async function POST(request: NextRequest) {
     const current = target.chips ?? 0;
     const next = Math.max(0, current + amount);
     await db.update(users).set({ chips: next }).where(eq(users.id, target.id)).run();
+
+    await announceCurrencyChange({
+      currency: "фишки",
+      amount: next - current,
+      balance: next,
+      targetNickname: target.nickname,
+      adminNickname: session.user.name,
+    });
 
     return NextResponse.json({ nickname, amount, chips: next });
   } catch (error) {

@@ -3,11 +3,15 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { announceCurrencyChange } from "@/lib/chatAnnounce";
 
 /**
  * POST /api/admin/bld { nickname, amount }
  * Начислить (amount > 0) или списать (amount < 0) Болды (BLD) игроку.
  * Баланс не уходит ниже 0. Доступно только админам (users.role === "admin").
+ *
+ * О выдаче пишем в чат: мод chatbridge забирает сообщение с сайта и выводит
+ * его в игре, так что игроки видят пополнение.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const target = await db
-      .select({ id: users.id, bld: users.bld })
+      .select({ id: users.id, nickname: users.nickname, bld: users.bld })
       .from(users)
       .where(eq(users.nickname, nickname))
       .get();
@@ -48,6 +52,14 @@ export async function POST(request: NextRequest) {
     const current = target.bld ?? 0;
     const next = Math.max(0, current + amount);
     await db.update(users).set({ bld: next }).where(eq(users.id, target.id)).run();
+
+    await announceCurrencyChange({
+      currency: "BLD",
+      amount: next - current,
+      balance: next,
+      targetNickname: target.nickname,
+      adminNickname: session.user.name,
+    });
 
     return NextResponse.json({ nickname, amount, balance: next });
   } catch (error) {
