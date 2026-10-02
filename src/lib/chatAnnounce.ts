@@ -25,7 +25,8 @@ const MAX_MESSAGE = 500;
  * Пишет служебное сообщение в чат. Молча переживает ошибку доставки.
  *
  * @param target ник единственного адресата: в игре строка придёт только
- *   ему (если он в сети), остальным игрокам не покажется.
+ *   ему (если он в сети), остальным игрокам не покажется, и в Discord
+ *   она тоже не попадёт — личное уведомление не анонс.
  */
 export async function announceToChat(
   message: string,
@@ -46,8 +47,12 @@ export async function announceToChat(
     console.error("Chat announce failed:", error);
   }
 
-  // Discord шлём даже при ошибке записи в базу — иначе рассинхрон.
-  await notifyDiscord({ source: "website", nickname: SYSTEM, message: text }).catch(() => {});
+  // Discord шлём только для общих объявлений: личное сообщение о начислении
+  // валюты — не анонс, и в общий канал его выкладывать не нужно.
+  if (!target) {
+    // Шлём даже при ошибке записи в базу — иначе рассинхрон.
+    await notifyDiscord({ source: "website", nickname: SYSTEM, message: text }).catch(() => {});
+  }
 }
 
 /**
