@@ -106,6 +106,11 @@ export const chatLogs = sqliteTable("chat_logs", {
   nickname: text("nickname").notNull(),
   message: text("message").notNull(),
   source: text("source").notNull().default("website"),
+  /**
+   * Ник единственного адресата: мод в игре отдаёт такую строку только ему,
+   * а не всем (см. мод chatbridge). NULL — сообщение для всех.
+   */
+  target: text("target"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

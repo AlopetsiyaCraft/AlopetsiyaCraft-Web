@@ -20,8 +20,11 @@ const BRIDGE_SOURCES = ["minecraft", "website", "discord"] as const;
  *   Сообщения не из Discord дополнительно пушатся в вебхук Discord
  *   (см. src/lib/discord.ts).
  * GET  /api/chat/from-server?since=<мс> — мод поллит новые сообщения.
- *   Возвращает только source = "website" | "discord" (свои же сообщения
- *   с сервера исключаются, чтобы мод не выводил их в игру повторно — эхо).
+ *   Возвращает сообщения с source = "website" | "discord" | "system"
+ *   (свои же сообщения с сервера исключаются, чтобы мод не выводил их
+ *   в игру повторно — эхо). У служебных сообщений (source = "system")
+ *   мод выводит их как "<ник> текст" без префикса [Сайт], а если задан
+ *   target — отдаёт строку только этому игроку, а не всем.
  *   createdAt отдаётся в МИЛЛИСЕКУНДАХ, как ожидает мод (System.currentTimeMillis()).
  *
  * Оба запроса требуют заголовок `x-api-key`, совпадающий с CHAT_API_KEY в .env.
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
       source: chatLogs.source,
       nickname: chatLogs.nickname,
       message: chatLogs.message,
+      target: chatLogs.target,
       createdAt: chatLogs.createdAt,
       skinUrl: users.skinUrl,
     })
@@ -105,6 +109,8 @@ export async function GET(request: NextRequest) {
       source: r.source,
       nickname: r.nickname,
       message: r.message,
+      // Адресат: мод отдаёт такую строку только этому игроку, а не всем.
+      target: r.target ?? null,
       createdAt: r.createdAt.getTime(),
       skinUrl: r.skinUrl,
     }))

@@ -71,6 +71,7 @@ export const bootstrapSql = `
     nickname TEXT NOT NULL,
     message TEXT NOT NULL,
     source TEXT NOT NULL DEFAULT 'website',
+    target TEXT,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
 
@@ -329,6 +330,13 @@ export async function initDatabase() {
   try {
     // legacy: пиксельная обложка пластинки (фото альбома, 16x16 PNG)
     await client.execute(`ALTER TABLE audio_tracks ADD COLUMN cover_file_name TEXT`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: адресат сообщения чата — мод в игре отдаёт такую строку только
+    // ему, а не всем. NULL означает «для всех».
+    await client.execute(`ALTER TABLE chat_logs ADD COLUMN target TEXT`);
   } catch (e) {
     // column already exists
   }
