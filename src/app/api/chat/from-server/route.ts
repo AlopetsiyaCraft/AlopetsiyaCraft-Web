@@ -19,13 +19,20 @@ const BRIDGE_SOURCES = ["minecraft", "website", "discord"] as const;
  *   - Discord-бот: сообщения из канала (source = "discord").
  *   Сообщения не из Discord дополнительно пушатся в вебхук Discord
  *   (см. src/lib/discord.ts).
- * GET  /api/chat/from-server?since=<мс> — мод поллит новые сообщения.
+ * GET  /api/chat/from-server?sinceId=<id> или ?since=<мс> — мод поллит новые
+ *   сообщения.
  *   Возвращает сообщения с source = "website" | "discord" | "system"
  *   (свои же сообщения с сервера исключаются, чтобы мод не выводил их
  *   в игру повторно — эхо). У служебных сообщений (source = "system")
  *   мод выводит их как "<ник> текст" без префикса [Сайт], а если задан
  *   target — отдаёт строку только этому игроку, а не всем.
  *   createdAt отдаётся в МИЛЛИСЕКУНДАХ, как ожидает мод (System.currentTimeMillis()).
+ *
+ *   Дедупликация — по id сообщения (sinceId): id строго растёт с порядком
+ *   вставки, поэтому повторно ничего не выдаётся и ничего не теряется даже
+ *   внутри одной секунды. Параметр since=<мс> используется только на первом
+ *   опросе мода после его старта (sinceId = 0), чтобы не реиграть историю:
+ *   с ним возвращаются сообщения, созданные позже этой отметки.
  *
  * Оба запроса требуют заголовок `x-api-key`, совпадающий с CHAT_API_KEY в .env.
  */
@@ -83,8 +90,22 @@ export async function GET(request: NextRequest) {
   }
 
   const rawSince = request.nextUrl.searchParams.get("since");
+  const rawSinceId = request.nextUrl.searchParams.get("sinceId");
   const sinceMs = rawSince ? parseInt(rawSince, 10) : 0;
   const sinceSec = Number.isFinite(sinceMs) ? Math.floor(sinceMs / 1000) : 0;
+  const sinceId = rawSinceId ? parseInt(rawSinceId, 10) : 0;
+
+  // Дедупликация — по id сообщения: id строго растёт с порядком вставки,
+  // поэтому строка «откуда забирать» не зависит от секундной точности
+  // created_at и не может ни отдать сообщение дважды, ни потерять его
+  // в пределах одной секунды. sinceId = 0 — первый опрос мода после
+  // старта: граница по времени, чтобы не реиграть историю чата.
+  const conditions = [ne(chatLogs.source, "minecraft")];
+  if (sinceId > 0) {
+    conditions.push(gt(chatLogs.id, sinceId));
+  } else {
+    conditions.push(gt(chatLogs.createdAt, new Date(sinceSec * 1000)));
+  }
 
   const rows = await db
     .select({
@@ -98,8 +119,8 @@ export async function GET(request: NextRequest) {
     })
     .from(chatLogs)
     .leftJoin(users, eq(chatLogs.nickname, users.nickname))
-    .where(and(gt(chatLogs.createdAt, new Date(sinceSec * 1000)), ne(chatLogs.source, "minecraft")))
-    .orderBy(asc(chatLogs.createdAt))
+    .where(and(...conditions))
+    .orderBy(asc(chatLogs.id))
     .limit(200)
     .all();
 
