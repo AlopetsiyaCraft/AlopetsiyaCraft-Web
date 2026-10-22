@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PlayerHead from "@/components/mc/PlayerHead";
+import ProfileAudioBlock from "@/components/ProfileAudioBlock";
 import type { AudioPreviewItem, FriendPreviewItem, PhotoPreviewItem } from "@/lib/wallPreview";
 
 /** Заголовок блока: название + счётчик + ссылка «Все». */
@@ -25,15 +26,7 @@ function BlockHeader({
   );
 }
 
-function MusicIcon() {
-  return (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
-    </svg>
-  );
-}
-
-/** Блок «Аудио»: первые 5 треков (обложка + название), как превью во VK. */
+/** Блок «Аудио»: первые 5 треков; клик играет в мини-плеере, «Все» ведёт на /music. */
 function AudioBlock({
   tracks,
   total,
@@ -43,32 +36,7 @@ function AudioBlock({
   total: number;
   baseHref: string;
 }) {
-  return (
-    <section className="mc-panel">
-      <BlockHeader title="Аудио" count={total} href={`${baseHref}/music`} />
-      <div className="flex flex-col p-3">
-        {tracks.map((t) => (
-          <Link
-            key={t.id}
-            href={`${baseHref}/music`}
-            className="flex items-center gap-3 px-1 py-2 border-2 border-transparent hover:border-black hover:bg-[var(--hover)] transition-colors"
-          >
-            <div className="w-11 h-11 border-2 border-black overflow-hidden shrink-0 bg-[var(--card-alt)] flex items-center justify-center text-[var(--mc-green-light)]">
-              {t.coverThumbUrl || t.coverUrl ? (
-                <img src={t.coverThumbUrl ?? (t.coverUrl as string)} alt="" className="w-full h-full object-cover" loading="lazy" />
-              ) : (
-                <MusicIcon />
-              )}
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium truncate">{t.title}</div>
-              {t.artist && <div className="text-xs text-[var(--text-muted)] truncate">{t.artist}</div>}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
+  return <ProfileAudioBlock tracks={tracks} total={total} baseHref={baseHref} />;
 }
 
 /** Блок «Фото»: 5-6 квадратиков последних фото. */

@@ -293,6 +293,49 @@
   }
 }
 
+/* Полоса перемотки в мини-плеере */
+.mc-range {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 10px;
+  padding: 0;
+  background-color: var(--input);
+  border: 2px solid #000;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+
+.mc-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 16px;
+  background: var(--mc-green-light);
+  border: 2px solid #000;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.mc-range::-moz-range-thumb {
+  width: 10px;
+  height: 16px;
+  background: var(--mc-green-light);
+  border: 2px solid #000;
+  border-radius: 0;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.mc-range:focus-visible {
+  outline: 2px solid var(--mc-green-light);
+  outline-offset: 2px;
+}
+
+.mc-range:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 /* Чип/бейдж */
 @utility mc-chip {
   display: inline-flex;

@@ -13,6 +13,8 @@ export interface AudioPreviewItem {
   coverUrl: string | null;
   /** Миниатюра обложки (128×128) — для лёгкой стены; null если обложки нет. */
   coverThumbUrl: string | null;
+  /** Прямая ссылка на mp3 — мини-плеер на стене играет без перехода на /music. */
+  url: string;
 }
 
 /** Превью фото для блока «Фото» на стене (VK-стиль). */
@@ -56,6 +58,7 @@ export async function loadAudioPreview(userId: number, limit = 5): Promise<Audio
     createdAt: t.createdAt.getTime(),
     coverUrl: t.coverFileName ? `/api/audio/${t.id}/cover` : null,
     coverThumbUrl: t.coverFileName ? `/api/audio/${t.id}/cover/thumb` : null,
+    url: `/api/audio/${t.id}/file`,
   }));
 }
 
