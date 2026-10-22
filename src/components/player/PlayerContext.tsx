@@ -25,8 +25,6 @@ export interface PlayerApi {
   shuffle: boolean;
   /** Громкость от 0 до 1. */
   volume: number;
-  /** Звук выключен кнопкой (громкость при этом сохраняется). */
-  muted: boolean;
   error: string | null;
   /** Запустить трек из списка (список становится очередью). */
   play: (tracks: PlayerTrack[], startId?: number) => void;
@@ -38,8 +36,6 @@ export interface PlayerApi {
   seek: (seconds: number) => void;
   /** Громкость от 0 до 1. */
   setVolume: (value: number) => void;
-  /** Выключить/включить звук, не меняя громкость. */
-  toggleMute: () => void;
   toggleRepeat: () => void;
   toggleShuffle: () => void;
   /** Остановить и убрать плеер. */
