@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "./PlayerContext";
 
 const POS_KEY = "mc-player-pos";
+const LAST_VOLUME_KEY = "mc-player-last-volume-v1";
 
 interface Position {
   x: number;
@@ -19,6 +20,18 @@ function readSavedPosition(): Position | null {
     return { x: parsed.x, y: parsed.y };
   } catch {
     return null;
+  }
+}
+
+function readLastVolume(): number {
+  try {
+    const raw = localStorage.getItem(LAST_VOLUME_KEY);
+    if (raw == null) return 1;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value <= 0) return 1;
+    return Math.min(value, 1);
+  } catch {
+    return 1;
   }
 }
 
@@ -164,10 +177,17 @@ export default function MiniPlayer() {
     seekRef.current = player.seek;
   }, [player.seek]);
 
-  const lastVolumeRef = useRef(volume > 0 ? volume : 1);
+  const lastVolumeRef = useRef(volume > 0 ? volume : readLastVolume());
 
+  // Запоминаем последнюю ненулевую громкость, чтобы вернуть её после mute и перезагрузки.
   useEffect(() => {
-    if (volume > 0) lastVolumeRef.current = volume;
+    if (volume <= 0) return;
+    lastVolumeRef.current = volume;
+    try {
+      localStorage.setItem(LAST_VOLUME_KEY, String(volume));
+    } catch {
+      // localStorage может быть недоступен — не критично.
+    }
   }, [volume]);
 
   // Клик по динамику: выключить звук (громкость в 0) или вернуть прежний уровень.
