@@ -4,6 +4,7 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { photoCommentLikes, photoComments, photos, users } from "@/lib/db/schema";
+import { createNotification } from "@/lib/notifications";
 import type { PhotoCommentItem } from "@/lib/profile";
 
 const authorAlias = alias(users, "author");
@@ -103,8 +104,12 @@ export async function POST(
     }
     const { id } = await params;
     const photoId = parseInt(id, 10);
-    const exists = await db.select({ id: photos.id }).from(photos).where(eq(photos.id, photoId)).get();
-    if (!exists) {
+    const photo = await db
+      .select({ id: photos.id, userId: photos.userId })
+      .from(photos)
+      .where(eq(photos.id, photoId))
+      .get();
+    if (!photo) {
       return NextResponse.json({ error: "Фото не найдено" }, { status: 404 });
     }
 
@@ -150,6 +155,23 @@ export async function POST(
             .get()
         : Promise.resolve(undefined),
     ]);
+
+    if (photo.userId !== row.userId) {
+      const owner = await db
+        .select({ nickname: users.nickname })
+        .from(users)
+        .where(eq(users.id, photo.userId))
+        .get();
+      if (owner) {
+        await createNotification({
+          userId: photo.userId,
+          type: "comment",
+          title: `${author?.nickname ?? "Игрок"} оставил комментарий к твоему фото`,
+          body: text.slice(0, 200),
+          link: `/profile/${encodeURIComponent(owner.nickname)}/foto`,
+        });
+      }
+    }
 
     const item: PhotoCommentItem = {
       id: row.id,

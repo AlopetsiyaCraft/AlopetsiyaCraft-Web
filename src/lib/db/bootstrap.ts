@@ -33,6 +33,13 @@ export const bootstrapSql = `
     role TEXT NOT NULL DEFAULT 'user',
     bld INTEGER NOT NULL DEFAULT 0,
     chips INTEGER NOT NULL DEFAULT 0,
+    bio TEXT,
+    status TEXT,
+    nick_color TEXT,
+    profile_bg TEXT,
+    profile_frame TEXT,
+    socials TEXT NOT NULL DEFAULT '{}',
+    featured_achievements TEXT NOT NULL DEFAULT '[]',
     last_active_at INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
@@ -93,6 +100,19 @@ export const bootstrapSql = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
   CREATE INDEX IF NOT EXISTS idx_wallet_ledger_user ON wallet_ledger(user_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    type TEXT NOT NULL DEFAULT 'system',
+    title TEXT NOT NULL,
+    body TEXT,
+    link TEXT,
+    read_at INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read_at);
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at);
 
   CREATE TABLE IF NOT EXISTS seasons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -389,6 +409,22 @@ export async function initDatabase() {
     await client.execute(`ALTER TABLE users ADD COLUMN daily_bonus_at INTEGER`);
   } catch (e) {
     // column already exists
+  }
+  // legacy: кастомизация профиля (bio, статус, цвета, соцсети, витрина)
+  for (const ddl of [
+    `ALTER TABLE users ADD COLUMN bio TEXT`,
+    `ALTER TABLE users ADD COLUMN status TEXT`,
+    `ALTER TABLE users ADD COLUMN nick_color TEXT`,
+    `ALTER TABLE users ADD COLUMN profile_bg TEXT`,
+    `ALTER TABLE users ADD COLUMN profile_frame TEXT`,
+    `ALTER TABLE users ADD COLUMN socials TEXT NOT NULL DEFAULT '{}'`,
+    `ALTER TABLE users ADD COLUMN featured_achievements TEXT NOT NULL DEFAULT '[]'`,
+  ]) {
+    try {
+      await client.execute(ddl);
+    } catch {
+      // column already exists
+    }
   }
   try {
     // legacy: пиксельная обложка пластинки (фото альбома, 16x16 PNG)

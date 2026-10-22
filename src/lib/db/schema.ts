@@ -50,7 +50,15 @@ export const users = sqliteTable("users", {
   bld: integer("bld").notNull().default(0),
   // Фишки казино — тратятся только за карточными столами в Minecraft.
   chips: integer("chips").notNull().default(0),
-  // Когда последний раз крутили колесо ежедневного бонуса (раз в 24 часа).
+  // Кастомизация профиля (редактируется в настройках).
+  bio: text("bio"),
+  status: text("status"),
+  nickColor: text("nick_color"),
+  profileBg: text("profile_bg"),
+  profileFrame: text("profile_frame"),
+  socials: text("socials").notNull().default("{}"),
+  featuredAchievements: text("featured_achievements").notNull().default("[]"),
+  // Когда последний раз крутили колесо ежедневного бонуса (раз в день).
   dailyBonusAt: integer("daily_bonus_at", { mode: "timestamp" }),
   lastActiveAt: integer("last_active_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
@@ -173,6 +181,32 @@ export const walletLedger = sqliteTable(
   },
   (t) => ({
     userCreated: index("idx_wallet_ledger_user").on(t.userId, t.createdAt),
+  })
+);
+
+/**
+ * Уведомления игрока: заявки в друзья, комментарии, выдача заказов и т.п.
+ * readAt = null означает непрочитанное; список в шапке сортируется по дате.
+ */
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    type: text("type").notNull().default("system"),
+    title: text("title").notNull(),
+    body: text("body"),
+    link: text("link"),
+    readAt: integer("read_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    userRead: index("idx_notifications_user_read").on(t.userId, t.readAt),
+    userCreated: index("idx_notifications_user_created").on(t.userId, t.createdAt),
   })
 );
 

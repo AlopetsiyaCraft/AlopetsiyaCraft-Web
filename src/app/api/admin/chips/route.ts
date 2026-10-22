@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, walletLedger } from "@/lib/db/schema";
 import { announceCurrencyChange } from "@/lib/chatAnnounce";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * POST /api/admin/chips { nickname, amount }
@@ -64,6 +65,17 @@ export async function POST(request: NextRequest) {
           refType: "admin",
         })
         .run();
+
+      await createNotification({
+        userId: target.id,
+        type: "currency",
+        title:
+          next > current
+            ? `Начислено ${next - current} фишек`
+            : `Списано ${current - next} фишек`,
+        body: `Текущий баланс: ${next} фишек.`,
+        link: "/wallet",
+      });
     }
 
     await announceCurrencyChange({

@@ -8,6 +8,15 @@ import Header from "@/components/Header";
 import HeadViewer from "@/components/HeadViewer";
 import NameHistoryBadge from "@/components/NameHistoryBadge";
 import ProfileTabs from "@/components/ProfileTabs";
+import {
+  SOCIAL_KEYS,
+  SOCIAL_LABELS,
+  nickColorValue,
+  parseSocials,
+  profileBackgroundStyle,
+  profileFrameStyle,
+  socialHref,
+} from "@/lib/profileCustomization";
 
 /**
  * Профиль игрока (VK-стиль, osu-адреса): /profile/<ник> или /profile/<id>.
@@ -56,6 +65,11 @@ export default async function ProfileLayout({
 
   const previousNames = names.filter((n) => n.nickname !== target.nickname);
   const isOwn = target.id === me.id;
+  const socials = parseSocials(target.socials);
+  const nickColor = nickColorValue(target.nickColor);
+  const backgroundStyle = profileBackgroundStyle(target.profileBg);
+  const hasCustomBackground = Object.keys(backgroundStyle).length > 0;
+  const frameStyle = profileFrameStyle(target.profileFrame);
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)]">
@@ -68,17 +82,28 @@ export default async function ProfileLayout({
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8">
         <div className="mc-panel overflow-hidden">
           {/* Пиксельный баннер */}
-          <div className="mc-hero-bg h-20 border-b-2 border-black sm:h-24" />
+          <div
+            className={`h-20 border-b-2 border-black sm:h-24 ${
+              hasCustomBackground ? "" : "mc-hero-bg"
+            }`}
+            style={backgroundStyle}
+          />
 
           <div className="px-4 pb-5 sm:px-6">
             <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end">
               <div className="shrink-0">
                 {target.skinUrl ? (
-                  <div className="h-24 w-24 overflow-hidden border-2 border-black bg-[var(--bg)] shadow-[3px_3px_0_rgba(0,0,0,.55)] sm:h-28 sm:w-28">
+                  <div
+                    className="h-24 w-24 overflow-hidden border-2 border-black bg-[var(--bg)] shadow-[3px_3px_0_rgba(0,0,0,.55)] sm:h-28 sm:w-28"
+                    style={frameStyle}
+                  >
                     <HeadViewer skinUrl={target.skinUrl} size={112} />
                   </div>
                 ) : (
-                  <div className="flex h-24 w-24 items-center justify-center border-2 border-black bg-[var(--bg-alt)] px-1 text-center text-[0.65rem] text-[var(--text-muted)] shadow-[3px_3px_0_rgba(0,0,0,.55)] sm:h-28 sm:w-28">
+                  <div
+                    className="flex h-24 w-24 items-center justify-center border-2 border-black bg-[var(--bg-alt)] px-1 text-center text-[0.65rem] text-[var(--text-muted)] shadow-[3px_3px_0_rgba(0,0,0,.55)] sm:h-28 sm:w-28"
+                    style={frameStyle}
+                  >
                     Нет скина
                   </div>
                 )}
@@ -86,7 +111,12 @@ export default async function ProfileLayout({
 
               <div className="min-w-0 flex-1 sm:pb-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <h1 className="mc-title text-2xl sm:text-3xl">{target.nickname}</h1>
+                  <h1
+                    className="mc-title text-2xl sm:text-3xl"
+                    style={nickColor ? { color: nickColor } : undefined}
+                  >
+                    {target.nickname}
+                  </h1>
                   <NameHistoryBadge names={previousNames} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -102,6 +132,42 @@ export default async function ProfileLayout({
                     </span>
                   )}
                 </div>
+                {target.status && (
+                  <p className="mt-2 text-sm text-[var(--text-secondary)]">{target.status}</p>
+                )}
+                {target.bio && (
+                  <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)]">
+                    {target.bio}
+                  </p>
+                )}
+                {Object.keys(socials).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {SOCIAL_KEYS.map((key) => {
+                      const value = socials[key];
+                      if (!value) return null;
+                      const href = socialHref(key, value);
+                      const label = SOCIAL_LABELS[key];
+                      return href ? (
+                        <a
+                          key={key}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mc-chip text-[0.6rem] text-[var(--mc-green-light)] hover:bg-[var(--hover)]"
+                        >
+                          {label}
+                        </a>
+                      ) : (
+                        <span
+                          key={key}
+                          className="mc-chip text-[0.6rem] text-[var(--text-secondary)]"
+                        >
+                          {label}: {value}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {isOwn && (

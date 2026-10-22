@@ -4,6 +4,7 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { postCommentLikes, postComments, users, wallPosts } from "@/lib/db/schema";
+import { createNotification } from "@/lib/notifications";
 import type { PostCommentItem } from "@/lib/profile";
 
 const authorAlias = alias(users, "author");
@@ -100,8 +101,12 @@ export async function POST(
     }
     const { id } = await params;
     const postId = parseInt(id, 10);
-    const exists = await db.select({ id: wallPosts.id }).from(wallPosts).where(eq(wallPosts.id, postId)).get();
-    if (!exists) {
+    const post = await db
+      .select({ id: wallPosts.id, userId: wallPosts.userId })
+      .from(wallPosts)
+      .where(eq(wallPosts.id, postId))
+      .get();
+    if (!post) {
       return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
     }
 
@@ -144,6 +149,23 @@ export async function POST(
             .get()
         : Promise.resolve(undefined),
     ]);
+
+    if (post.userId !== row.userId) {
+      const owner = await db
+        .select({ nickname: users.nickname })
+        .from(users)
+        .where(eq(users.id, post.userId))
+        .get();
+      if (owner) {
+        await createNotification({
+          userId: post.userId,
+          type: "comment",
+          title: `${author?.nickname ?? "Игрок"} оставил комментарий на твоей стене`,
+          body: text.slice(0, 200),
+          link: `/profile/${encodeURIComponent(owner.nickname)}`,
+        });
+      }
+    }
 
     const item: PostCommentItem = {
       id: row.id,

@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { friends } from "@/lib/db/schema";
+import { createNotification } from "@/lib/notifications";
 
 /** POST /api/friends/respond { friendUserId, accept } — принять/отклонить входящую заявку. */
 export async function POST(request: NextRequest) {
@@ -36,6 +37,14 @@ export async function POST(request: NextRequest) {
 
     if (accept) {
       await db.update(friends).set({ status: "accepted" }).where(eq(friends.id, pair.id)).run();
+      const meNick = session.user.name ?? "Игрок";
+      await createNotification({
+        userId: pair.requesterId,
+        type: "friend_accept",
+        title: `${meNick} принял(а) твою заявку в друзья`,
+        body: "Теперь вы друзья.",
+        link: `/profile/${encodeURIComponent(meNick)}`,
+      });
       return NextResponse.json({ status: "accepted", message: "Вы друзья!" });
     }
     await db.delete(friends).where(eq(friends.id, pair.id)).run();

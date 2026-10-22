@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import PlayerHead from "@/components/mc/PlayerHead";
+import NotificationsBell from "@/components/NotificationsBell";
 
 interface Season {
   number: number;
@@ -66,10 +67,12 @@ export default function Header({
 
   useEffect(() => {
     const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-    if (saved) {
+    if (!saved) return;
+    const id = window.setTimeout(() => {
       setTheme(saved);
       document.documentElement.classList.toggle("light", saved === "light");
-    }
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   function toggleTheme() {
@@ -269,6 +272,8 @@ export default function Header({
                     {user.bld.toLocaleString("ru-RU")}
                   </Link>
                 )}
+
+                <NotificationsBell />
               </>
             ) : (
               <Link href="/auth/login" className="mc-btn mc-btn-primary hidden px-3 py-1.5 text-xs sm:inline-flex">

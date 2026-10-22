@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, nameHistory, playerStats, playerInventories, mcSessions } from "@/lib/db/schema";
+import { users, nameHistory, playerStats, playerInventories, mcSessions, achievements } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
@@ -97,6 +97,13 @@ export async function POST(request: NextRequest) {
       .update(playerInventories)
       .set({ nickname: trimmed.toLowerCase(), displayNickname: trimmed })
       .where(sql`lower(${playerInventories.nickname}) = ${oldNickname.toLowerCase()}`)
+      .run();
+
+    // Достижения тоже ключуются по нику — иначе витрина профиля опустеет.
+    await db
+      .update(achievements)
+      .set({ nickname: trimmed })
+      .where(sql`lower(${achievements.nickname}) = ${oldNickname.toLowerCase()}`)
       .run();
 
     await db.delete(mcSessions).where(eq(mcSessions.userId, userId)).run();

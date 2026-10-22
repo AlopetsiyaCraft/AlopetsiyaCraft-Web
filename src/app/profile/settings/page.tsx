@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { achievements, users } from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import { db as dbAll } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
+import { parseFeaturedAchievements, parseSocials } from "@/lib/profileCustomization";
 import SettingsForm from "./SettingsForm";
+import ProfileCustomizationForm from "./ProfileCustomizationForm";
 import DiscordLinkCard from "./DiscordLinkCard";
 
 export default async function SettingsPage({
@@ -33,6 +35,20 @@ export default async function SettingsPage({
   }
 
   const allSeasons = await dbAll.select().from(seasons).all();
+
+  const myAchievements = await db
+    .select({
+      id: achievements.id,
+      title: achievements.title,
+      description: achievements.description,
+      frame: achievements.frame,
+      createdAt: achievements.createdAt,
+    })
+    .from(achievements)
+    .where(eq(achievements.nickname, user.nickname))
+    .orderBy(desc(achievements.createdAt))
+    .limit(50)
+    .all();
 
   // OAuth-кнопка «Привязать Discord» доступна, если заданы
   // DISCORD_CLIENT_ID и DISCORD_CLIENT_SECRET в .env. Сама ссылка — на
@@ -78,6 +94,25 @@ export default async function SettingsPage({
           initialNickname={user.nickname}
           initialSkinModel={user.skinModel}
         />
+
+        <div className="mt-6">
+          <ProfileCustomizationForm
+            initialBio={user.bio ?? ""}
+            initialStatus={user.status ?? ""}
+            initialNickColor={user.nickColor ?? ""}
+            initialProfileBg={user.profileBg ?? ""}
+            initialProfileFrame={user.profileFrame ?? ""}
+            initialSocials={parseSocials(user.socials)}
+            initialFeatured={parseFeaturedAchievements(user.featuredAchievements)}
+            achievements={myAchievements.map((a) => ({
+              id: a.id,
+              title: a.title,
+              description: a.description,
+              frame: a.frame,
+              createdAt: a.createdAt.getTime(),
+            }))}
+          />
+        </div>
 
         <div className="mt-6">
           <DiscordLinkCard discordId={user.discordId} oauthUrl={oauthUrl} />

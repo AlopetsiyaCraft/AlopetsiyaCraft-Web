@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getAdminUser } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { shopOrders, users, walletLedger } from "@/lib/db/schema";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * POST /api/admin/shop/orders { orderId, action: "deliver" | "refund" }
@@ -86,6 +87,20 @@ export async function POST(request: NextRequest) {
       })
       .run();
   }
+
+  await createNotification({
+    userId: order.userId,
+    type: action === "deliver" ? "shop_delivered" : "shop_refunded",
+    title:
+      action === "deliver"
+        ? `Заказ «${order.productTitle}» выдан`
+        : `Возврат за заказ «${order.productTitle}»`,
+    body:
+      action === "deliver"
+        ? "Товар уже в игре — проверь инвентарь или косметику."
+        : `${order.priceBld} BLD вернулись на баланс.`,
+    link: action === "deliver" ? "/shop" : "/wallet",
+  });
 
   return NextResponse.json({ message: "OK", status: action === "deliver" ? "delivered" : "refunded" });
 }

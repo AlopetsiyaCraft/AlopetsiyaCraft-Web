@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { friends, users } from "@/lib/db/schema";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * POST /api/friends/request { nickname } — отправить заявку в друзья.
@@ -42,6 +43,14 @@ export async function POST(request: NextRequest) {
         .insert(friends)
         .values({ userId: a, friendId: b, requesterId: me, status: "pending" })
         .run();
+      const meNick = session.user.name ?? "Игрок";
+      await createNotification({
+        userId: target.id,
+        type: "friend_request",
+        title: `${meNick} хочет добавить тебя в друзья`,
+        body: "Открой профиль и ответь на заявку.",
+        link: `/profile/${encodeURIComponent(meNick)}/friends`,
+      });
       return NextResponse.json({ status: "requested", message: "Заявка отправлена" }, { status: 201 });
     }
 
@@ -53,6 +62,14 @@ export async function POST(request: NextRequest) {
     }
     // входящая заявка от собеседника → принимаем
     await db.update(friends).set({ status: "accepted" }).where(eq(friends.id, pair.id)).run();
+    const meNick = session.user.name ?? "Игрок";
+    await createNotification({
+      userId: target.id,
+      type: "friend_accept",
+      title: `${meNick} принял(а) твою заявку в друзья`,
+      body: "Теперь вы друзья.",
+      link: `/profile/${encodeURIComponent(meNick)}`,
+    });
     return NextResponse.json({ status: "accepted", message: "Заявка принята — вы друзья!" });
   } catch (error) {
     console.error("Friend request error:", error);

@@ -1,0 +1,321 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import {
+  NICK_COLORS,
+  PROFILE_BACKGROUNDS,
+  PROFILE_FRAMES,
+  SOCIAL_KEYS,
+  SOCIAL_LABELS,
+  nickColorValue,
+  profileBackgroundStyle,
+  profileFrameStyle,
+  type SocialKey,
+} from "@/lib/profileCustomization";
+
+export interface AchievementOption {
+  id: number;
+  title: string;
+  description: string | null;
+  frame: string;
+  createdAt: number;
+}
+
+const FRAME_COLORS: Record<string, string> = {
+  task: "var(--mc-green-light)",
+  goal: "var(--mc-gold)",
+  challenge: "#a855f7",
+};
+
+export default function ProfileCustomizationForm({
+  initialBio,
+  initialStatus,
+  initialNickColor,
+  initialProfileBg,
+  initialProfileFrame,
+  initialSocials,
+  initialFeatured,
+  achievements,
+}: {
+  initialBio: string;
+  initialStatus: string;
+  initialNickColor: string;
+  initialProfileBg: string;
+  initialProfileFrame: string;
+  initialSocials: Partial<Record<SocialKey, string>>;
+  initialFeatured: number[];
+  achievements: AchievementOption[];
+}) {
+  const router = useRouter();
+  const [bio, setBio] = useState(initialBio);
+  const [status, setStatus] = useState(initialStatus);
+  const [nickColor, setNickColor] = useState(initialNickColor);
+  const [profileBg, setProfileBg] = useState(initialProfileBg);
+  const [profileFrame, setProfileFrame] = useState(initialProfileFrame);
+  const [socials, setSocials] = useState<Partial<Record<SocialKey, string>>>(initialSocials);
+  const [featured, setFeatured] = useState<number[]>(initialFeatured);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const colorPickerValue = nickColorValue(nickColor) ?? "#7dbb52";
+
+  function toggleFeatured(id: number) {
+    setFeatured((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 3) return prev;
+      return [...prev, id];
+    });
+  }
+
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bio,
+          status,
+          nickColor,
+          profileBg,
+          profileFrame,
+          socials,
+          featuredAchievements: featured,
+        }),
+      });
+      const data = (await res.json()) as { error?: string; message?: string };
+      if (!res.ok) throw new Error(data.error || "Не удалось сохранить профиль");
+      setMessage(data.message ?? "Профиль сохранён");
+      router.refresh();
+    } catch (e2) {
+      setError(e2 instanceof Error ? e2.message : "Ошибка сети");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mc-panel overflow-hidden">
+      <div className="mc-head">
+        <h2 className="min-w-0 flex-1">Оформление профиля</h2>
+      </div>
+      <form onSubmit={save} className="flex flex-col gap-6 p-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-xs text-[var(--text-muted)]">
+            Статус
+            <input
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              maxLength={80}
+              placeholder="Например: строю город мечты"
+              className="mc-input"
+            />
+            <span className="self-end font-mono text-[0.58rem]">{status.length}/80</span>
+          </label>
+          <div className="flex flex-col gap-1 text-xs text-[var(--text-muted)] sm:col-span-2">
+            <label htmlFor="bio">О себе</label>
+            <textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              maxLength={300}
+              rows={4}
+              placeholder="Пара слов о себе, любимые занятия на сервере, планы…"
+              className="mc-input"
+            />
+            <span className="self-end font-mono text-[0.58rem]">{bio.length}/300</span>
+          </div>
+        </div>
+
+        <section>
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.1em]">Цвет ника</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            {NICK_COLORS.map((color) => (
+              <button
+                key={color.id}
+                type="button"
+                onClick={() => setNickColor(color.id === "default" ? "" : color.id)}
+                className={`flex items-center gap-2 border-2 px-2.5 py-1.5 text-xs transition-colors ${
+                  nickColor === color.id || (color.id === "default" && !nickColor)
+                    ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                    : "border-black bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+                }`}
+              >
+                <span
+                  className="h-3 w-3 border border-black"
+                  style={{ backgroundColor: color.color || "var(--text)" }}
+                />
+                {color.label}
+              </button>
+            ))}
+            <label className="flex items-center gap-2 border-2 border-black bg-[var(--bg)] px-2 py-1 text-xs text-[var(--text-muted)]">
+              Свой
+              <input
+                type="color"
+                value={colorPickerValue}
+                onChange={(e) => setNickColor(e.target.value)}
+                className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0"
+                aria-label="Свой цвет ника"
+              />
+            </label>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.1em]">Фон профиля</h3>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-7">
+            {PROFILE_BACKGROUNDS.map((bg) => {
+              const active = (profileBg || "default") === bg.id;
+              return (
+                <button
+                  key={bg.id}
+                  type="button"
+                  onClick={() => setProfileBg(bg.id === "default" ? "" : bg.id)}
+                  className={`flex flex-col overflow-hidden border-2 text-left transition-transform hover:-translate-y-0.5 ${
+                    active ? "border-[var(--mc-green-light)]" : "border-black"
+                  }`}
+                >
+                  <span
+                    className={`block h-10 w-full ${bg.id === "default" ? "mc-hero-bg" : ""}`}
+                    style={bg.id === "default" ? undefined : profileBackgroundStyle(bg.id)}
+                  />
+                  <span className="bg-[var(--card)] px-1.5 py-1 text-[0.58rem] text-[var(--text-secondary)]">
+                    {bg.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.1em]">Рамка аватара</h3>
+          <div className="flex flex-wrap gap-2">
+            {PROFILE_FRAMES.map((frame) => {
+              const active = (profileFrame || "none") === frame.id;
+              return (
+                <button
+                  key={frame.id}
+                  type="button"
+                  onClick={() => setProfileFrame(frame.id === "none" ? "" : frame.id)}
+                  className={`flex items-center gap-2 border-2 px-2.5 py-1.5 text-xs transition-colors ${
+                    active
+                      ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                      : "border-black bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+                  }`}
+                >
+                  <span
+                    className="h-4 w-4 border-2 border-black bg-[var(--card-alt)]"
+                    style={frame.id === "none" ? undefined : profileFrameStyle(frame.id)}
+                  />
+                  {frame.label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.1em]">Соцсети</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {SOCIAL_KEYS.map((key) => (
+              <label key={key} className="flex flex-col gap-1 text-xs text-[var(--text-muted)]">
+                {SOCIAL_LABELS[key]}
+                <input
+                  value={socials[key] ?? ""}
+                  onChange={(e) =>
+                    setSocials((prev) => ({ ...prev, [key]: e.target.value }))
+                  }
+                  placeholder={
+                    key === "website"
+                      ? "https://example.com"
+                      : key === "discord"
+                        ? "username или ссылка"
+                        : `@${key}`
+                  }
+                  className="mc-input"
+                />
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-1 text-sm font-bold uppercase tracking-[0.1em]">
+            Витрина достижений
+          </h3>
+          <p className="mb-2 text-xs text-[var(--text-muted)]">
+            Выбери до 3 достижений, которые будут видны в профиле. Сейчас выбрано:{" "}
+            {featured.length}/3.
+          </p>
+          {achievements.length === 0 ? (
+            <p className="mc-inset p-3 text-sm text-[var(--text-muted)]">
+              У тебя пока нет достижений — они появятся, когда сервер их пришлёт.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {achievements.map((achievement) => {
+                const active = featured.includes(achievement.id);
+                return (
+                  <button
+                    key={achievement.id}
+                    type="button"
+                    onClick={() => toggleFeatured(achievement.id)}
+                    className={`flex items-start gap-2 border-2 p-2.5 text-left text-sm transition-colors ${
+                      active
+                        ? "border-[var(--mc-green-light)] bg-[rgba(93,156,60,0.14)]"
+                        : "border-black bg-[var(--bg)] hover:bg-[var(--hover)]"
+                    }`}
+                  >
+                    <span
+                      className="mt-1 h-2.5 w-2.5 shrink-0"
+                      style={{
+                        backgroundColor: FRAME_COLORS[achievement.frame] ?? "var(--mc-green-light)",
+                      }}
+                      aria-hidden
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-semibold">{achievement.title}</span>
+                      {achievement.description && (
+                        <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                          {achievement.description}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {error && (
+          <p className="border-2 border-black bg-[rgba(214,69,69,0.14)] px-3 py-2 text-sm text-[var(--mc-red)]">
+            {error}
+          </p>
+        )}
+        {message && (
+          <p className="border-2 border-black bg-[rgba(93,156,60,0.16)] px-3 py-2 text-sm text-[var(--mc-green-light)]">
+            {message}
+          </p>
+        )}
+
+        <div>
+          <button
+            type="submit"
+            disabled={saving}
+            className="mc-btn mc-btn-primary px-4 py-2 text-sm"
+          >
+            {saving ? "Сохраняем…" : "Сохранить оформление"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

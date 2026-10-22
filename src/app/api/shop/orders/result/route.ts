@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { shopOrders, users, walletLedger } from "@/lib/db/schema";
 import { checkBridgeKey } from "@/lib/bridge";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * POST /api/shop/orders/result — мод сообщает итог выдачи (x-api-key).
@@ -82,6 +83,18 @@ export async function POST(request: NextRequest) {
       })
       .run();
   }
+
+  await createNotification({
+    userId: order.userId,
+    type: ok ? "shop_delivered" : "shop_refunded",
+    title: ok
+      ? `Заказ «${order.productTitle}» выдан`
+      : `Возврат за заказ «${order.productTitle}»`,
+    body: ok
+      ? "Товар уже в игре — проверь инвентарь или косметику."
+      : `${order.priceBld} BLD вернулись на баланс.`,
+    link: ok ? "/shop" : "/wallet",
+  });
 
   return NextResponse.json({ message: "OK" });
 }
