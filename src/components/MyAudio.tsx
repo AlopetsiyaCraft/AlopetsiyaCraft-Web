@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import UploadModal from "./UploadModal";
+import { usePlayer, type PlayerTrack } from "@/components/player/PlayerContext";
 import { DISC_PRICE_BLD } from "@/lib/currency";
 
 interface Track {
@@ -61,12 +62,10 @@ export default function MyAudio({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [playingId, setPlayingId] = useState<number | null>(null);
-  const [durations, setDurations] = useState<Record<number, number>>({});
   const [disc, setDisc] = useState<Record<number, DiscState>>({});
   const [query, setQuery] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const player = usePlayer();
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -106,17 +105,24 @@ export default function MyAudio({
     );
   }, [tracks, query]);
 
+  const queue: PlayerTrack[] = useMemo(
+    () =>
+      filtered.map((t) => ({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+        coverUrl: t.coverThumbUrl ?? t.coverUrl,
+        url: t.url,
+      })),
+    [filtered]
+  );
+
   function togglePlay(track: Track) {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playingId === track.id) {
-      audio.pause();
-      setPlayingId(null);
+    if (player.track?.id === track.id) {
+      player.toggle();
       return;
     }
-    if (audio.src) audio.pause();
-    audio.src = track.url;
-    audio.play().then(() => setPlayingId(track.id)).catch(() => setPlayingId(null));
+    player.play(queue, track.id);
   }
 
   async function makeDisc(track: Track) {
@@ -161,10 +167,7 @@ export default function MyAudio({
     if (!window.confirm(`Удалить «${track.title}»?`)) return;
     const res = await fetch(`/api/audio/${track.id}`, { method: "DELETE" });
     if (res.ok) {
-      if (playingId === track.id && audioRef.current) {
-        audioRef.current.pause();
-        setPlayingId(null);
-      }
+      if (player.track?.id === track.id) player.close();
       await refresh();
     }
   }
@@ -253,7 +256,8 @@ export default function MyAudio({
       ) : (
         <div className="mc-panel divide-y divide-[var(--border)]">
           {filtered.map((track, i) => {
-            const isPlaying = playingId === track.id;
+            const isPlaying = player.track?.id === track.id && player.playing;
+            const isActive = player.track?.id === track.id;
             const dState = disc[track.id];
             return (
               <div key={track.id} className="flex items-center gap-3 px-4 py-3">
@@ -261,7 +265,7 @@ export default function MyAudio({
 
                 <button
                   onClick={() => togglePlay(track)}
-                  className="mc-btn mc-btn-primary h-9 w-9 p-0"
+                  className={`h-9 w-9 p-0 ${isActive ? "mc-btn mc-btn-primary" : "mc-btn"}`}
                   title={isPlaying ? "Пауза" : "Слушать"}
                 >
                   {isPlaying ? <PauseIcon /> : <PlayIcon />}
@@ -278,7 +282,7 @@ export default function MyAudio({
                   <div className="font-medium text-sm truncate">{track.title}</div>
                   <div className="text-[var(--text-muted)] text-xs">
                     {formatSize(track.size)}
-                    {durations[track.id] ? ` · ${formatDuration(durations[track.id])}` : ""}
+                    {isActive && player.duration > 0 ? ` · ${formatDuration(player.duration)}` : ""}
                     {i === 0 ? " · недавно" : ""}
                   </div>
                 </div>
@@ -317,22 +321,6 @@ export default function MyAudio({
           }}
         />
       )}
-
-      <audio
-        ref={audioRef}
-        onLoadedMetadata={(e) => {
-          const el = e.currentTarget;
-          const src = el.getAttribute("src");
-          if (src) {
-            const m = src.match(/\/api\/audio\/(\d+)\/file/);
-            if (m) {
-              setDurations((prev) => ({ ...prev, [parseInt(m[1], 10)]: el.duration }));
-            }
-          }
-        }}
-        onPause={() => setPlayingId(null)}
-        onEnded={() => setPlayingId(null)}
-      />
     </div>
   );
 }
