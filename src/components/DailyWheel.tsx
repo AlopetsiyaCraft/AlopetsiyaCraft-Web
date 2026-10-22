@@ -283,8 +283,10 @@ export default function DailyWheel({
                   type="button"
                   onClick={spin}
                   disabled={!available}
-                  style={!available ? { opacity: 0.82 } : undefined}
-                  className="mc-btn mc-btn-primary flex h-[4.5rem] w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-full p-0 text-center leading-none shadow-[0_5px_0_rgba(0,0,0,0.55)] sm:h-20 sm:w-20"
+                  style={!available ? { opacity: nextSpinAt ? 0.9 : 0.82 } : undefined}
+                  className={`mc-btn flex h-[4.5rem] w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-full p-0 text-center leading-none shadow-[0_5px_0_rgba(0,0,0,0.55)] sm:h-20 sm:w-20 ${
+                    !spinning && !nextSpinAt ? "mc-btn-primary" : ""
+                  } ${nextSpinAt ? "text-[var(--mc-gold)]" : ""}`}
                   title={
                     spinning
                       ? "Колесо крутится"
