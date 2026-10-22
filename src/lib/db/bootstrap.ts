@@ -47,6 +47,53 @@ export const bootstrapSql = `
   );
   CREATE INDEX IF NOT EXISTS idx_daily_spins_user ON daily_spins(user_id, created_at);
 
+  CREATE TABLE IF NOT EXISTS shop_products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT 'cosmetic',
+    icon TEXT NOT NULL DEFAULT '🎁',
+    price_bld INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    payload TEXT NOT NULL DEFAULT '{}',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    max_per_user INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_shop_products_active ON shop_products(is_active, sort_order);
+
+  CREATE TABLE IF NOT EXISTS shop_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    product_id INTEGER REFERENCES shop_products(id),
+    nickname TEXT NOT NULL,
+    product_title TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    price_bld INTEGER NOT NULL,
+    payload TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'pending',
+    error TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    completed_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_shop_orders_user ON shop_orders(user_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(status, created_at);
+
+  CREATE TABLE IF NOT EXISTS wallet_ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    currency TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    balance_after INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    ref_type TEXT,
+    ref_id INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_wallet_ledger_user ON wallet_ledger(user_id, created_at);
+
   CREATE TABLE IF NOT EXISTS seasons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     number INTEGER NOT NULL UNIQUE,
@@ -368,5 +415,27 @@ export async function initDatabase() {
     `INSERT OR IGNORE INTO users (nickname, password_hash, skin_url) VALUES (?, ?, ?)`,
     [SYSTEM_NICKNAME, "$2b$10$AnIgBn/eRyesLcdXvVfh6edb6oEW4j4gNA1FgWPD8L4.s2WyD8.QO", SYSTEM_SKIN]
   );
+
+  // Стартовый каталог магазина. Заполняем только пустую таблицу, чтобы
+  // правки админа (цены, скрытие товаров) переживали перезапуск.
+  const productsCount = await client.execute(`SELECT COUNT(*) AS c FROM shop_products`);
+  const hasProducts = Number(productsCount.rows[0]?.c ?? 0) > 0;
+  if (!hasProducts) {
+    const defaults: Array<[string, string, string, string, string, number, string, string, number]> = [
+      ["title-chat", "Титул в чате", "Подпись под ником в чате сервера.", "cosmetic", "🏷", 25, "title", JSON.stringify({ title: "Легенда Алопеции" }), 10],
+      ["nick-effect", "Ник-эффект", "Цветной ник и рамка в чате сервера.", "cosmetic", "✨", 40, "nick_effect", JSON.stringify({ style: "gradient", colors: ["#5d9c3c", "#f2c94c"] }), 20],
+      ["custom-item", "Кастомный предмет", "Именной предмет с зачарованиями в инвентарь.", "custom", "⚔", 60, "item", JSON.stringify({ material: "minecraft:diamond_sword", name: "Клинок Алопеции", lore: ["Выкован на сайте"], enchants: { "minecraft:sharpness": 3 } }), 30],
+      ["custom-cape", "Кастомный плащ", "Свой плащ на сервере: рисунок согласуем после покупки.", "cosmetic", "🛡", 90, "cape", JSON.stringify({ design: "custom" }), 40],
+      ["pet", "Питомец", "Спутник с именем, который будет бегать за тобой в игре.", "custom", "🐺", 120, "pet", JSON.stringify({ mob: "minecraft:wolf", name: "Верный друг" }), 50],
+    ];
+    for (const [slug, title, description, category, icon, priceBld, kind, payload, sortOrder] of defaults) {
+      await client.execute(
+        `INSERT INTO shop_products (slug, title, description, category, icon, price_bld, kind, payload, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [slug, title, description, category, icon, priceBld, kind, payload, sortOrder]
+      );
+    }
+  }
+
   client.close();
 }

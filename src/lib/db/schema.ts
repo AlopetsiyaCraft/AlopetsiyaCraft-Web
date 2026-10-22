@@ -82,6 +82,100 @@ export const dailySpins = sqliteTable(
   })
 );
 
+/**
+ * Товары магазина. Каталог живёт в базе, чтобы админ мог менять цены и
+ * видимость без деплоя. payload — JSON с параметрами выдачи для мода.
+ */
+export const shopProducts = sqliteTable(
+  "shop_products",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    category: text("category", {
+      enum: ["cosmetic", "service", "currency", "custom"],
+    })
+      .notNull()
+      .default("cosmetic"),
+    icon: text("icon").notNull().default("🎁"),
+    priceBld: integer("price_bld").notNull(),
+    kind: text("kind", {
+      enum: ["cape", "nick_effect", "pet", "title", "disc", "item", "chips"],
+    }).notNull(),
+    payload: text("payload").notNull().default("{}"),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    maxPerUser: integer("max_per_user"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    activeSort: index("idx_shop_products_active").on(t.isActive, t.sortOrder),
+  })
+);
+
+/**
+ * Заказы магазина. Снимок названия/цены/payload хранится в заказе, чтобы
+ * изменение товара в админке не ломало уже созданные заказы.
+ */
+export const shopOrders = sqliteTable(
+  "shop_orders",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    productId: integer("product_id").references(() => shopProducts.id),
+    nickname: text("nickname").notNull(),
+    productTitle: text("product_title").notNull(),
+    kind: text("kind").notNull(),
+    priceBld: integer("price_bld").notNull(),
+    payload: text("payload").notNull().default("{}"),
+    status: text("status", {
+      enum: ["pending", "delivered", "failed", "refunded"],
+    })
+      .notNull()
+      .default("pending"),
+    error: text("error"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+  },
+  (t) => ({
+    userCreated: index("idx_shop_orders_user").on(t.userId, t.createdAt),
+    statusCreated: index("idx_shop_orders_status").on(t.status, t.createdAt),
+  })
+);
+
+/**
+ * История движения валют. Нужна для прозрачности экономики и разбора
+ * спорных начислений: сколько, когда, почему и какой баланс получился.
+ */
+export const walletLedger = sqliteTable(
+  "wallet_ledger",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    currency: text("currency", { enum: ["bld", "chips"] }).notNull(),
+    amount: integer("amount").notNull(),
+    balanceAfter: integer("balance_after").notNull(),
+    reason: text("reason").notNull(),
+    refType: text("ref_type"),
+    refId: integer("ref_id"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    userCreated: index("idx_wallet_ledger_user").on(t.userId, t.createdAt),
+  })
+);
+
 export const seasons = sqliteTable("seasons", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   number: integer("number").notNull().unique(),

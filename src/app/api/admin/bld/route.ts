@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, walletLedger } from "@/lib/db/schema";
 import { announceCurrencyChange } from "@/lib/chatAnnounce";
 
 /**
@@ -52,6 +52,20 @@ export async function POST(request: NextRequest) {
     const current = target.bld ?? 0;
     const next = Math.max(0, current + amount);
     await db.update(users).set({ bld: next }).where(eq(users.id, target.id)).run();
+
+    if (next !== current) {
+      await db
+        .insert(walletLedger)
+        .values({
+          userId: target.id,
+          currency: "bld",
+          amount: next - current,
+          balanceAfter: next,
+          reason: `Админ: ${session.user.name ?? "admin"}`,
+          refType: "admin",
+        })
+        .run();
+    }
 
     await announceCurrencyChange({
       currency: "BLD",

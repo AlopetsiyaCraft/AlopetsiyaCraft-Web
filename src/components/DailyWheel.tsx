@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   DAILY_PRIZES,
   dailyPrizeLabel,
@@ -52,6 +52,72 @@ function spinTarget(from: number, index: number): number {
   const delta = (targetMod - fromMod + 360) % 360;
   return from + delta + 360 * SPIN_TURNS;
 }
+
+const CONFETTI_COLORS = [
+  "#5d9c3c",
+  "#7dbb52",
+  "#f2c94c",
+  "#4a90e2",
+  "#8b5cf6",
+  "#d64545",
+  "#f4f4f4",
+];
+
+interface ConfettiPiece {
+  id: number;
+  left: number;
+  drift: number;
+  rotate: number;
+  size: number;
+  delay: number;
+  duration: number;
+  color: string;
+}
+
+/** Порция конфетти для победного момента. При reduced-motion — пусто. */
+function makeConfetti(): ConfettiPiece[] {
+  if (
+    typeof window === "undefined" ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    return [];
+  }
+  return Array.from({ length: 28 }, (_, i) => ({
+    id: Math.random(),
+    left: 6 + Math.random() * 88,
+    drift: (Math.random() - 0.5) * 140,
+    rotate: Math.random() * 720 - 360,
+    size: 4 + Math.floor(Math.random() * 5),
+    delay: Math.random() * 0.3,
+    duration: 1.5 + Math.random() * 0.9,
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  }));
+}
+
+/** Короткая пиксельная фанфара на Web Audio (без внешних файлов). */
+function playWinChime(ctx: AudioContext) {
+  try {
+    if (ctx.state !== "running") return;
+    const start = ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      const t0 = start + i * 0.085;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.04, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.17);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.19);
+    });
+  } catch {
+    // звук не критичен — не ломаем выигрыш из-за политики автоплея
+  }
+}
+
 
 /** Пиксельная монета BLD. */
 function BldIcon({ className = "h-5 w-5" }: { className?: string }) {
@@ -126,6 +192,29 @@ export default function DailyWheel({
 
   const pendingRef = useRef<SpinResult | null>(null);
   const fallbackRef = useRef<number | null>(null);
+  const audioRef = useRef<AudioContext | null>(null);
+  const confettiTimerRef = useRef<number | null>(null);
+  const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
+
+  function ensureAudio(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    if (audioRef.current) {
+      void audioRef.current.resume();
+      return audioRef.current;
+    }
+    const Ctx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return null;
+    try {
+      const ctx = new Ctx();
+      void ctx.resume();
+      audioRef.current = ctx;
+      return ctx;
+    } catch {
+      return null;
+    }
+  }
 
   const reveal = useCallback(() => {
     const data = pendingRef.current;
@@ -140,14 +229,26 @@ export default function DailyWheel({
     setBld(data.bld);
     setChips(data.chips);
     setNextSpinAt(data.nextSpinAt);
+
+    // Звук и конфетти — только в момент выигрыша, не во время прокрута.
+    if (audioRef.current) playWinChime(audioRef.current);
+    setConfetti(makeConfetti());
+    if (confettiTimerRef.current !== null) window.clearTimeout(confettiTimerRef.current);
+    confettiTimerRef.current = window.setTimeout(() => setConfetti([]), 2800);
+
     // Обновляем баланс в шапке (она серверная).
     router.refresh();
   }, [router]);
 
-  // Чистим страховочный таймер при размонтировании.
+  // Чистим таймеры и аудиоконтекст при размонтировании.
   useEffect(() => {
     return () => {
       if (fallbackRef.current !== null) window.clearTimeout(fallbackRef.current);
+      if (confettiTimerRef.current !== null) window.clearTimeout(confettiTimerRef.current);
+      if (audioRef.current) {
+        void audioRef.current.close();
+        audioRef.current = null;
+      }
     };
   }, []);
 
@@ -179,6 +280,8 @@ export default function DailyWheel({
 
   async function spin() {
     if (!isLoggedIn || spinning || nextSpinAt) return;
+    // Создаём/будим AudioContext внутри клика — иначе браузер запретит звук.
+    ensureAudio();
     setError(null);
     setResult(null);
     setSpinning(true);
@@ -195,7 +298,7 @@ export default function DailyWheel({
       pendingRef.current = data;
       setRotation((prev) => spinTarget(prev, data.index));
 
-      // तुरंत nextSpinAt अपडेट करें ताकि UI तुरंत बदल जाए
+      // Сразу обновляем nextSpinAt, чтобы кулдаун включился без перезагрузки.
       if (typeof data.nextSpinAt === "number") setNextSpinAt(data.nextSpinAt);
 
       if (fallbackRef.current !== null) window.clearTimeout(fallbackRef.current);
@@ -224,7 +327,7 @@ export default function DailyWheel({
         </span>
         Ежедневный бонус
         <span className="ml-auto flex items-center gap-1.5 text-[0.6rem] font-normal normal-case tracking-normal text-[var(--text-muted)]">
-          <span className="mc-chip px-1.5 py-0 text-[0.55rem]">раз в 24 часа</span>
+          <span className="mc-chip px-1.5 py-0 text-[0.55rem]">раз в день</span>
         </span>
       </div>
 
@@ -314,6 +417,31 @@ export default function DailyWheel({
                 </Link>
               )}
             </div>
+
+            {/* Конфетти выигрыша */}
+            {confetti.length > 0 && (
+              <div
+                className="pointer-events-none absolute inset-0 z-40 overflow-hidden"
+                aria-hidden
+              >
+                {confetti.map((piece) => (
+                  <span
+                    key={piece.id}
+                    className="mc-confetti"
+                    style={{
+                      left: `${piece.left}%`,
+                      width: `${piece.size}px`,
+                      height: `${piece.size}px`,
+                      backgroundColor: piece.color,
+                      animationDelay: `${piece.delay}s`,
+                      animationDuration: `${piece.duration}s`,
+                      "--dx": `${piece.drift}px`,
+                      "--rot": `${piece.rotate}deg`,
+                    } as CSSProperties}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

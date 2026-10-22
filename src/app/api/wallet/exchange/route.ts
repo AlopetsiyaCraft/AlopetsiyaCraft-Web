@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { walletLedger } from "@/lib/db/schema";
 import { getWallet, setWallet } from "@/lib/wallet";
 import {
   SELL_CHIPS_PER_BLD,
@@ -61,6 +63,38 @@ export async function POST(request: NextRequest) {
     }
 
     await setWallet(userId, bld, chips);
+
+    // Пишем обе стороны обмена в ledger: так видно, откуда взялись фишки
+    // и куда ушли болды.
+    const bldDelta = bld - wallet.bld;
+    const chipsDelta = chips - wallet.chips;
+    if (bldDelta !== 0) {
+      await db
+        .insert(walletLedger)
+        .values({
+          userId,
+          currency: "bld",
+          amount: bldDelta,
+          balanceAfter: bld,
+          reason: "Обмен валют",
+          refType: "exchange",
+        })
+        .run();
+    }
+    if (chipsDelta !== 0) {
+      await db
+        .insert(walletLedger)
+        .values({
+          userId,
+          currency: "chips",
+          amount: chipsDelta,
+          balanceAfter: chips,
+          reason: "Обмен валют",
+          refType: "exchange",
+        })
+        .run();
+    }
+
     return NextResponse.json({ bld, chips });
   } catch (error) {
     console.error("Wallet exchange error:", error);

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { dailySpins, users } from "@/lib/db/schema";
+import { dailySpins, users, walletLedger } from "@/lib/db/schema";
 import {
   DAILY_PRIZES,
-  DAILY_SPIN_COOLDOWN_MS,
+  nextDailyBonusReset,
   pickDailyPrizeIndex,
+  startOfDailyBonusDay,
 } from "@/lib/dailyBonus";
 
 /**
@@ -15,8 +16,9 @@ import {
  * подменить результат), начисляет валюту и возвращает индекс сектора, чтобы
  * колесо остановилось именно на нём.
  *
- * Кулдаун 24 часа. Проверка и начисление — одним условным UPDATE: два
- * параллельных запроса не смогут выдать бонус дважды.
+ * Бонус доступен раз в календарный день (сброс в полночь по Москве).
+ * Проверка и начисление — одним условным UPDATE: два параллельных запроса
+ * не смогут выдать бонус дважды.
  */
 export async function POST() {
   try {
@@ -27,7 +29,7 @@ export async function POST() {
     const userId = parseInt(session.user.id, 10);
 
     const me = await db
-      .select({ id: users.id, dailyBonusAt: users.dailyBonusAt })
+      .select({ id: users.id })
       .from(users)
       .where(eq(users.id, userId))
       .get();
@@ -36,7 +38,7 @@ export async function POST() {
     }
 
     const now = new Date();
-    const cutoff = new Date(now.getTime() - DAILY_SPIN_COOLDOWN_MS);
+    const startOfToday = startOfDailyBonusDay(now);
 
     // Криптослучайность: призы с весами, без Math.random.
     const random = new Uint32Array(1);
@@ -55,27 +57,20 @@ export async function POST() {
       .where(
         and(
           eq(users.id, userId),
-          or(isNull(users.dailyBonusAt), lte(users.dailyBonusAt, cutoff))
+          or(isNull(users.dailyBonusAt), lt(users.dailyBonusAt, startOfToday))
         )
       )
       .run();
 
     if (claim.rowsAffected === 0) {
-      const current = await db
-        .select({ dailyBonusAt: users.dailyBonusAt })
-        .from(users)
-        .where(eq(users.id, userId))
-        .get();
-      const nextSpinAt = current?.dailyBonusAt
-        ? current.dailyBonusAt.getTime() + DAILY_SPIN_COOLDOWN_MS
-        : null;
+      const nextSpinAt = nextDailyBonusReset(now).getTime();
       return NextResponse.json(
         { error: "Бонус уже получен — возвращайся после следующей попытки", nextSpinAt },
         { status: 429 }
       );
     }
 
-    await db
+    const spin = await db
       .insert(dailySpins)
       .values({ userId, prizeIndex: index, kind: prize.kind, amount: prize.amount })
       .run();
@@ -86,13 +81,26 @@ export async function POST() {
       .where(eq(users.id, userId))
       .get();
 
+    await db
+      .insert(walletLedger)
+      .values({
+        userId,
+        currency: prize.kind,
+        amount: prize.amount,
+        balanceAfter: prize.kind === "bld" ? updated?.bld ?? 0 : updated?.chips ?? 0,
+        reason: "Ежедневный бонус",
+        refType: "daily_spin",
+        refId: Number(spin.lastInsertRowid),
+      })
+      .run();
+
     return NextResponse.json({
       index,
       kind: prize.kind,
       amount: prize.amount,
       bld: updated?.bld ?? 0,
       chips: updated?.chips ?? 0,
-      nextSpinAt: now.getTime() + DAILY_SPIN_COOLDOWN_MS,
+      nextSpinAt: nextDailyBonusReset(now).getTime(),
     });
   } catch (error) {
     console.error("Daily bonus spin error:", error);

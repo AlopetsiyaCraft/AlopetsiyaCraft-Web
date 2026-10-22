@@ -30,17 +30,75 @@ export const DAILY_PRIZES: DailyPrize[] = [
   { kind: "bld", amount: 25, weight: 1 },
 ];
 
-/** Прокрутить колесо можно раз в 24 часа. */
-export const DAILY_SPIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+/**
+ * Ежедневный бонус сбрасывается в полночь по Москве. Часовой пояс зашит
+ * константой: сервер может стоять в другом поясе, а игроки ждут сброс
+ * «в свой день». Москва без перехода на летнее время, поэтому границы
+ * дня стабильные.
+ */
+export const DAILY_BONUS_TIMEZONE = "Europe/Moscow";
+
+/** Ключ календарного дня в часовом поясе бонуса: "2026-10-23". */
+export function dailyBonusDayKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DAILY_BONUS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+/** Смещение часового пояса бонуса относительно UTC для конкретного момента. */
+function timezoneOffsetMs(date: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: DAILY_BONUS_TIMEZONE,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const asUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second")
+  );
+  return asUtc - date.getTime();
+}
+
+/** Начало текущего календарного дня бонуса (Date в UTC-момент). */
+export function startOfDailyBonusDay(now = new Date()): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DAILY_BONUS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const midnight = Date.UTC(get("year"), get("month") - 1, get("day"), 0, 0, 0);
+  return new Date(midnight - timezoneOffsetMs(now));
+}
+
+/** Момент следующего сброса бонуса — ближайшая полночь по Москве. */
+export function nextDailyBonusReset(now = new Date()): Date {
+  return new Date(startOfDailyBonusDay(now).getTime() + 24 * 60 * 60 * 1000);
+}
 
 /**
- * Истёк ли кулдаун с момента последнего прокрута.
- * Вынесено из компонента, чтобы серверная страница не звала Date.now()
- * прямо в теле рендера.
+ * Доступен ли прокрут: последний прокрут был в другой календарный день.
+ * Сравниваем именно дни, а не 24 часа — так сброс происходит в полночь.
  */
-export function isDailySpinAvailable(lastSpinAt: Date | null, now = Date.now()): boolean {
+export function isDailySpinAvailable(lastSpinAt: Date | null, now = new Date()): boolean {
   if (!lastSpinAt) return true;
-  return now - lastSpinAt.getTime() >= DAILY_SPIN_COOLDOWN_MS;
+  return dailyBonusDayKey(lastSpinAt) !== dailyBonusDayKey(now);
 }
 
 /** Подпись приза: «5 BLD» или «50 фишек». */
