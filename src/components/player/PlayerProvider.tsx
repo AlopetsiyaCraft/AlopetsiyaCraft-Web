@@ -10,6 +10,7 @@ import {
 
 const STATE_KEY = "mc-player-state-v1";
 const VOLUME_KEY = "mc-player-volume-v1";
+const MUTED_KEY = "mc-player-muted-v1";
 
 function readSavedVolume(): number {
   try {
@@ -20,6 +21,14 @@ function readSavedVolume(): number {
     return Math.min(Math.max(value, 0), 1);
   } catch {
     return 1;
+  }
+}
+
+function readSavedMuted(): boolean {
+  try {
+    return localStorage.getItem(MUTED_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 
@@ -152,6 +161,7 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
   const [shuffle, setShuffle] = useState(false);
   const [shuffleOrder, setShuffleOrder] = useState<number[]>([]);
   const [volume, setVolumeState] = useState(readSavedVolume);
+  const [muted, setMuted] = useState(readSavedMuted);
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -196,16 +206,20 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     }
   }, []);
 
-  // Громкость применяется к аудио и запоминается между перезагрузками.
+  // Громкость и mute применяются к аудио и запоминаются между перезагрузками.
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) audio.volume = volume;
+    if (audio) {
+      audio.volume = volume;
+      audio.muted = muted;
+    }
     try {
       localStorage.setItem(VOLUME_KEY, String(volume));
+      localStorage.setItem(MUTED_KEY, muted ? "1" : "0");
     } catch {
       // localStorage может быть недоступен — не критично.
     }
-  }, [volume]);
+  }, [volume, muted]);
 
   // Свежий снимок состояния — для сохранения при закрытии/сворачивании вкладки.
   useEffect(() => {
@@ -368,6 +382,10 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     setVolumeState(Math.min(Math.max(value, 0), 1));
   }
 
+  function toggleMute() {
+    setMuted((prev) => !prev);
+  }
+
   function toggleShuffle() {
     if (!shuffle) {
       setShuffleOrder(makeShuffleOrder(queue.length, index));
@@ -447,6 +465,7 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     repeat,
     shuffle,
     volume,
+    muted,
     error,
     play,
     toggle,
@@ -454,6 +473,7 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     prev,
     seek,
     setVolume,
+    toggleMute,
     toggleRepeat,
     toggleShuffle,
     close,

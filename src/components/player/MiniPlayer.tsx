@@ -119,8 +119,8 @@ function VolumeIcon({ muted = false }: { muted?: boolean }) {
         <path
           d="M16 8l6 6M22 8l-6 6"
           fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
+          stroke="var(--mc-red)"
+          strokeWidth={2.5}
           strokeLinecap="round"
         />
       ) : (
@@ -142,7 +142,7 @@ function VolumeIcon({ muted = false }: { muted?: boolean }) {
  */
 export default function MiniPlayer() {
   const player = usePlayer();
-  const { track, playing, currentTime, duration, repeat, shuffle, volume, error } = player;
+  const { track, playing, currentTime, duration, repeat, shuffle, volume, muted, error } = player;
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
@@ -157,7 +157,9 @@ export default function MiniPlayer() {
 
   const [draft, setDraft] = useState<number | null>(null);
   const [seeking, setSeeking] = useState(false);
+  const [volumeOpen, setVolumeOpen] = useState(false);
   const draftRef = useRef<number | null>(null);
+  const volumeRef = useRef<HTMLDivElement | null>(null);
   const seekRef = useRef(player.seek);
 
   useEffect(() => {
@@ -170,14 +172,29 @@ export default function MiniPlayer() {
     if (volume > 0) lastVolumeRef.current = volume;
   }, [volume]);
 
-  function toggleMute() {
-    if (volume > 0) {
-      lastVolumeRef.current = volume;
-      player.setVolume(0);
-    } else {
-      player.setVolume(lastVolumeRef.current || 1);
+  // Клик по динамику выключает/включает звук, не сбрасывая громкость.
+  function onSpeakerClick() {
+    if (muted) {
+      if (volume === 0) player.setVolume(lastVolumeRef.current || 1);
+      player.toggleMute();
+      return;
     }
+    if (volume === 0) {
+      player.setVolume(lastVolumeRef.current || 1);
+      return;
+    }
+    player.toggleMute();
   }
+
+  // Закрываем поповер громкости по клику мимо него.
+  useEffect(() => {
+    if (!volumeOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!volumeRef.current?.contains(event.target as Node)) setVolumeOpen(false);
+    }
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [volumeOpen]);
 
   // Держим позицию в пределах окна (после ресайза/смены монитора).
   useEffect(() => {
@@ -289,6 +306,7 @@ export default function MiniPlayer() {
   const max = duration > 0 ? duration : 0;
   const progress = max > 0 ? Math.min((shown / max) * 100, 100) : 0;
   const repeatLabel = repeat ? "Повтор трека включён" : "Повтор трека выключен";
+  const silent = muted || volume === 0;
 
   return (
     <div
@@ -374,39 +392,69 @@ export default function MiniPlayer() {
             <span>{max > 0 ? formatTime(max) : "--:--"}</span>
           </div>
 
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleMute}
-              className="mc-btn h-6 w-6 shrink-0 p-0"
-              title={volume > 0 ? "Выключить звук" : "Включить звук"}
-              aria-label={volume > 0 ? "Выключить звук" : "Включить звук"}
-            >
-              <VolumeIcon muted={volume === 0} />
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => player.setVolume(Number(e.target.value))}
-              className="mc-range min-w-0 flex-1"
-              style={{
-                background: `linear-gradient(to right, var(--mc-green) ${Math.round(
-                  volume * 100
-                )}%, var(--input) ${Math.round(volume * 100)}%)`,
-              }}
-              title="Громкость"
-              aria-label="Громкость"
-              aria-valuetext={`${Math.round(volume * 100)}%`}
-            />
-            <span className="w-7 shrink-0 text-right text-[10px] text-[var(--text-muted)]">
-              {Math.round(volume * 100)}%
-            </span>
-          </div>
-
           <div className="mt-2 flex items-center justify-center gap-1.5">
+            <div
+              ref={volumeRef}
+              className="relative flex items-center"
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse") setVolumeOpen(true);
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse") setVolumeOpen(false);
+              }}
+              onFocus={() => setVolumeOpen(true)}
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setVolumeOpen(false);
+              }}
+            >
+              <button
+                type="button"
+                onClick={onSpeakerClick}
+                className="mc-btn h-8 w-8 p-0"
+                title={silent ? "Включить звук" : "Выключить звук"}
+                aria-label={silent ? "Включить звук" : "Выключить звук"}
+                aria-pressed={silent}
+              >
+                <VolumeIcon muted={silent} />
+              </button>
+
+              {volumeOpen && (
+                <div className="absolute bottom-full left-0 z-50 w-40 pb-2">
+                  <div className="mc-panel px-2 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <VolumeIcon muted={silent} />
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={volume}
+                        disabled={muted}
+                        onChange={(e) => player.setVolume(Number(e.target.value))}
+                        className={`mc-range min-w-0 flex-1 ${muted ? "opacity-40" : ""}`}
+                        style={{
+                          background: `linear-gradient(to right, ${
+                            muted ? "var(--text-muted)" : "var(--mc-green)"
+                          } ${Math.round(volume * 100)}%, var(--input) ${Math.round(volume * 100)}%)`,
+                        }}
+                        aria-label="Громкость"
+                        aria-valuetext={`${Math.round(volume * 100)}%`}
+                      />
+                      <span
+                        className={`w-8 shrink-0 text-right text-[10px] ${
+                          muted ? "text-[var(--mc-red)]" : "text-[var(--text-muted)]"
+                        }`}
+                      >
+                        {muted ? "выкл" : `${Math.round(volume * 100)}%`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <span className="mx-0.5 h-5 w-px shrink-0 bg-[var(--border)]" />
+
             <button
               type="button"
               onClick={player.toggleShuffle}
