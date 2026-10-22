@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import PlayerHead from "@/components/mc/PlayerHead";
+import { Panel, PanelHead } from "@/components/mc/Panel";
 
 interface Achievement {
   id: number;
@@ -16,50 +18,15 @@ interface Achievement {
 
 /** Цвет рамки достижения: task — зелёная, goal — жёлтая, challenge — фиолетовая. */
 const FRAME_COLORS: Record<Achievement["frame"], string> = {
-  task: "#22c55e",
-  goal: "#eab308",
+  task: "var(--mc-green-light)",
+  goal: "var(--mc-gold)",
   challenge: "#a855f7",
 };
 
-/** Голова игрока из скина — такой же CSS-кроп, как в списке игроков. */
-function AchievementHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: string }) {
-  if (!skinUrl) {
-    return (
-      <div className="w-10 h-10 bg-[#7c3aed] rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-        {nickname[0]?.toUpperCase() || "?"}
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-10 h-10 rounded relative overflow-hidden flex-shrink-0">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `url(${skinUrl})`,
-          backgroundSize: "320px 320px",
-          backgroundPosition: "-40px -40px",
-          imageRendering: "pixelated",
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `url(${skinUrl})`,
-          backgroundSize: "320px 320px",
-          backgroundPosition: "-200px -40px",
-          imageRendering: "pixelated",
-        }}
-      />
-    </div>
-  );
-}
-
 /**
- * «Последние достижения» — карточка в правой колонке главной (как список
- * игроков): голова игрока, кто получил, справа название достижения.
+ * «Последние достижения» — панель в правой колонке главной.
  * Лента медленно прокручивается вверх сама (rAF, ~18px/с); при наведении
- * мыши прокрутка ставится на паузу. Если достижений больше нет — стоп.
+ * мыши прокрутка ставится на паузу.
  */
 export default function AchievementsFeed() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -69,7 +36,7 @@ export default function AchievementsFeed() {
 
   async function fetchAchievements() {
     try {
-      const res = await fetch("/api/achievements/latest?limit=20");
+      const res = await fetch("/api/achievements/latest?limit=24");
       if (res.ok) {
         const data = await res.json();
         setAchievements(data);
@@ -85,10 +52,9 @@ export default function AchievementsFeed() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/achievements/latest?limit=20");
+        const res = await fetch("/api/achievements/latest?limit=24");
         if (res.ok && !cancelled) {
-          const data = await res.json();
-          setAchievements(data);
+          setAchievements(await res.json());
         }
       } catch (error) {
         console.error("Failed to fetch achievements:", error);
@@ -113,12 +79,10 @@ export default function AchievementsFeed() {
     let last = performance.now();
     const step = (now: number) => {
       raf = requestAnimationFrame(step);
-      // На паузе при наведении; не скроллим, если контент помещается целиком.
       if (pausedRef.current || el.scrollHeight <= el.clientHeight) return;
-      // dt ограничиваем: если вкладка была фоновой, кадр не должен «телепортировать» ленту.
       const dt = Math.min(now - last, 100);
       last = now;
-      el.scrollTop += (dt / 1000) * 18;
+      el.scrollTop += (dt / 1000) * 14;
       if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
         el.scrollTop = 0;
       }
@@ -128,14 +92,20 @@ export default function AchievementsFeed() {
   }, []);
 
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--border)]">
-        <h2 className="font-semibold">Достижения</h2>
-      </div>
+    <Panel className="overflow-hidden">
+      <PanelHead
+        title="Достижения"
+        icon={
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+            <path strokeLinecap="square" d="M8 21h8m-4-4v4M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z" />
+          </svg>
+        }
+        right={<span className="mc-chip text-[0.6rem]">live</span>}
+      />
 
       <div
         ref={scrollRef}
-        className="p-4 h-72 overflow-hidden"
+        className="h-72 overflow-hidden p-2 custom-scrollbar"
         onMouseEnter={() => {
           pausedRef.current = true;
         }}
@@ -144,39 +114,36 @@ export default function AchievementsFeed() {
         }}
       >
         {loading ? (
-          <div className="text-center text-[var(--text-muted)] py-4">Загрузка...</div>
+          <div className="py-6 text-center text-sm text-[var(--text-muted)]">Загрузка…</div>
         ) : achievements.length === 0 ? (
-          <div className="text-center text-[var(--text-muted)] py-4">Пока нет достижений</div>
+          <div className="py-6 text-center text-sm text-[var(--text-muted)]">Пока нет достижений</div>
         ) : (
-          <div className="space-y-1">
+          <ul className="space-y-1">
             {achievements.map((a) => (
-              <div
+              <li
                 key={a.id}
                 title={a.description ?? undefined}
-                className="flex items-center gap-3 p-2 rounded-lg"
+                className="flex items-center gap-2.5 border-2 border-transparent px-1.5 py-1.5 transition-colors hover:border-black hover:bg-[var(--hover)]"
               >
-                <AchievementHead skinUrl={a.skinUrl} nickname={a.nickname} />
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-sm">
-                    <span className="font-medium">{a.nickname}</span>
-                    <span className="text-[var(--text-muted)] text-xs"> получил достижение</span>
+                <PlayerHead skinUrl={a.skinUrl} nickname={a.nickname} size={30} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm leading-tight">
+                    <span className="font-semibold">{a.nickname}</span>
                   </div>
-                </div>
-                <div className="flex-shrink-0 max-w-[45%] min-w-0">
-                  <div className="flex items-center justify-end gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <span
-                      className="w-1.5 h-4 rounded-full shrink-0"
+                      className="h-2 w-2 shrink-0"
                       style={{ backgroundColor: FRAME_COLORS[a.frame] }}
                       aria-hidden
                     />
-                    <span className="text-xs text-[var(--text-secondary)] truncate">{a.title}</span>
+                    <span className="truncate text-xs text-[var(--text-secondary)]">{a.title}</span>
                   </div>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
-    </div>
+    </Panel>
   );
 }

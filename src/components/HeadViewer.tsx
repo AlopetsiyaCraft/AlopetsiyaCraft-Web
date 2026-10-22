@@ -47,7 +47,7 @@ export default function HeadViewer({ skinUrl, size = 32 }: HeadViewerProps) {
       ref={canvasRef}
       width={size}
       height={size}
-      className="rounded"
+      className=""
       style={{ imageRendering: "pixelated" }}
     />
   );

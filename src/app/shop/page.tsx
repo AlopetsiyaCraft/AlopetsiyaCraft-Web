@@ -67,44 +67,50 @@ export default async function ShopPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
         user={user ? { name: user.name, skinUrl: user.skinUrl, bld: user.bld } : undefined}
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Магазин</h1>
-          <p className="text-[var(--text-muted)] text-sm mt-1">
-            Покупай за болды (BLD) — на сайте, за фишки — в казино на сервере.
-            Витрина временная, скоро переделаем.
-          </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="mc-title text-3xl sm:text-4xl">Магазин</h1>
+            <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
+              Покупай за болды (BLD) на сайте, за фишки — в казино на сервере.
+            </p>
+          </div>
+          {user?.bld != null && (
+            <span className="mc-panel-flat flex items-center gap-2 px-3 py-2 font-mono text-lg text-[var(--mc-gold)]">
+              <span className="text-[0.6rem] uppercase tracking-widest text-[var(--text-muted)]">Баланс</span>
+              {user.bld.toLocaleString("ru-RU")} BLD
+            </span>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((item) => (
             <div
               key={item.title}
-              className={`bg-[var(--card)] border border-[var(--border)] rounded-lg p-5 flex flex-col gap-3 ${item.ready ? "" : "opacity-70"}`}
+              className={`mc-panel flex flex-col gap-3 p-5 ${item.ready ? "" : "opacity-75"}`}
             >
-              <div className="text-3xl">{item.emoji}</div>
-              <div>
-                <h2 className="font-bold">{item.title}</h2>
-                <p className="text-sm text-[var(--text-muted)] mt-1">{item.desc}</p>
+              <div className="mc-inset flex h-12 w-12 items-center justify-center text-2xl">
+                {item.emoji}
               </div>
-              <div className="mt-auto pt-2">
-                <div className="text-sm font-semibold text-emerald-500">{item.price}</div>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-[0.08em]">{item.title}</h2>
+                <p className="mt-1.5 text-sm leading-snug text-[var(--text-secondary)]">{item.desc}</p>
+              </div>
+              <div className="mt-auto border-t-2 border-black/40 pt-3">
+                <div className="font-mono text-base text-[var(--mc-gold)]">{item.price}</div>
                 {item.href ? (
-                  <Link
-                    href={item.href}
-                    className="mt-2 inline-block px-3 py-1.5 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-medium transition-colors"
-                  >
+                  <Link href={item.href} className="mc-btn mc-btn-primary mt-2 w-full py-1.5 text-xs">
                     {item.cta}
                   </Link>
                 ) : (
-                  <span className="mt-2 inline-block px-3 py-1.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-muted)]">
+                  <span className="mc-btn mt-2 w-full cursor-not-allowed py-1.5 text-xs opacity-60">
                     {item.cta}
                   </span>
                 )}
@@ -116,3 +122,7 @@ export default async function ShopPage() {
     </div>
   );
 }
+export const metadata = {
+  title: "Магазин",
+  description: "Витрина АлопецияКрафт: кастомные пластинки, фишки и будущие плюшки за болды",
+};

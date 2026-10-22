@@ -240,10 +240,10 @@ export default function PhotoLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center overflow-hidden cursor-default"
+      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center overflow-hidden cursor-default"
       onClick={onClose}
     >
-      <div className="relative flex shrink-0" onClick={(e) => e.stopPropagation()}>
+      <div className="mc-panel relative flex shrink-0" onClick={(e) => e.stopPropagation()}>
         {/* ---- Левая колонка: фото + нижний блок под ним ---- */}
         <div ref={colRef} className="flex flex-col">
           {/* Фото: чистая картинка, стрелки и счётчик прямо на ней */}
@@ -265,7 +265,7 @@ export default function PhotoLightbox({
                     go(-1);
                   }}
                   aria-label="Предыдущее фото"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-60 hover:!opacity-90 transition-opacity cursor-pointer"
+                  className="mc-panel-flat absolute left-3 top-1/2 -translate-y-1/2 h-11 w-11 text-white flex items-center justify-center opacity-0 group-hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   <Chevron dir="left" className="w-7 h-7" />
                 </button>
@@ -275,13 +275,13 @@ export default function PhotoLightbox({
                     go(1);
                   }}
                   aria-label="Следующее фото"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-60 hover:!opacity-90 transition-opacity cursor-pointer"
+                  className="mc-panel-flat absolute right-3 top-1/2 -translate-y-1/2 h-11 w-11 text-white flex items-center justify-center opacity-0 group-hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   <Chevron dir="right" className="w-7 h-7" />
                 </button>
 
                 {/* Счётчик на полупрозрачном фоне прямо на фото */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-white/95 bg-black/55 rounded-full px-3 py-1 pointer-events-none">
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-white bg-black/70 border-2 border-black px-3 py-1 pointer-events-none">
                   {index + 1} / {photos.length}
                 </div>
               </>
@@ -289,12 +289,12 @@ export default function PhotoLightbox({
           </div>
 
           {/* ---- Нижний блок под фото (VK-стиль): сезон слева, «Поделиться» справа ---- */}
-          <div className="h-14 shrink-0 bg-[var(--card)] border-t border-[var(--border)] flex items-center justify-between gap-3 px-5">
+          <div className="h-14 shrink-0 bg-[var(--card)] border-t-2 border-black flex items-center justify-between gap-3 px-5">
             <span className="text-sm text-[var(--text-secondary)]">
               {photo.seasonNumber ? (
                 <Link
                   href={`/gallery?season=${photo.seasonId}`}
-                  className="hover:text-[#7c3aed] transition-colors"
+                  className="hover:text-[var(--mc-green)] transition-colors"
                 >
                   Фотографии сезона {photo.seasonNumber}
                 </Link>
@@ -305,7 +305,7 @@ export default function PhotoLightbox({
             <button
               onClick={share}
               title="Скопировать ссылку на фото"
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[#7c3aed] hover:bg-[var(--hover)] transition-colors"
+              className="mc-btn text-sm"
             >
               <svg
                 className="w-4 h-4"
@@ -323,15 +323,15 @@ export default function PhotoLightbox({
 
         {/* ---- Панель информации: высота = фото + нижний блок, комментарии скроллятся отдельно ---- */}
         <aside
-          className="w-[400px] max-w-[46vw] shrink-0 bg-[var(--card)] border-l border-[var(--border)] flex flex-col overflow-hidden"
+          className="w-[400px] max-w-[46vw] shrink-0 bg-[var(--card)] border-l-2 border-black flex flex-col overflow-hidden"
           style={{ height: panelH ?? "auto" }}
         >
-          <div className="px-5 py-4 border-b border-[var(--border)] shrink-0">
+          <div className="px-5 py-4 border-b-2 border-black shrink-0">
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <Link
                   href={`/profile/${encodeURIComponent(photo.authorNickname)}`}
-                  className="text-[#7c3aed] hover:underline font-semibold"
+                  className="text-[var(--mc-green)] hover:underline font-semibold"
                 >
                   {photo.authorNickname}
                 </Link>
@@ -342,7 +342,7 @@ export default function PhotoLightbox({
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-[var(--hover)] text-[var(--text-muted)]"
+                className="mc-panel-flat h-9 w-9 p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
                 title="Закрыть"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -360,7 +360,7 @@ export default function PhotoLightbox({
                   <span className="text-[var(--text-muted)] shrink-0 w-32">Автор</span>
                   <Link
                     href={`/profile/${encodeURIComponent(photo.authorNickname)}`}
-                    className="text-[#7c3aed] hover:underline"
+                    className="text-[var(--mc-green)] hover:underline"
                   >
                     {photo.authorNickname}
                   </Link>
@@ -391,8 +391,8 @@ export default function PhotoLightbox({
             </div>
 
             {/* Комментарии: линия сверху, поле ввода наверху, список скроллится без видимого скроллбара */}
-            <div className="border-t border-[var(--border)] min-h-0 flex-1 flex flex-col overflow-hidden">
-              {message && <p className="text-xs text-red-400 shrink-0 px-5 pt-2">{message}</p>}
+            <div className="border-t-2 border-black min-h-0 flex-1 flex flex-col overflow-hidden">
+              {message && <p className="text-xs text-[var(--mc-red)] shrink-0 px-5 pt-2">{message}</p>}
               {isLoggedIn ? (
                 <CommentTree
                   key={photo.id}

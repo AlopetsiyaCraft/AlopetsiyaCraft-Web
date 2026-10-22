@@ -2,28 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FriendsResponse, FriendUser } from "@/lib/profile";
+import PlayerHead from "@/components/mc/PlayerHead";
 
 function FriendAvatar({ user, size = 48 }: { user: FriendUser; size?: number }) {
-  return (
-    <div
-      className="rounded-lg overflow-hidden shrink-0 bg-[#7c3aed]/20 flex items-center justify-center font-bold"
-      style={{ width: size, height: size }}
-    >
-      {user.skinUrl ? (
-        <div
-          className="w-full h-full"
-          style={{
-            backgroundImage: `url(${user.skinUrl})`,
-            backgroundSize: `${size * 4}px ${size * 4}px`,
-            backgroundPosition: `-${size}px -${size}px`,
-            imageRendering: "pixelated",
-          }}
-        />
-      ) : (
-        user.nickname[0]?.toUpperCase() ?? "?"
-      )}
-    </div>
-  );
+  return <PlayerHead skinUrl={user.skinUrl} nickname={user.nickname} size={size} />;
 }
 
 /** Вкладка «Друзья»: список, заявки, поиск и добавление. */
@@ -117,9 +99,9 @@ export default function FriendsTab({ viewerNickname }: { viewerNickname: string 
   }
 
   const userRow = (u: FriendUser & { since?: number }) => (
-    <div key={u.id} className="flex items-center gap-3 bg-[var(--card)] border border-[var(--border)] rounded-lg p-3">
+    <div key={u.id} className="flex items-center gap-3 mc-panel p-3">
       <FriendAvatar user={u} />
-      <a href={`/profile/${encodeURIComponent(u.nickname)}`} className="flex-1 min-w-0 font-medium text-sm hover:text-[#7c3aed] truncate">
+      <a href={`/profile/${encodeURIComponent(u.nickname)}`} className="flex-1 min-w-0 font-medium text-sm hover:text-[var(--mc-green)] truncate">
         {u.nickname}
         {u.since ? <span className="block text-xs text-[var(--text-muted)] font-normal">в друзьях с {new Date(u.since).toLocaleDateString("ru-RU")}</span> : null}
       </a>
@@ -129,11 +111,11 @@ export default function FriendsTab({ viewerNickname }: { viewerNickname: string 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold">Друзья</h1>
+        <h1 className="mc-title text-2xl">Друзья</h1>
         <p className="text-[var(--text-muted)] text-sm mt-1">Приглашайте игроков по нику — как во VK.</p>
       </div>
 
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
+      <div className="mc-panel p-4">
         <h3 className="text-sm font-semibold mb-3">Добавить в друзья</h3>
         <div className="flex gap-2">
           <input
@@ -143,12 +125,12 @@ export default function FriendsTab({ viewerNickname }: { viewerNickname: string 
               if (e.key === "Enter") search();
             }}
             placeholder="Ник или часть ника"
-            className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
+            className="mc-input flex-1 text-sm"
           />
           <button
             onClick={search}
             disabled={searchQ.trim().length < 2}
-            className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
+            className="mc-btn mc-btn-primary text-sm"
           >
             Найти
           </button>
@@ -157,13 +139,13 @@ export default function FriendsTab({ viewerNickname }: { viewerNickname: string 
         {searchResults.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {searchResults.map((u) => (
-              <div key={u.id} className="flex items-center gap-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-1.5">
+              <div key={u.id} className="mc-inset flex items-center gap-2 px-3 py-1.5">
                 <FriendAvatar user={u} size={28} />
                 <span className="text-sm">{u.nickname}</span>
                 <button
                   onClick={() => sendRequest(u.nickname)}
                   disabled={busyId !== null}
-                  className="px-2 py-1 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs rounded disabled:opacity-50"
+                  className="mc-btn mc-btn-primary text-xs"
                 >
                   {data.accepted.some((f) => f.id === u.id)
                     ? "В друзьях"
@@ -198,7 +180,7 @@ export default function FriendsTab({ viewerNickname }: { viewerNickname: string 
                     <button
                       onClick={() => remove(u.id)}
                       disabled={busyId === u.id}
-                      className="absolute top-2 right-2 text-[var(--text-muted)] hover:text-red-400 text-xs"
+                      className="absolute top-2 right-2 text-[var(--text-muted)] hover:text-[var(--mc-red)] text-xs"
                       title="Удалить из друзей"
                     >
                       ✕
@@ -216,24 +198,24 @@ export default function FriendsTab({ viewerNickname }: { viewerNickname: string 
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {data.incoming.map((u) => (
-                  <div key={u.id} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 flex items-center gap-3">
+                  <div key={u.id} className="mc-panel p-3 flex items-center gap-3">
                     <FriendAvatar user={u} />
                     <div className="flex-1 min-w-0">
-                      <a href={`/profile/${encodeURIComponent(u.nickname)}`} className="font-medium text-sm hover:text-[#7c3aed] truncate block">
+                      <a href={`/profile/${encodeURIComponent(u.nickname)}`} className="font-medium text-sm hover:text-[var(--mc-green)] truncate block">
                         {u.nickname}
                       </a>
                       <div className="flex gap-2 mt-1">
                         <button
                           onClick={() => respond(u.id, true)}
                           disabled={busyId === u.id}
-                          className="px-2 py-1 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs rounded disabled:opacity-50"
+                          className="mc-btn mc-btn-primary text-xs"
                         >
                           Принять
                         </button>
                         <button
                           onClick={() => respond(u.id, false)}
                           disabled={busyId === u.id}
-                          className="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] text-xs rounded hover:border-[var(--text-muted)] disabled:opacity-50"
+                          className="mc-btn text-xs"
                         >
                           Отклонить
                         </button>
@@ -257,7 +239,7 @@ export default function FriendsTab({ viewerNickname }: { viewerNickname: string 
                     <button
                       onClick={() => remove(u.id)}
                       disabled={busyId === u.id}
-                      className="absolute top-2 right-2 text-[var(--text-muted)] hover:text-red-400 text-xs"
+                      className="absolute top-2 right-2 text-[var(--text-muted)] hover:text-[var(--mc-red)] text-xs"
                       title="Отменить заявку"
                     >
                       ✕

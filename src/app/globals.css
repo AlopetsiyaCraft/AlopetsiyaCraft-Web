@@ -1,66 +1,415 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ============================================================
+ *  АлопецияКрафт — пиксельная дизайн-система (Minecraft GUI)
+ * ============================================================
+ */
 
 :root {
-  --bg: #0a0a0a;
-  --bg-alt: #1a1a1a;
-  --card: #1a1a1a;
-  --bubble: #242424;
-  --border: #2a2a2a;
-  --hover: #2a2a2a;
-  --text: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-muted: #666666;
-  --checker-a: #2a2a2a;
-  --checker-b: #1a1a1a;
+  /* Базовые поверхности */
+  --bg: #121212;
+  --bg-alt: #1b1b1b;
+  --card: #2b2b2b;
+  --card-alt: #363636;
+  --bubble: #3a3a3a;
+  --border: #000000;
+  --border-soft: #4a4a4a;
+  --hover: #3a3a3a;
+  --text: #f4f4f4;
+  --text-secondary: #c4c4c4;
+  --text-muted: #8d8d8d;
+  --checker-a: #2b2b2b;
+  --checker-b: #232323;
+
+  /* Палитра Minecraft */
+  --mc-green: #5d9c3c;
+  --mc-green-dark: #3f6d28;
+  --mc-green-light: #7dbb52;
+  --mc-dirt: #8b7355;
+  --mc-dirt-dark: #5c4a35;
+  --mc-stone: #6b6b6b;
+  --mc-gold: #f2c94c;
+  --mc-red: #d64545;
+  --mc-blue: #4a90e2;
+  --mc-purple: #8b5cf6;
+
+  /* Внутренние блики/тени панелей */
+  --pixel-hi: rgba(255, 255, 255, 0.13);
+  --pixel-sh: rgba(0, 0, 0, 0.5);
+  --pixel-border: 2px solid #000000;
+
+  /* shadcn-токены */
+  --background: #121212;
+  --foreground: #f4f4f4;
+  --card-foreground: #f4f4f4;
+  --popover: #2b2b2b;
+  --popover-foreground: #f4f4f4;
+  --primary: #5d9c3c;
+  --primary-foreground: #0f1a08;
+  --secondary: #363636;
+  --secondary-foreground: #f4f4f4;
+  --muted: #2b2b2b;
+  --muted-foreground: #a5a5a5;
+  --accent: #7dbb52;
+  --accent-foreground: #0f1a08;
+  --destructive: #d64545;
+  --destructive-foreground: #ffffff;
+  --input: #1b1b1b;
+  --ring: #7dbb52;
+  --chart-1: #7dbb52;
+  --chart-2: #4a90e2;
+  --chart-3: #f2c94c;
+  --chart-4: #d64545;
+  --chart-5: #8b7355;
+  --radius: 0px;
+  --sidebar: #2b2b2b;
+  --sidebar-foreground: #f4f4f4;
+  --sidebar-primary: #5d9c3c;
+  --sidebar-primary-foreground: #0f1a08;
+  --sidebar-accent: #363636;
+  --sidebar-accent-foreground: #f4f4f4;
+  --sidebar-border: #000000;
+  --sidebar-ring: #7dbb52;
 }
 
+/* Светлая тема — «пергамент/дерево», тоже пиксельная */
 :root.light {
-  --bg: #EEF0F2;
-  --bg-alt: #e3e5e8;
-  --card: #ffffff;
-  --bubble: #e8eaed;
-  --border: #d5d8dc;
-  --hover: #e0e2e5;
-  --text: #1a1a1a;
-  --text-secondary: #555555;
-  --text-muted: #999999;
-  --checker-a: #ffffff;
-  --checker-b: #f5f5f5;
+  --bg: #d9cfc1;
+  --bg-alt: #cdc0af;
+  --card: #f0e9dd;
+  --card-alt: #e3d8c8;
+  --bubble: #ded2c0;
+  --border: #2b2118;
+  --border-soft: #a3927c;
+  --hover: #e3d8c8;
+  --text: #2b2118;
+  --text-secondary: #4d3f31;
+  --text-muted: #7a6650;
+  --checker-a: #f0e9dd;
+  --checker-b: #e3d8c8;
+  --pixel-hi: rgba(255, 255, 255, 0.7);
+  --pixel-sh: rgba(80, 60, 40, 0.28);
+  --background: #d9cfc1;
+  --foreground: #2b2118;
+  --card-foreground: #2b2118;
+  --popover: #f0e9dd;
+  --popover-foreground: #2b2118;
+  --secondary: #e3d8c8;
+  --secondary-foreground: #2b2118;
+  --muted: #e3d8c8;
+  --muted-foreground: #6b5844;
+  --accent: #4a7d2f;
+  --accent-foreground: #ffffff;
+  --input: #f7f1e7;
+  --border: #2b2118;
 }
 
-body {
-  background: var(--bg);
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-pixel), "Courier New", monospace;
+    /* Monocraft — моноширинный пиксельный шрифт: лигатуры в интерфейсе не нужны */
+    font-variant-ligatures: none;
+    letter-spacing: 0;
+    /* тонкая пиксельная сетка на фоне */
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  :root.light body {
+    background-image:
+      linear-gradient(to right, rgba(60, 40, 20, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(60, 40, 20, 0.05) 1px, transparent 1px);
+  }
+
+  ::selection {
+    background: var(--mc-green);
+    color: #fff;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-pixel), monospace;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  /* Все скины/иконки предметов остаются чёткими */
+  img[data-pixel],
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* ============================================================
+   Пиксельные примитивы
+   ============================================================ */
+
+@utility mc-panel {
+  position: relative;
+  background-color: var(--card);
+  border: 2px solid #000;
+  box-shadow:
+    inset 2px 2px 0 var(--pixel-hi),
+    inset -2px -2px 0 var(--pixel-sh),
+    4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+@utility mc-panel-flat {
+  background-color: var(--card-alt);
+  border: 2px solid #000;
+  box-shadow:
+    inset 2px 2px 0 var(--pixel-hi),
+    inset -2px -2px 0 var(--pixel-sh);
+}
+
+@utility mc-inset {
+  background-color: var(--input);
+  border: 2px solid #000;
+  box-shadow:
+    inset 2px 2px 0 rgba(0, 0, 0, 0.55),
+    inset -2px -2px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* Шапка панели */
+@utility mc-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  background-color: var(--card-alt);
+  border-bottom: 2px solid #000;
+  box-shadow: inset 0 2px 0 var(--pixel-hi);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Кнопки */
+@utility mc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  font-family: var(--font-pixel), monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--card-alt);
+  border: 2px solid #000;
+  box-shadow:
+    inset 2px 2px 0 var(--pixel-hi),
+    inset -2px -2px 0 var(--pixel-sh),
+    3px 3px 0 rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transition: background-color 0.12s steps(2), transform 0.06s steps(2), box-shadow 0.06s steps(2);
+
+  &:hover {
+    background-color: #4a4a4a;
+  }
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow:
+      inset 2px 2px 0 var(--pixel-sh),
+      inset -2px -2px 0 var(--pixel-hi),
+      1px 1px 0 rgba(0, 0, 0, 0.55);
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
-.header {
-  background: var(--bg);
-  border-color: var(--border);
+@utility mc-btn-primary {
+  color: #0f1a08;
+  background-color: var(--mc-green);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.28),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.35),
+    3px 3px 0 rgba(0, 0, 0, 0.55);
+
+  &:hover {
+    background-color: var(--mc-green-light);
+  }
 }
 
-* {
-  border-color: var(--border);
+@utility mc-btn-danger {
+  color: #fff;
+  background-color: #9c3030;
+
+  &:hover {
+    background-color: var(--mc-red);
+  }
 }
 
+/* Поля ввода */
+@utility mc-input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  color: var(--text);
+  background-color: var(--input);
+  border: 2px solid #000;
+  box-shadow:
+    inset 2px 2px 0 rgba(0, 0, 0, 0.55),
+    inset -2px -2px 0 rgba(255, 255, 255, 0.07);
+  font-family: var(--font-pixel), monospace;
+  font-size: 0.95rem;
+  outline: none;
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+  &:focus {
+    box-shadow:
+      inset 2px 2px 0 rgba(0, 0, 0, 0.55),
+      0 0 0 2px var(--mc-green-light);
+  }
+}
+
+/* Чип/бейдж */
+@utility mc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background-color: var(--bubble);
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Заголовки */
+@utility mc-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+}
+
+@utility mc-text-shadow {
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+:root.light .mc-text-shadow {
+  text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Текстуры */
+@utility mc-dirt {
+  background-color: var(--mc-dirt);
+  background-image:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.22) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.22) 75%),
+    linear-gradient(45deg, rgba(0, 0, 0, 0.22) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.22) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+@utility mc-grass-line {
+  height: 10px;
+  background-color: var(--mc-green);
+  background-image:
+    linear-gradient(to bottom, var(--mc-green-light) 0 3px, transparent 3px),
+    repeating-linear-gradient(to right, rgba(0, 0, 0, 0.18) 0 4px, transparent 4px 8px);
+  border-bottom: 2px solid #000;
+}
+
+/* Hero-фон: ночное небо с пиксельными звёздами */
+@utility mc-hero-bg {
+  background-color: #0d1410;
+  background-image:
+    radial-gradient(circle at 12% 24%, rgba(255, 255, 255, 0.9) 1px, transparent 1.6px),
+    radial-gradient(circle at 32% 68%, rgba(255, 255, 255, 0.55) 1px, transparent 1.6px),
+    radial-gradient(circle at 54% 16%, rgba(255, 255, 255, 0.7) 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 52%, rgba(255, 255, 255, 0.5) 1px, transparent 1.6px),
+    radial-gradient(circle at 88% 30%, rgba(255, 255, 255, 0.8) 1px, transparent 1.6px),
+    radial-gradient(circle at 44% 88%, rgba(255, 255, 255, 0.4) 1px, transparent 1.6px),
+    radial-gradient(ellipse at 50% 120%, rgba(93, 156, 60, 0.35) 0%, transparent 62%),
+    linear-gradient(to bottom, #0b1410 0%, #101b13 55%, #17251a 100%);
+  background-size: 220px 220px, 180px 180px, 260px 260px, 200px 200px, 240px 240px, 300px 300px, 100% 100%, 100% 100%;
+}
+
+/* Навигация */
+@utility mc-nav-link {
+  position: relative;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  transition: color 0.12s steps(2);
+
+  &:hover {
+    color: var(--text);
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 0.15rem;
+    height: 3px;
+    background: var(--mc-green);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.12s steps(3);
+  }
+  &:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* Скроллбары */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mc-green-dark) transparent;
+}
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
+  height: 10px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--input);
+  border-left: 2px solid #000;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+  background: var(--mc-stone);
+  border: 2px solid #000;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--mc-green);
 }
 
-/* скрыть скроллбар полностью (webkit + firefox) */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -69,4 +418,99 @@ body {
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* Тёмная сцена (hero) не зависит от темы: всегда ночное небо и светлый текст */
+.force-dark {
+  --bg: #121212;
+  --bg-alt: #1b1b1b;
+  --card: #2b2b2b;
+  --card-alt: #363636;
+  --bubble: #3a3a3a;
+  --border: #000000;
+  --border-soft: #4a4a4a;
+  --hover: #3a3a3a;
+  --text: #f4f4f4;
+  --text-secondary: #c4c4c4;
+  --text-muted: #8d8d8d;
+  --input: #1b1b1b;
+  --pixel-hi: rgba(255, 255, 255, 0.13);
+  --pixel-sh: rgba(0, 0, 0, 0.5);
+  color: var(--text);
+}
+
+/* ============================================================
+   Tailwind theme
+   ============================================================ */
+
+@theme inline {
+  --font-heading: var(--font-pixel);
+  --font-sans: var(--font-pixel);
+  --font-mono: var(--font-pixel), "Courier New", monospace;
+  --color-mc-green: var(--mc-green);
+  --color-mc-green-light: var(--mc-green-light);
+  --color-mc-green-dark: var(--mc-green-dark);
+  --color-mc-gold: var(--mc-gold);
+  --color-mc-red: var(--mc-red);
+  --color-mc-blue: var(--mc-blue);
+  --color-mc-dirt: var(--mc-dirt);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #f4f4f4;
+  --card: #2b2b2b;
+  --card-foreground: #f4f4f4;
+  --popover: #2b2b2b;
+  --popover-foreground: #f4f4f4;
+  --primary: #5d9c3c;
+  --primary-foreground: #0f1a08;
+  --secondary: #363636;
+  --secondary-foreground: #f4f4f4;
+  --muted: #2b2b2b;
+  --muted-foreground: #a5a5a5;
+  --accent: #7dbb52;
+  --accent-foreground: #0f1a08;
+  --destructive: #d64545;
+  --border: #000000;
+  --input: #1b1b1b;
+  --ring: #7dbb52;
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useState, type SyntheticEvent } from "react";
 import CommentTree from "./CommentTree";
 import PhotoLightbox from "./PhotoLightbox";
+import PlayerHead from "@/components/mc/PlayerHead";
 import type { PhotoItem, PostCommentItem, PostItem } from "@/lib/profile";
 
 function ruDate(ts: number): string {
@@ -143,13 +144,13 @@ export default function WallFeed({
   return (
     <div className="flex flex-col gap-4">
       {isOwn && (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
+        <div className="mc-panel p-4">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={1000}
             placeholder="Что у вас нового?"
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 text-sm min-h-[80px] resize-y focus:outline-none focus:border-[#7c3aed]"
+            className="mc-input w-full text-sm min-h-[80px] resize-y"
           />
 
           {selectedPhotoIds.length > 0 && (
@@ -157,11 +158,11 @@ export default function WallFeed({
               {ownPhotos
                 .filter((p) => selectedPhotoIds.includes(p.id))
                 .map((p) => (
-                  <div key={p.id} className="relative w-20 h-20 rounded-lg overflow-hidden border border-[var(--border)]">
+                  <div key={p.id} className="relative w-20 h-20 overflow-hidden border-2 border-black">
                     <img src={p.url} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => togglePhotoSelection(p.id)}
-                      className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 text-white text-xs flex items-center justify-center"
+                      className="absolute top-0.5 right-0.5 w-5 h-5 border-2 border-black bg-black/70 text-white text-xs flex items-center justify-center"
                     >
                       ✕
                     </button>
@@ -174,7 +175,7 @@ export default function WallFeed({
             {isOwn && ownPhotos.length > 0 && (
               <button
                 onClick={() => setPickerOpen(!pickerOpen)}
-                className="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)] hover:border-[#7c3aed]/50"
+                className="mc-btn text-xs"
               >
                 📷 Прикрепить фото
               </button>
@@ -183,12 +184,12 @@ export default function WallFeed({
             <button
               onClick={publish}
               disabled={publishing}
-              className="ml-auto px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
+              className="mc-btn mc-btn-primary ml-auto text-sm"
             >
               {publishing ? "Публикуем…" : "Опубликовать"}
             </button>
           </div>
-          {publishError && <p className="mt-2 text-sm text-red-400">{publishError}</p>}
+          {publishError && <p className="mt-2 text-sm text-[var(--mc-red)]">{publishError}</p>}
 
           {pickerOpen && (
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-3 max-h-56 overflow-auto custom-scrollbar">
@@ -196,8 +197,8 @@ export default function WallFeed({
                 <div
                   key={p.id}
                   onClick={() => togglePhotoSelection(p.id)}
-                  className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 ${
-                    selectedPhotoIds.includes(p.id) ? "border-[#7c3aed]" : "border-transparent"
+                  className={`aspect-square overflow-hidden cursor-pointer border-2 ${
+                    selectedPhotoIds.includes(p.id) ? "border-[var(--mc-green)]" : "border-transparent"
                   }`}
                 >
                   <img
@@ -214,36 +215,22 @@ export default function WallFeed({
       )}
 
       {posts.length === 0 ? (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg py-10 text-center text-[var(--text-muted)] text-sm">
+        <div className="mc-inset py-10 text-center text-[var(--text-muted)] text-sm">
           {isOwn ? "На вашей стене пока пусто." : "На стене пока нет записей."}
         </div>
       ) : (
         posts.map((post) => (
-          <div key={post.id} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
+          <div key={post.id} className="mc-panel p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded shrink-0 overflow-hidden bg-[#7c3aed]/20 flex items-center justify-center text-sm font-bold">
-                {post.authorSkinUrl ? (
-                  <div
-                    className="w-9 h-9"
-                    style={{
-                      backgroundImage: `url(${post.authorSkinUrl})`,
-                      backgroundSize: "288px 288px",
-                      backgroundPosition: "-36px -36px",
-                      imageRendering: "pixelated",
-                    }}
-                  />
-                ) : (
-                  post.authorNickname[0]?.toUpperCase() ?? "?"
-                )}
-              </div>
+              <PlayerHead skinUrl={post.authorSkinUrl} nickname={post.authorNickname} size={36} />
               <div className="flex-1 min-w-0">
-                <a href={`/profile/${encodeURIComponent(post.authorNickname)}`} className="font-medium text-sm hover:text-[#7c3aed]">
+                <a href={`/profile/${encodeURIComponent(post.authorNickname)}`} className="font-medium text-sm hover:text-[var(--mc-green)]">
                   {post.authorNickname}
                 </a>
                 <div className="text-xs text-[var(--text-muted)]">{ruDate(post.createdAt)}</div>
               </div>
               {(isOwn && post.userId === ownerUserId) && (
-                <button onClick={() => deletePost(post.id)} className="text-[var(--text-muted)] hover:text-red-400 text-xs" title="Удалить запись">
+                <button onClick={() => deletePost(post.id)} className="mc-btn mc-btn-danger text-xs" title="Удалить запись">
                   Удалить
                 </button>
               )}
@@ -254,7 +241,7 @@ export default function WallFeed({
             {post.photos.length > 0 && (
               <div className={`grid gap-2 mt-3 ${post.photos.length === 1 ? "grid-cols-1" : post.photos.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
                 {post.photos.map((p, i) => (
-                  <div key={p.id} className="rounded-lg overflow-hidden cursor-pointer border border-[var(--border)]" onClick={() => setLightbox({ photos: post.photos, index: i })}>
+                  <div key={p.id} className="overflow-hidden cursor-pointer border-2 border-black" onClick={() => setLightbox({ photos: post.photos, index: i })}>
                     <img
                       src={p.postUrl}
                       alt={p.caption || "Фото"}
@@ -267,10 +254,10 @@ export default function WallFeed({
               </div>
             )}
 
-            <div className="mt-3 border-t border-[var(--border)] pt-2">
+            <div className="mt-3 border-t-2 border-black pt-2">
               <button
                 onClick={() => toggleComments(post.id)}
-                className="text-xs text-[var(--text-muted)] hover:text-[#7c3aed]"
+                className="mc-chip text-[var(--text-secondary)] transition-colors hover:text-[var(--mc-green-light)]"
               >
                 💬 Комментарии ({commentsByPost[post.id]?.length ?? post.commentCount})
               </button>

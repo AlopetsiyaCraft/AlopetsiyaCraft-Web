@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useChatDock } from "@/lib/chat-dock";
 import { SYSTEM_NICKNAME } from "@/lib/chatSystem";
+import PlayerHead from "@/components/mc/PlayerHead";
 
 /** Обработчики для шапки чата в режиме «перетаскиваемого окна» (передаёт FloatingChat). */
 export interface HeaderDragProps {
@@ -19,41 +20,6 @@ interface ChatMessage {
   message: string;
   createdAt: string;
   skinUrl: string | null;
-}
-
-function ChatHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: string }) {
-  // Служебные сообщения пишет ник System — у него есть профиль со скином,
-  // поэтому гола приходит из /api/chat вместе с сообщением, как у игроков.
-  if (!skinUrl) {
-    return (
-      <div className="w-10 h-10 flex-shrink-0 bg-[#7c3aed] flex items-center justify-center text-sm font-bold rounded">
-        {nickname[0]?.toUpperCase() || "?"}
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-10 h-10 flex-shrink-0 relative overflow-hidden rounded">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `url(${skinUrl})`,
-          backgroundSize: "320px 320px",
-          backgroundPosition: "-40px -40px",
-          imageRendering: "pixelated",
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `url(${skinUrl})`,
-          backgroundSize: "320px 320px",
-          backgroundPosition: "-200px -40px",
-          imageRendering: "pixelated",
-        }}
-      />
-    </div>
-  );
 }
 
 export default function LiveChat({
@@ -87,12 +53,8 @@ export default function LiveChat({
    * Никакого scrollIntoView: он умеет прокручивать ВСЕ внешние контейнеры,
    * то есть и саму страницу — из-за этого при скролле вниз мимо чата
    * страницу каждые полсекунды рвало обратно наверх.
-   * requestAnimationFrame: скроллимся уже по свежему layout — после отрисовки
-   * только что полученных сообщений, иначе ScrollHeight не успевает учесть их.
    */
   const scrollToBottom = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
     requestAnimationFrame(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -104,8 +66,7 @@ export default function LiveChat({
     try {
       const res = await fetch("/api/chat?limit=50");
       if (res.ok) {
-        const data = await res.json();
-        setMessages(data);
+        setMessages(await res.json());
       }
     } catch (error) {
       console.error("Failed to fetch chat:", error);
@@ -158,7 +119,6 @@ export default function LiveChat({
         setInput("");
         shouldAutoScroll.current = true;
         await fetchMessages();
-        // Принудительно прокручиваем к самому новому сообщению после отправки.
         scrollToBottom();
       }
     } catch (error) {
@@ -177,50 +137,51 @@ export default function LiveChat({
 
   function formatTime(dateStr: string) {
     const d = new Date(dateStr);
-    return d.toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   }
 
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col">
+    <div className="mc-panel mb-6 flex flex-col overflow-hidden">
       <div
-        className={`px-4 py-3 border-b border-[var(--border)] flex items-center gap-2${
-          headerDragProps ? " select-none" : ""
-        }`}
+        className={`mc-head${headerDragProps ? " select-none" : ""}`}
         {...(headerDragProps
           ? {
               onPointerDown: headerDragProps.onPointerDown,
               onPointerMove: headerDragProps.onPointerMove,
               onPointerUp: headerDragProps.onPointerUp,
               style: {
-                touchAction: "none",
+                touchAction: "none" as const,
                 cursor: headerDragProps.dragging ? "grabbing" : "grab",
               },
             }
           : {})}
       >
-        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-        <h2 className="font-semibold">Чат сервера</h2>
+        <span className="flex shrink-0 items-center text-[var(--mc-green-light)]">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+            <path strokeLinecap="square" d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </span>
+        <h2 className="min-w-0 flex-1 truncate text-[0.78rem] font-bold uppercase tracking-[0.12em]">
+          Чат сервера
+        </h2>
+        <span className="mc-chip flex items-center gap-1.5 text-[0.6rem] text-[var(--mc-green-light)]">
+          <span className="h-1.5 w-1.5 animate-pulse bg-[var(--mc-green-light)]" aria-hidden />
+          live
+        </span>
         <button
           type="button"
           onClick={() => setPinned(!pinned)}
           title={pinned ? "Открепить чат (в плавающее окно)" : "Закрепить чат на главной"}
           aria-label={pinned ? "Открепить чат" : "Закрепить чат"}
-          className="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--hover)] transition-colors cursor-pointer"
+          className="ml-1 flex h-7 w-7 cursor-pointer items-center justify-center border-2 border-black bg-[var(--card)] text-[var(--text-muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--text)]"
         >
           {pinned ? (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M15 3h6v6" />
-              <path d="M10 14L21 3" />
-              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="square" d="M9 21H3v-6M14 10L3 21M6 13V6a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-6" />
             </svg>
           ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M9 21H3v-6" />
-              <path d="M14 10L3 21" />
-              <path d="M6 13V6a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-6" />
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="square" d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
             </svg>
           )}
         </button>
@@ -229,59 +190,67 @@ export default function LiveChat({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="h-96 overflow-y-auto p-4 space-y-4 custom-scrollbar"
+        className="custom-scrollbar h-80 space-y-3 overflow-y-auto p-3"
       >
         {loading ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
-            Загрузка...
+          <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
+            Загрузка…
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-[var(--text-muted)]">
+            <span className="text-2xl">💬</span>
             Пока нет сообщений
           </div>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="flex items-start gap-3">
-              {msg.nickname === SYSTEM_NICKNAME ? (
-                <div className="mt-1">
-                  <ChatHead skinUrl={msg.skinUrl} nickname={msg.nickname} />
-                </div>
-              ) : (
-                <Link href={`/profile?user=${msg.nickname}`} className="mt-1">
-                  <ChatHead skinUrl={msg.skinUrl} nickname={msg.nickname} />
-                </Link>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="mb-1">
-                  {msg.nickname === SYSTEM_NICKNAME ? (
-                    <span className="font-semibold text-sm text-[var(--text-muted)]">
-                      {msg.nickname}
-                    </span>
+          messages.map((msg) => {
+            const isSystem = msg.nickname === SYSTEM_NICKNAME;
+            return (
+              <div key={msg.id} className="flex items-start gap-2.5">
+                <div className="mt-0.5">
+                  {isSystem ? (
+                    <PlayerHead skinUrl={msg.skinUrl} nickname={msg.nickname} size={30} />
                   ) : (
-                    <Link
-                      href={`/profile?user=${msg.nickname}`}
-                      className="font-semibold text-sm text-[var(--text)] hover:underline"
-                    >
-                      {msg.nickname}
+                    <Link href={`/profile/${encodeURIComponent(msg.nickname)}`}>
+                      <PlayerHead skinUrl={msg.skinUrl} nickname={msg.nickname} size={30} />
                     </Link>
                   )}
                 </div>
-                <div className="flex items-end gap-2 pr-1">
-                  <div className="bg-[var(--bubble)] rounded-2xl rounded-tl-sm px-4 py-2" style={{ maxWidth: "calc(100% - 60px)" }}>
-                    <p className="text-[var(--text-secondary)] text-sm break-words whitespace-pre-wrap">{msg.message}</p>
+
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-baseline gap-2">
+                    {isSystem ? (
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--mc-gold)]">
+                        {msg.nickname}
+                      </span>
+                    ) : (
+                      <Link
+                        href={`/profile/${encodeURIComponent(msg.nickname)}`}
+                        className="text-xs font-bold uppercase tracking-wider text-[var(--mc-green-light)] hover:underline"
+                      >
+                        {msg.nickname}
+                      </Link>
+                    )}
+                    <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                      {formatTime(msg.createdAt)}
+                    </span>
                   </div>
-                  <div className="flex-1" />
-                  <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap flex-shrink-0 pb-0.5">
-                    {formatTime(msg.createdAt)}
-                  </span>
+                  <div
+                    className={`inline-block max-w-full border-2 border-black px-2.5 py-1.5 text-sm leading-snug break-words whitespace-pre-wrap ${
+                      isSystem
+                        ? "bg-[rgba(242,201,76,0.12)] text-[var(--mc-gold)]"
+                        : "bg-[var(--bubble)] text-[var(--text-secondary)]"
+                    }`}
+                  >
+                    {msg.message}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
-      <div className="px-4 py-3 border-t border-[var(--border)]">
+      <div className="border-t-2 border-black bg-[var(--card-alt)] p-3">
         {isLoggedIn ? (
           <div className="flex gap-2">
             <input
@@ -289,26 +258,26 @@ export default function LiveChat({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Написать сообщение..."
+              placeholder="Написать сообщение…"
               maxLength={500}
-              className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-[var(--text)] text-sm focus:outline-none focus:border-[#7c3aed]"
+              className="mc-input flex-1"
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || sending}
-              className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mc-btn mc-btn-primary shrink-0"
             >
-              {sending ? "..." : "Отправить"}
+              {sending ? "…" : "Отправить"}
             </button>
           </div>
         ) : (
           <div className="text-sm text-[var(--text-secondary)]">
             Чтобы писать сообщения,{" "}
-            <Link href="/auth/login" className="text-[#7c3aed] hover:underline">
-              войдите в свой аккаунт
+            <Link href="/auth/login" className="font-semibold text-[var(--mc-green-light)] hover:underline">
+              войдите
             </Link>{" "}
             или{" "}
-            <Link href="/auth/register" className="text-[#7c3aed] hover:underline">
+            <Link href="/auth/register" className="font-semibold text-[var(--mc-green-light)] hover:underline">
               зарегистрируйтесь
             </Link>
           </div>

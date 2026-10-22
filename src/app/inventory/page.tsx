@@ -94,7 +94,7 @@ async function prepareInventory(data: InventoryData): Promise<Props> {
 
 function Vital({ icon, value, color }: { icon: string; value: string; color: string }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-lg">
+    <div className="flex items-center gap-2 px-4 py-3 mc-panel rounded-lg">
       <span className="text-lg leading-none" aria-hidden="true">{icon}</span>
       <span className={`text-sm font-semibold font-mono ${color}`}>{value}</span>
     </div>
@@ -211,30 +211,38 @@ export default async function InventoryPage({
       : [];
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
         user={viewer ? { name: viewer.name, skinUrl: viewer.skinUrl, bld: viewer.bld } : undefined}
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">Инвентарь</h1>
-          <span className="text-[var(--text-muted)]">
-            {viewingOther ? `· ${displayNickname} (просмотр админа)` : `· ${viewer.name}`}
-          </span>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="mc-title text-3xl sm:text-4xl">Инвентарь</h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {viewingOther ? `${displayNickname} · просмотр администратора` : viewer.name}
+              {updatedAt ? ` · снимок от ${new Date(updatedAt).toLocaleString("ru-RU")}` : ""}
+            </p>
+          </div>
+          {prepared && (
+            <span className="mc-chip text-[0.65rem] text-[var(--mc-green-light)]">
+              AlopetsiyaInventory
+            </span>
+          )}
         </div>
 
         {isAdmin && (
-          <section className="flex flex-wrap items-center gap-2 px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)]">
-            <span className="text-sm text-[var(--text-muted)] mr-1">Игроки:</span>
+          <section className="mc-panel-flat flex flex-wrap items-center gap-2 p-2.5">
+            <span className="mr-1 text-[0.65rem] uppercase tracking-widest text-[var(--text-muted)]">Игроки:</span>
             <a
               href="/inventory"
-              className={`px-3 py-1 rounded-md text-sm border transition-colors ${
+              className={`border-2 px-3 py-1 text-xs font-semibold transition-colors ${
                 !viewingOther
-                  ? "bg-[var(--accent)]/15 border-[var(--accent)]/40 text-[var(--accent)]"
-                  : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+                  ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                  : "border-black bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
               }`}
             >
               {viewer.name}
@@ -243,10 +251,10 @@ export default async function InventoryPage({
               <a
                 key={p.nickname}
                 href={`/inventory?nick=${encodeURIComponent(p.nickname)}`}
-                className={`px-3 py-1 rounded-md text-sm border transition-colors ${
+                className={`border-2 px-3 py-1 text-xs font-semibold transition-colors ${
                   targetNick === p.nickname && viewingOther
-                    ? "bg-[var(--accent)]/15 border-[var(--accent)]/40 text-[var(--accent)]"
-                    : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+                    ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                    : "border-black bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
                 }`}
               >
                 {p.displayNickname}
@@ -256,7 +264,7 @@ export default async function InventoryPage({
         )}
 
         {!prepared ? (
-          <div className="p-8 text-center text-[var(--text-muted)] text-sm border border-[var(--border)] rounded-lg flex flex-col items-center gap-4">
+          <div className="p-8 text-center text-[var(--text-muted)] text-sm border-2 border-black rounded-lg flex flex-col items-center gap-4">
             <div className="flex flex-wrap justify-center gap-6 opacity-70 pointer-events-none">
               <span className="text-[40px]">🎒</span>
               <span className="text-[40px]">🗡️</span>
@@ -273,7 +281,7 @@ export default async function InventoryPage({
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-3">
-              <Vital icon="❤️" value={`${prepared.health ?? "?"} / ${prepared.healthMax ?? "?"}`} color="text-red-400" />
+              <Vital icon="❤️" value={`${prepared.health ?? "?"} / ${prepared.healthMax ?? "?"}`} color="text-[var(--mc-red)]" />
               <Vital icon="🍖" value={`${prepared.food ?? "?"} / 20`} color="text-yellow-400" />
               <Vital icon="✨" value={`Уровень ${prepared.xpLevel ?? "?"}`} color="text-[#a78bfa]" />
               {prepared.saturation !== undefined && (
@@ -290,7 +298,7 @@ export default async function InventoryPage({
               />
             )}
 
-            <div className="text-sm text-[var(--text-muted)] border-t border-[var(--border)] pt-4">
+            <div className="text-sm text-[var(--text-muted)] border-t-2 border-black pt-4">
               Нет снимка онлайн — сайт показывает последний сохранённый при
               выходе с сервера (админ видит историю и может откатить к любой
               точке — применится при следующем входе игрока). Данные присылает
@@ -305,6 +313,6 @@ export default async function InventoryPage({
 }
 
 export const metadata = {
-  title: "Инвентарь — АлопецияКрафт",
+  title: "Инвентарь",
   description: "Текущий инвентарь вашего игрока на сервере: предметы, броня, эндер-сундук",
 };

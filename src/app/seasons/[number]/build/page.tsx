@@ -18,10 +18,10 @@ export default async function SeasonBuildPage({
 
   return (
     <div className="py-8">
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-8">
+      <div className="mc-panel p-8">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">📦</div>
-          <h3 className="text-xl font-semibold mb-2">
+          <h3 className="mc-title text-xl mb-2">
             Сборка для Сезона {seasonNumber}
           </h3>
           <p className="text-[var(--text-secondary)]">
@@ -35,7 +35,7 @@ export default async function SeasonBuildPage({
               href={season.modpackUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block px-8 py-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium rounded-lg transition-colors"
+              className="mc-btn mc-btn-primary text-base"
             >
               Скачать сборку
             </a>
@@ -45,13 +45,13 @@ export default async function SeasonBuildPage({
             <p className="text-[var(--text-muted)] mb-4">
               Ссылка на сборку пока не добавлена.
             </p>
-            <div className="inline-block px-4 py-2 bg-[var(--bg)] rounded text-sm text-[var(--text-muted)]">
+            <div className="mc-inset inline-block px-4 py-2 text-sm text-[var(--text-muted)]">
               Администратор может добавить ссылку в настройках сезона
             </div>
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-[var(--border)]">
+        <div className="mt-8 pt-6 border-t-2 border-black">
           <h4 className="font-medium mb-4">Инструкция по установке:</h4>
           <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--text-secondary)]">
             <li>Скачайте сборку по ссылке выше</li>

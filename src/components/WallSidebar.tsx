@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PlayerHead from "@/components/mc/PlayerHead";
 import type { AudioPreviewItem, FriendPreviewItem, PhotoPreviewItem } from "@/lib/wallPreview";
 
 /** Заголовок блока: название + счётчик + ссылка «Все». */
@@ -12,12 +13,12 @@ function BlockHeader({
   href: string;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-2 mb-3">
-      <h2 className="text-sm font-semibold">
+    <div className="mc-head">
+      <h2 className="min-w-0 flex-1 text-sm font-semibold">
         {title}
         <span className="text-[var(--text-muted)] font-normal ml-1.5">{count}</span>
       </h2>
-      <Link href={href} className="text-xs text-[#7c3aed] hover:underline shrink-0">
+      <Link href={href} className="text-xs text-[var(--mc-green-light)] hover:text-[var(--mc-green)] shrink-0">
         Все
       </Link>
     </div>
@@ -43,16 +44,16 @@ function AudioBlock({
   baseHref: string;
 }) {
   return (
-    <section className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
+    <section className="mc-panel">
       <BlockHeader title="Аудио" count={total} href={`${baseHref}/music`} />
-      <div className="flex flex-col">
+      <div className="flex flex-col p-3">
         {tracks.map((t) => (
           <Link
             key={t.id}
             href={`${baseHref}/music`}
-            className="flex items-center gap-3 py-2 -mx-2 px-2 rounded-lg hover:bg-[var(--bg)] transition-colors"
+            className="flex items-center gap-3 px-1 py-2 border-2 border-transparent hover:border-black hover:bg-[var(--hover)] transition-colors"
           >
-            <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-[#7c3aed]/20 flex items-center justify-center text-[#7c3aed]">
+            <div className="w-11 h-11 border-2 border-black overflow-hidden shrink-0 bg-[var(--card-alt)] flex items-center justify-center text-[var(--mc-green-light)]">
               {t.coverThumbUrl || t.coverUrl ? (
                 <img src={t.coverThumbUrl ?? (t.coverUrl as string)} alt="" className="w-full h-full object-cover" loading="lazy" />
               ) : (
@@ -81,14 +82,14 @@ function PhotoBlock({
   baseHref: string;
 }) {
   return (
-    <section className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
+    <section className="mc-panel">
       <BlockHeader title="Фото" count={total} href={`${baseHref}/foto`} />
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5 p-3">
         {photos.map((p, i) => (
           <Link
             key={p.id}
             href={`${baseHref}/foto`}
-            className="relative aspect-square rounded-lg overflow-hidden border border-[var(--border)] block bg-[var(--bg)]"
+            className="relative aspect-square overflow-hidden border-2 border-black block bg-[var(--bg)]"
           >
             <img
               src={p.thumbUrl}
@@ -118,24 +119,7 @@ function FriendAvatar({
   nickname: string;
   size?: number;
 }) {
-  if (skinUrl) {
-    return (
-      <div
-        className="w-full aspect-square rounded-lg overflow-hidden bg-[#7c3aed]/20"
-        style={{
-          backgroundImage: `url(${skinUrl})`,
-          backgroundSize: `${size * 4}px ${size * 4}px`,
-          backgroundPosition: `-${size}px -${size}px`,
-          imageRendering: "pixelated",
-        }}
-      />
-    );
-  }
-  return (
-    <div className="w-full aspect-square rounded-lg overflow-hidden bg-[#7c3aed]/20 flex items-center justify-center font-bold text-sm text-[var(--text-secondary)]">
-      {nickname[0]?.toUpperCase() ?? "?"}
-    </div>
-  );
+  return <PlayerHead skinUrl={skinUrl} nickname={nickname} size={size} fill />;
 }
 
 /** Блок «Друзья»: сетка аватарок с никами. */
@@ -149,9 +133,9 @@ function FriendsBlock({
   baseHref: string;
 }) {
   return (
-    <section className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
+    <section className="mc-panel">
       <BlockHeader title="Друзья" count={total} href={`${baseHref}/friends`} />
-      <div className="grid grid-cols-3 gap-x-2 gap-y-3">
+      <div className="grid grid-cols-3 gap-x-2 gap-y-3 p-3">
         {friends.map((f) => (
           <Link
             key={f.id}

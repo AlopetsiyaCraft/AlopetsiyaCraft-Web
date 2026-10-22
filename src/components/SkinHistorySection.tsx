@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import PlayerHead from "@/components/mc/PlayerHead";
 
 const SkinViewer = dynamic(() => import("@/components/SkinViewer"), {
   ssr: false,
   loading: () => (
-    <div className="w-[110px] h-[110px] bg-[var(--bg)] border border-[var(--border)] rounded-lg flex items-center justify-center">
+    <div className="w-[110px] h-[110px] mc-inset flex items-center justify-center">
       <span className="text-[var(--text-muted)] text-xs">Загрузка...</span>
     </div>
   ),
@@ -22,7 +23,7 @@ export interface SkinHistoryItem {
  * История загруженных скинов: каждая миниатюра-голова показывает СВОЙ
  * файл (у записей уникальные URL), при наведении — тултип с датой загрузки,
  * и этот скин показывается в мини-предпросмотре справа. Зелёная рамка —
- * текущий скин, фиолетовая — тот, на который сейчас наведены.
+ * текущий скин, золотая — тот, на который сейчас наведены.
  */
 export default function SkinHistorySection({
   skins,
@@ -37,7 +38,7 @@ export default function SkinHistorySection({
   const display = hoveredUrl ?? currentSkinUrl ?? null;
 
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden mt-4">
+    <div className="mc-panel overflow-hidden mt-4">
       <div className="p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -83,35 +84,17 @@ export default function SkinHistorySection({
                       dateStyle: "medium",
                       timeStyle: "short",
                     })}
-                    className={`w-12 h-12 rounded relative overflow-hidden border cursor-pointer transition-colors ${
+                    className={`w-12 h-12 relative overflow-hidden p-[2px] cursor-pointer transition-colors ${
                       isHovered
-                        ? "border-[#7c3aed]"
+                        ? "bg-[var(--mc-gold)]"
                         : isCurrent
-                        ? "border-green-500/70"
-                        : "border-[var(--border)]"
+                        ? "bg-[var(--mc-green)]"
+                        : "bg-black"
                     }`}
                   >
-                    {/* базовый слой головы (8,8) и оверлей-шляпа (40,8) — 6px на пиксель скина */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backgroundImage: `url(${skin.skinUrl})`,
-                        backgroundSize: "384px 384px",
-                        backgroundPosition: "-48px -48px",
-                        imageRendering: "pixelated",
-                      }}
-                    />
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backgroundImage: `url(${skin.skinUrl})`,
-                        backgroundSize: "384px 384px",
-                        backgroundPosition: "-240px -48px",
-                        imageRendering: "pixelated",
-                      }}
-                    />
+                    <PlayerHead skinUrl={skin.skinUrl} size={44} border={false} />
                   </div>
-                  <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded bg-black text-white text-[11px] px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+                  <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap border-2 border-black bg-black text-white text-[11px] px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     {new Date(skin.createdAt).toLocaleString("ru-RU", {
                       dateStyle: "medium",
                       timeStyle: "short",

@@ -20,9 +20,10 @@ export default async function ProfileMusicPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
-        Аудио: <span className="text-[#7c3aed]">{target.nickname}</span>
-      </h1>
+      <div className="mb-4 flex flex-wrap items-baseline gap-2">
+        <h2 className="mc-title text-2xl">Аудио</h2>
+        <span className="font-mono text-sm text-[var(--mc-green-light)]">{target.nickname}</span>
+      </div>
       <MyAudio isOwn={viewerId === target.id} targetNickname={target.nickname} />
     </div>
   );

@@ -31,19 +31,21 @@ export default async function GalleryPage({
   const photoId = sp?.photo ? parseInt(sp.photo, 10) : null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
       <Header
         seasons={seasonRows}
         user={viewer ? { name: viewer.name, skinUrl: viewer.skinUrl, bld: viewer.bld } : undefined}
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-bold">Галерея</h1>
-          <p className="text-[var(--text-muted)] text-sm mt-1">
-            Фото сервера по сезонам. Галерея открыта всем, комментарии — только зарегистрированным.
-          </p>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="mc-title text-3xl sm:text-4xl">Галерея</h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              Скриншоты и лучшие моменты сезонов. Комментарии — для зарегистрированных.
+            </p>
+          </div>
         </div>
 
         <GalleryFeed
@@ -60,6 +62,6 @@ export default async function GalleryPage({
 }
 
 export const metadata = {
-  title: "Галерея — АлопецияКрафт",
+  title: "Галерея",
   description: "Общая галерея фото по сезонам",
 };

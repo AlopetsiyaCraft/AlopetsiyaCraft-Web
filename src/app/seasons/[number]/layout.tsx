@@ -59,7 +59,7 @@ export default async function SeasonLayout({
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <div className="text-sm text-[#7c3aed] mb-1">Сезон {season.number}</div>
+          <div className="text-sm text-[var(--mc-green)] mb-1">Сезон {season.number}</div>
           <h1 className="text-3xl font-bold">{season.name}</h1>
         </div>
 

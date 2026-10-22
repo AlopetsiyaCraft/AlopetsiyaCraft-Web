@@ -96,12 +96,14 @@ export default function PhotoUploader({
   const fixed = !!fixedSeasonId;
 
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-      <h3 className="text-sm font-semibold mb-3">Загрузить фото</h3>
-      <div className="flex flex-col md:flex-row gap-4">
+    <div className="mc-panel">
+      <div className="mc-head">
+        <h3 className="min-w-0 flex-1">Загрузить фото</h3>
+      </div>
+      <div className="flex flex-col md:flex-row gap-4 p-4">
         <div
           onClick={() => fileRef.current?.click()}
-          className="md:w-48 h-32 border-2 border-dashed border-[var(--border)] hover:border-[#7c3aed]/50 rounded-lg flex items-center justify-center cursor-pointer overflow-hidden"
+          className="md:w-48 h-32 border-2 border-dashed border-[var(--border-soft)] hover:border-[var(--mc-green-light)] bg-[var(--bg)] flex items-center justify-center cursor-pointer overflow-hidden"
         >
           {preview ? (
             <img src={preview} alt="Предпросмотр" className="w-full h-full object-cover" />
@@ -128,12 +130,12 @@ export default function PhotoUploader({
           ) : (
             <div>
               <label className="block text-xs text-[var(--text-muted)] mb-1">
-                Сезон <span className="text-red-400">*</span>
+                Сезон <span className="text-[var(--mc-red)]">*</span>
               </label>
               <select
                 value={seasonId ?? ""}
                 onChange={(e) => setSeasonId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm"
+                className="mc-input text-sm"
               >
                 <option value="">Выберите сезон…</option>
                 {seasons.map((s) => (
@@ -151,7 +153,7 @@ export default function PhotoUploader({
               <select
                 value={albumId}
                 onChange={(e) => setAlbumId(e.target.value)}
-                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm"
+                className="mc-input text-sm"
               >
                 <option value="">Без альбома</option>
                 {albums.map((a) => (
@@ -169,11 +171,7 @@ export default function PhotoUploader({
                     key={v}
                     onClick={() => setVisibility(v)}
                     type="button"
-                    className={`flex-1 px-2 py-1.5 rounded-lg text-xs border transition-colors ${
-                      visibility === v
-                        ? "bg-[#7c3aed] border-[#7c3aed] text-white"
-                        : "bg-[var(--bg)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
-                    }`}
+                    className={`mc-btn flex-1 text-xs ${visibility === v ? "mc-btn-primary" : ""}`}
                   >
                     {v === "public" ? "Всем" : "Только зарегистрированным"}
                   </button>
@@ -187,19 +185,19 @@ export default function PhotoUploader({
             onChange={(e) => setCaption(e.target.value)}
             maxLength={200}
             placeholder="Подпись (необязательно)"
-            className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
+            className="mc-input text-sm"
           />
 
           <div className="flex items-center gap-3">
             <button
               onClick={upload}
               disabled={!file || uploading}
-              className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mc-btn mc-btn-primary text-sm"
             >
               {uploading ? "Загружаем…" : "Загрузить"}
             </button>
-            {error && <span className="text-sm text-red-400">{error}</span>}
-            {success && <span className="text-sm text-green-500">{success}</span>}
+            {error && <span className="text-sm text-[var(--mc-red)]">{error}</span>}
+            {success && <span className="text-sm text-[var(--mc-green-light)]">{success}</span>}
           </div>
         </div>
       </div>

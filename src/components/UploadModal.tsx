@@ -105,15 +105,15 @@ export default function UploadModal({
     <>
       <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
         <div
-          className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex flex-col gap-3 w-full max-w-md"
+          className="mc-panel p-4 flex flex-col gap-3 w-full max-w-md"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-bold">Загрузить песню</h2>
+          <div className="mc-head -mx-4 -mt-4 mb-1">
+            <h2 className="min-w-0 flex-1 text-base font-bold">Загрузить песню</h2>
             <button
               onClick={onClose}
               disabled={uploading}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--hover)] transition-colors text-sm"
+              className="mc-panel-flat h-8 w-8 p-0 text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-50 text-sm"
               title="Закрыть"
             >
               ✕
@@ -127,7 +127,7 @@ export default function UploadModal({
               ref={audioInputRef}
               type="file"
               accept=".mp3,audio/mpeg"
-              className="text-sm text-[var(--text-secondary)] file:px-3 file:py-1.5 file:rounded-lg file:bg-[#7c3aed] file:hover:bg-[#6d28d9] file:text-white file:text-xs file:font-medium file:border-0 file:cursor-pointer"
+              className="text-sm text-[var(--text-secondary)] file:px-3 file:py-1.5 file:bg-[var(--mc-green)] file:hover:bg-[var(--mc-green-light)] file:text-[#0f1a08] file:text-xs file:font-bold file:border-2 file:border-black file:cursor-pointer"
               onChange={pickAudio}
             />
             {pendingAudio && (
@@ -137,7 +137,7 @@ export default function UploadModal({
                 </span>
                 <button
                   onClick={clearAudio}
-                  className="px-2 py-0.5 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--hover)] transition-colors text-xs shrink-0"
+                  className="px-2 py-0.5 text-[var(--text-muted)] hover:text-[var(--mc-red)] text-xs shrink-0"
                   title="Убрать файл"
                 >
                   ✕
@@ -149,7 +149,7 @@ export default function UploadModal({
           {/* Шаг 2: фото обложки */}
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-[var(--text-muted)]">2. Фото обложки (любой формат)</span>
-            <label className="self-start text-sm text-[var(--text-secondary)] file:px-3 file:py-1.5 file:rounded-lg file:bg-[#7c3aed] file:hover:bg-[#6d28d9] file:text-white file:text-xs file:font-medium file:border-0 file:cursor-pointer">
+            <label className="mc-btn self-start text-sm">
               {cover ? "Обложка готова ✓" : "Выбрать фото"}
               <input
                 ref={photoInputRef}
@@ -162,7 +162,7 @@ export default function UploadModal({
             {cover && (
               <div className="flex items-end gap-2">
                 <div
-                  className="w-16 h-16 rounded-lg border border-[var(--border)] bg-[var(--hover)] overflow-hidden"
+                  className="w-16 h-16 border-2 border-black bg-[var(--hover)] overflow-hidden"
                   title="Превью обложки"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -170,7 +170,7 @@ export default function UploadModal({
                 </div>
                 <button
                   onClick={clearCover}
-                  className="px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--hover)] transition-colors text-xs"
+                  className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--mc-red)] text-xs"
                   title="Убрать обложку"
                 >
                   ✕
@@ -179,20 +179,20 @@ export default function UploadModal({
             )}
           </div>
 
-          {error && <span className="text-sm text-red-400">{error}</span>}
+          {error && <span className="text-sm text-[var(--mc-red)]">{error}</span>}
 
           <div className="flex justify-end gap-2 pt-1">
             <button
               onClick={onClose}
               disabled={uploading}
-              className="px-3 py-1.5 rounded-lg text-sm text-[var(--text-muted)] hover:bg-[var(--hover)] transition-colors"
+              className="mc-btn text-sm"
             >
               Отмена
             </button>
             <button
               onClick={handleUpload}
               disabled={!pendingAudio || !cover || uploading}
-              className="px-4 py-1.5 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mc-btn mc-btn-primary text-sm"
             >
               {uploading ? "Загружаем…" : "Загрузить"}
             </button>

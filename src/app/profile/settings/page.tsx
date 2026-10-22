@@ -52,21 +52,21 @@ export default async function SettingsPage({
 
       <div className="max-w-4xl mx-auto py-12 px-4">
         <div className="mb-6">
-          <Link href="/profile" className="text-[#7c3aed] hover:underline text-sm">
+          <Link href="/profile" className="text-[var(--mc-green)] hover:underline text-sm">
             ← Назад к профилю
           </Link>
         </div>
 
-        <h1 className="text-2xl font-bold mb-8">Настройки аккаунта</h1>
+        <h1 className="mc-title text-2xl mb-8">Настройки аккаунта</h1>
 
         {params.discord === "linked" && (
-          <div className="mb-6 bg-green-900/30 border border-green-700 text-green-300 rounded-lg p-4 text-sm">
+          <div className="mc-inset mb-6 border-[var(--mc-green)] text-[var(--mc-green-light)] p-4 text-sm">
             Discord привязан! Бот обновит твой ник и аватарку на сервере и
             добавит тебя на сервер AlopetsiyaCraft, если тебя там ещё нет.
           </div>
         )}
         {params.discord === "error" && (
-          <div className="mb-6 bg-red-900/30 border border-red-700 text-red-300 rounded-lg p-4 text-sm">
+          <div className="mc-inset mb-6 border-[var(--mc-red)] text-[var(--mc-red)] p-4 text-sm">
             Не удалось подключить Discord. Проверь, что ты авторизовал
             приложение, и попробуй ещё раз.
           </div>

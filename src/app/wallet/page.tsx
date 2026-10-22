@@ -24,19 +24,21 @@ export default async function WalletPage() {
   if (!wallet) redirect("/auth/login");
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
         user={{ name: wallet.name, skinUrl: wallet.skinUrl, bld: wallet.bld }}
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-bold">Кошелёк</h1>
-          <p className="text-[var(--text-muted)] text-sm mt-1">
-            Болды (BLD) — для покупок на сайте. Фишки — для игры в казино в Minecraft.
-          </p>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="mc-title text-3xl sm:text-4xl">Кошелёк</h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              Болды — для покупок на сайте. Фишки — для казино в Minecraft.
+            </p>
+          </div>
         </div>
 
         <WalletExchange initialBld={wallet.bld} initialChips={wallet.chips} />
@@ -44,3 +46,7 @@ export default async function WalletPage() {
     </div>
   );
 }
+export const metadata = {
+  title: "Кошелёк",
+  description: "Болды и фишки: баланс и конвертер валют АлопецияКрафт",
+};

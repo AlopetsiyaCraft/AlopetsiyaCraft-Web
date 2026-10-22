@@ -117,46 +117,50 @@ export default function PhotoTab({
       )}
 
       {isOwn && (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4">
-          <h3 className="text-sm font-semibold mb-3">Альбомы</h3>
-          {albums.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {albums.map((a) => (
-                <div key={a.id} className="flex items-center gap-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm">
-                  <span>{a.name}</span>
-                  <button onClick={() => renameAlbum(a)} className="text-[var(--text-muted)] hover:text-[var(--text)]" title="Переименовать">✎</button>
-                  <button onClick={() => deleteAlbum(a)} className="text-[var(--text-muted)] hover:text-red-400" title="Удалить">✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2">
-            <input
-              value={newAlbumName}
-              onChange={(e) => setNewAlbumName(e.target.value)}
-              maxLength={60}
-              placeholder="Название нового альбома"
-              className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
-            />
-            <button
-              onClick={createAlbum}
-              disabled={!newAlbumName.trim()}
-              className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
-            >
-              Создать
-            </button>
+        <div className="mc-panel">
+          <div className="mc-head">
+            <h3 className="min-w-0 flex-1">Альбомы</h3>
           </div>
-          {albumMsg && <p className="mt-2 text-sm text-[var(--text-secondary)]">{albumMsg}</p>}
-          <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Альбом не обязателен — главное, чтобы фото было привязано к сезону (тогда оно появится в галерее).
-          </p>
+          <div className="p-4">
+            {albums.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {albums.map((a) => (
+                  <div key={a.id} className="mc-inset flex items-center gap-1 px-3 py-1.5 text-sm">
+                    <span>{a.name}</span>
+                    <button onClick={() => renameAlbum(a)} className="text-[var(--text-muted)] hover:text-[var(--text)]" title="Переименовать">✎</button>
+                    <button onClick={() => deleteAlbum(a)} className="text-[var(--text-muted)] hover:text-[var(--mc-red)]" title="Удалить">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={newAlbumName}
+                onChange={(e) => setNewAlbumName(e.target.value)}
+                maxLength={60}
+                placeholder="Название нового альбома"
+                className="mc-input flex-1 text-sm"
+              />
+              <button
+                onClick={createAlbum}
+                disabled={!newAlbumName.trim()}
+                className="mc-btn mc-btn-primary text-sm"
+              >
+                Создать
+              </button>
+            </div>
+            {albumMsg && <p className="mt-2 text-sm text-[var(--text-secondary)]">{albumMsg}</p>}
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              Альбом не обязателен — главное, чтобы фото было привязано к сезону (тогда оно появится в галерее).
+            </p>
+          </div>
         </div>
       )}
 
       {!isOwn && (
         <div>
-          <h1 className="text-2xl font-bold">
-            Фото: <span className="text-[#7c3aed]">{ownerNickname}</span>
+          <h1 className="mc-title text-2xl">
+            Фото: <span className="text-[var(--mc-green-light)]">{ownerNickname}</span>
             <span className="text-[var(--text-muted)] text-sm font-normal ml-2">({photos.length})</span>
           </h1>
         </div>
@@ -168,11 +172,7 @@ export default function PhotoTab({
             <button
               key={String(c.key)}
               onClick={() => setAlbumFilter(c.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-                albumFilter === c.key
-                  ? "bg-[#7c3aed] border-[#7c3aed] text-white"
-                  : "bg-[var(--card)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
-              }`}
+              className={`mc-btn text-xs ${albumFilter === c.key ? "mc-btn-primary" : ""}`}
             >
               {c.label}
             </button>
@@ -183,9 +183,9 @@ export default function PhotoTab({
       {loading ? (
         <div className="text-[var(--text-muted)] text-sm py-8 text-center">Загрузка…</div>
       ) : error ? (
-        <div className="text-red-400 text-sm py-8 text-center">{error}</div>
+        <div className="text-[var(--mc-red)] text-sm py-8 text-center">{error}</div>
       ) : filtered.length === 0 ? (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg py-10 text-center text-[var(--text-muted)] text-sm">
+        <div className="mc-inset py-10 text-center text-[var(--text-muted)] text-sm">
           {isOwn ? "Пока нет фото. Загрузи первое — не забудь выбрать сезон!" : "У этого игрока пока нет фото."}
         </div>
       ) : (

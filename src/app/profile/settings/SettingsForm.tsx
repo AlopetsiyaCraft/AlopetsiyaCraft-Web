@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 const SkinViewer = dynamic(() => import("@/components/SkinViewer"), {
   ssr: false,
   loading: () => (
-    <div className="w-[300px] h-[400px] bg-[var(--bg)] border border-[var(--border)] rounded-lg flex items-center justify-center">
+    <div className="w-[300px] h-[400px] mc-inset flex items-center justify-center">
       <span className="text-[var(--text-muted)] text-sm">Загрузка 3D...</span>
     </div>
   ),
@@ -203,8 +203,11 @@ export default function SettingsForm({
 
   return (
     <div className="space-y-6">
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">Никнейм</h2>
+      <div className="mc-panel">
+        <div className="mc-head">
+          <h2 className="min-w-0 flex-1">Никнейм</h2>
+        </div>
+        <div className="p-6">
         <div className="flex gap-3 items-end">
           <div className="flex-1">
             <label className="block text-sm text-[var(--text-secondary)] mb-2">
@@ -216,29 +219,33 @@ export default function SettingsForm({
               onChange={(e) => setNickname(e.target.value)}
               minLength={3}
               maxLength={16}
-              className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-[var(--text)] text-sm focus:outline-none focus:border-[#7c3aed]"
+              className="mc-input text-sm"
             />
           </div>
           <button
             onClick={handleNameChange}
             disabled={nickname === initialNickname || nickname.length < 3}
-            className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mc-btn mc-btn-primary text-sm"
           >
             Изменить
           </button>
         </div>
         {nameMessage && (
-          <p className={`mt-2 text-sm ${nameMessage.includes("Ошибка") || nameMessage.includes("уже") ? "text-red-500" : "text-green-500"}`}>
+          <p className={`mt-2 text-sm ${nameMessage.includes("Ошибка") || nameMessage.includes("уже") ? "text-[var(--mc-red)]" : "text-[var(--mc-green-light)]"}`}>
             {nameMessage}
           </p>
         )}
         <p className="mt-2 text-xs text-[var(--text-muted)]">
           3-16 символов: буквы, цифры, подчёркивание
         </p>
+        </div>
       </div>
 
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-2">Внешний вид</h2>
+      <div className="mc-panel">
+        <div className="mc-head">
+          <h2 className="min-w-0 flex-1">Внешний вид</h2>
+        </div>
+        <div className="p-6">
         <p className="text-[var(--text-secondary)] text-sm mb-6">
           Загрузите PNG файл скина (64x64) или плаща (64x32, 22x17, 46x22). Сайт определит тип автоматически.
         </p>
@@ -256,7 +263,7 @@ export default function SettingsForm({
                 resetKey={cameraResetKey}
               />
             ) : (
-              <div className="w-[300px] h-[400px] bg-[var(--bg)] border border-[var(--border)] rounded-lg flex items-center justify-center">
+              <div className="w-[300px] h-[400px] mc-inset flex items-center justify-center">
                 <span className="text-[var(--text-muted)] text-sm">
                   У вас нет скина и плаща
                 </span>
@@ -267,7 +274,7 @@ export default function SettingsForm({
                 <button
                   onClick={handleSkinRemove}
                   disabled={loading}
-                  className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+                  className="mc-btn mc-btn-danger flex-1 text-sm"
                 >
                   Удалить скин
                 </button>
@@ -276,7 +283,7 @@ export default function SettingsForm({
                 <button
                   onClick={handleCapeRemove}
                   disabled={loading}
-                  className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+                  className="mc-btn mc-btn-danger flex-1 text-sm"
                 >
                   Удалить плащ
                 </button>
@@ -285,28 +292,20 @@ export default function SettingsForm({
           </div>
 
           <div className="flex-1 space-y-4">
-            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4">
+            <div className="mc-inset p-4">
               <label className="block text-sm font-medium mb-2">Модель персонажа</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleModelChange("wide")}
                   disabled={modelSaving}
-                  className={`px-4 py-2 rounded-lg text-sm border transition-colors disabled:opacity-50 ${
-                    skinModel === "wide"
-                      ? "bg-[#7c3aed] border-[#7c3aed] text-white"
-                      : "bg-[var(--card)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
-                  }`}
+                  className={`mc-btn text-sm ${skinModel === "wide" ? "mc-btn-primary" : ""}`}
                 >
                   Стив (широкая)
                 </button>
                 <button
                   onClick={() => handleModelChange("slim")}
                   disabled={modelSaving}
-                  className={`px-4 py-2 rounded-lg text-sm border transition-colors disabled:opacity-50 ${
-                    skinModel === "slim"
-                      ? "bg-[#7c3aed] border-[#7c3aed] text-white"
-                      : "bg-[var(--card)] border-[var(--border)] text-[var(--text)] hover:border-[#7c3aed]/50"
-                  }`}
+                  className={`mc-btn text-sm ${skinModel === "slim" ? "mc-btn-primary" : ""}`}
                 >
                   Алекс (тонкая)
                 </button>
@@ -316,7 +315,7 @@ export default function SettingsForm({
                 Именно с такой моделью ты будешь виден в игре.
               </p>
               {modelMessage && (
-                <p className={`mt-2 text-xs ${modelMessage.includes("Ошибка") ? "text-red-500" : "text-green-500"}`}>
+                <p className={`mt-2 text-xs ${modelMessage.includes("Ошибка") ? "text-[var(--mc-red)]" : "text-[var(--mc-green-light)]"}`}>
                   {modelMessage}
                 </p>
               )}
@@ -327,10 +326,10 @@ export default function SettingsForm({
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed p-8 text-center cursor-pointer transition-colors ${
                 dragActive
-                  ? "border-[#7c3aed] bg-[#7c3aed]/10"
-                  : "border-[var(--border)] hover:border-[#7c3aed]/50"
+                  ? "border-[var(--mc-green)] bg-[var(--mc-green)]/10"
+                  : "border-[var(--border-soft)] hover:border-[var(--mc-green-light)]"
               }`}
             >
               <p className="text-[var(--text)] text-sm mb-1">
@@ -353,13 +352,13 @@ export default function SettingsForm({
             />
 
             {newFileType && (
-              <p className="text-green-500 text-sm">
+              <p className="text-[var(--mc-green-light)] text-sm">
                 {newFileType === "skin" ? "Скин" : "Плащ"} выбран и готов к загрузке
               </p>
             )}
 
             {message && (
-              <p className={`text-sm ${message.includes("Ошибка") || message.includes("Неизвестный") || message.includes("Только") ? "text-red-500" : "text-green-500"}`}>
+              <p className={`text-sm ${message.includes("Ошибка") || message.includes("Неизвестный") || message.includes("Только") ? "text-[var(--mc-red)]" : "text-[var(--mc-green-light)]"}`}>
                 {message}
               </p>
             )}
@@ -369,7 +368,7 @@ export default function SettingsForm({
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="flex-1 py-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="mc-btn mc-btn-primary flex-1 text-sm"
                 >
                   {loading ? "Сохранение..." : "Сохранить"}
                 </button>
@@ -384,7 +383,7 @@ export default function SettingsForm({
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
                   disabled={loading}
-                  className="px-4 py-3 bg-[var(--bg)] border border-[var(--border)] hover:border-[var(--text-muted)] text-[var(--text)] rounded-lg text-sm transition-colors disabled:opacity-50"
+                  className="mc-btn text-sm"
                   title="Сбросить"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -394,14 +393,15 @@ export default function SettingsForm({
               </div>
             )}
 
-            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4">
+            <div className="mc-inset p-4">
               <h3 className="text-sm font-medium mb-2">Где скачать:</h3>
               <ul className="text-xs text-[var(--text-secondary)] space-y-1 list-disc list-inside">
-                <li>Скины: <a href="https://namemc.com/" target="_blank" rel="noopener" className="text-[#7c3aed] hover:underline">namemc.com</a></li>
-                <li>Плащи: <a href="https://laby.net/ru/cloaks" target="_blank" rel="noopener" className="text-[#7c3aed] hover:underline">laby.net</a></li>
+                <li>Скины: <a href="https://namemc.com/" target="_blank" rel="noopener" className="text-[var(--mc-green)] hover:underline">namemc.com</a></li>
+                <li>Плащи: <a href="https://laby.net/ru/cloaks" target="_blank" rel="noopener" className="text-[var(--mc-green)] hover:underline">laby.net</a></li>
               </ul>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

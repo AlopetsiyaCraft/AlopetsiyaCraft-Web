@@ -11,11 +11,11 @@ const TABS = [
   { name: "Внешний вид", suffix: "/appearance" },
 ];
 
-/** Навигация по вкладкам профиля (VK-стиль). */
+/** Навигация по вкладкам профиля — пиксельные табы. */
 export default function ProfileTabs({ baseHref }: { baseHref: string }) {
   const pathname = usePathname();
   return (
-    <nav className="flex gap-1 border-b border-[var(--border)]">
+    <nav className="mc-panel-flat no-scrollbar flex gap-1 overflow-x-auto p-1.5">
       {TABS.map((t) => {
         const href = baseHref + t.suffix;
         const active = pathname === href;
@@ -23,10 +23,10 @@ export default function ProfileTabs({ baseHref }: { baseHref: string }) {
           <Link
             key={t.suffix || "/"}
             href={href}
-            className={`px-4 py-2.5 text-sm transition-colors ${
+            className={`shrink-0 border-2 px-3 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition-colors ${
               active
-                ? "text-[var(--text)] border-b-2 border-[#7c3aed]"
-                : "text-[var(--text-muted)] hover:text-[var(--text)]"
+                ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                : "border-transparent text-[var(--text-muted)] hover:border-black hover:bg-[var(--hover)] hover:text-[var(--text)]"
             }`}
           >
             {t.name}

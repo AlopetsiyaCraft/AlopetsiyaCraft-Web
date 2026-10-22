@@ -52,59 +52,83 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
-      <div className="w-full max-w-md p-8 bg-[var(--card)] rounded-lg border border-[var(--border)]">
-        <h1 className="text-2xl font-bold text-[var(--text)] text-center mb-6">
-          Вход на АлопецияКрафт
-        </h1>
+    <div className="mc-hero-bg force-dark flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      <Link href="/" className="mb-5 flex items-center gap-2.5">
+        <span
+          className="inline-block h-7 w-7 border-2 border-black"
+          style={{ background: "linear-gradient(to bottom, #7dbb52 0 34%, #5d9c3c 34% 46%, #8b7355 46% 100%)" }}
+          aria-hidden
+        />
+        <span className="mc-text-shadow text-lg font-bold uppercase tracking-[0.06em]">
+          <span className="text-[var(--text)]">Алопеция</span>
+          <span className="text-[var(--mc-green-light)]">Крафт</span>
+        </span>
+      </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-              Никнейм Minecraft
-            </label>
-            <input
-              type="text"
-              name="nickname"
-              required
-              className="w-full px-4 py-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[#7c3aed]"
-              placeholder="Введите ваш ник"
-            />
-          </div>
+      <div className="mc-panel w-full max-w-md overflow-hidden">
+        <div className="mc-grass-line" />
+        <div className="mc-head justify-between">
+          <span>Вход в аккаунт</span>
+          <span className="mc-chip text-[0.58rem] text-[var(--text-muted)]">auth</span>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-              Пароль
-            </label>
-            <input
-              type="password"
-              name="password"
-              required
-              className="w-full px-4 py-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[#7c3aed]"
-              placeholder="Введите пароль"
-            />
-          </div>
+        <div className="p-6 sm:p-7">
+          <p className="mb-5 text-sm text-[var(--text-secondary)]">
+            Войди, чтобы писать в чат, смотреть профиль и загружать скриншоты.
+          </p>
 
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
-          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                Никнейм Minecraft
+              </label>
+              <input
+                type="text"
+                name="nickname"
+                required
+                className="mc-input"
+                placeholder="AlexMilash"
+                autoComplete="username"
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium rounded-lg transition-colors disabled:opacity-50"
-          >
-            {loading ? "Вход..." : "Войти"}
-          </button>
-        </form>
+            <div>
+              <label className="mb-1.5 block text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                Пароль
+              </label>
+              <input
+                type="password"
+                name="password"
+                required
+                className="mc-input"
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
 
-        <p className="mt-6 text-center text-[var(--text-muted)] text-sm">
-          Нет аккаунта?{" "}
-          <Link href="/auth/register" className="text-[#7c3aed] hover:underline">
-            Зарегистрироваться
-          </Link>
-        </p>
+            {error && (
+              <p className="border-2 border-black bg-[rgba(214,69,69,0.18)] px-3 py-2 text-sm text-[var(--mc-red)]">
+                {error}
+              </p>
+            )}
+
+            <button type="submit" disabled={loading} className="mc-btn mc-btn-primary w-full py-2.5">
+              {loading ? "Вход…" : "Войти"}
+            </button>
+          </form>
+
+          <p className="mt-5 border-t-2 border-black/40 pt-4 text-center text-sm text-[var(--text-muted)]">
+            Нет аккаунта?{" "}
+            <Link href="/auth/register" className="font-semibold text-[var(--mc-green-light)] hover:underline">
+              Зарегистрироваться
+            </Link>
+          </p>
+        </div>
       </div>
+
+      <Link href="/" className="mt-5 text-xs text-[var(--text-muted)] hover:text-[var(--text)]">
+        ← На главную
+      </Link>
     </div>
   );
 }

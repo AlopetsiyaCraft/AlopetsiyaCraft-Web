@@ -4,11 +4,13 @@ import { db } from "@/lib/db";
 import { playerStats, seasons, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
+import PlayerHead from "@/components/mc/PlayerHead";
 import {
   STAT_CATEGORIES,
   STAT_CATEGORY_KEYS,
   PLAY_TIME_KEY,
   formatStatValue,
+  getStatCategory,
 } from "@/lib/stats";
 
 /**
@@ -17,36 +19,13 @@ import {
  * POST /api/stats/from-server — значения ванильной статистики Minecraft.
  */
 
-function PlayerHead({ skinUrl, nickname }: { skinUrl: string | null; nickname: string }) {
-  if (!skinUrl) {
-    return (
-      <div className="w-9 h-9 bg-[#7c3aed] rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-        {nickname[0]?.toUpperCase() || "?"}
-      </div>
-    );
-  }
-  return (
-    <div className="w-9 h-9 rounded relative overflow-hidden flex-shrink-0">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `url(${skinUrl})`,
-          backgroundSize: "288px 288px",
-          backgroundPosition: "-36px -36px",
-          imageRendering: "pixelated",
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `url(${skinUrl})`,
-          backgroundSize: "288px 288px",
-          backgroundPosition: "-180px -36px",
-          imageRendering: "pixelated",
-        }}
-      />
-    </div>
-  );
+const MEDALS = ["#f2c94c", "#c9c9c9", "#c98b4b"];
+
+/** Крупная цифра метрики для активной категории. */
+function metricValue(key: string, values: Map<string, number>) {
+  const category = STAT_CATEGORIES.find((c) => c.key === key);
+  if (!category) return "—";
+  return formatStatValue(category, values.get(key) ?? 0);
 }
 
 interface Row {
@@ -141,115 +120,152 @@ export default async function StatsPage({
 
   const { rows } = await getLeaderboard(sortKey);
   const viewerNickname = viewer?.name?.toLowerCase() ?? null;
+  const activeCategory = getStatCategory(sortKey);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
         user={viewer ? { name: viewer.name, skinUrl: viewer.skinUrl, bld: viewer.bld } : undefined}
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-bold">Статистика</h1>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="mc-title text-3xl sm:text-4xl">Статистика</h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {activeCategory?.hint ?? "Топ игроков сервера"}
+            </p>
+          </div>
+          <span className="mc-chip text-[0.65rem] text-[var(--text-secondary)]">
+            Игроков: {rows.length}
+          </span>
+        </div>
+
+        {/* Категории-табы */}
+        <div className="mc-panel-flat no-scrollbar flex gap-1 overflow-x-auto p-1.5">
+          {STAT_CATEGORIES.map((c) => {
+            const active = c.key === sortKey;
+            return (
+              <Link
+                key={c.key}
+                href={`/stats?sort=${c.key}`}
+                className={`shrink-0 border-2 px-3 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition-colors ${
+                  active
+                    ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                    : "border-transparent text-[var(--text-muted)] hover:border-black hover:bg-[var(--hover)] hover:text-[var(--text)]"
+                }`}
+              >
+                {c.label}
+              </Link>
+            );
+          })}
         </div>
 
         {rows.length === 0 ? (
-          <div className="p-8 text-center text-[var(--text-muted)] text-sm border border-[var(--border)] rounded-lg">
-            Пока нет данных — статистика появится, когда сервер начнёт присылать её на сайт
-            (мод chatbridge или скрипт, читающий <span className="font-mono">world/stats/*.json</span>).
+          <div className="mc-inset p-8 text-center text-sm text-[var(--text-muted)]">
+            Пока нет данных — статистика появится, когда сервер начнёт присылать её на сайт.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            {/* Заголовки колонок висят над карточкой — у них нет фона;
-                фон только у таблицы со списком игроков ниже. */}
-            <table className="w-full text-sm table-fixed">
-              <colgroup>
-                <col className="w-12" />
-                <col />
-                {STAT_CATEGORIES.map((c) => (
-                  <col key={c.key} className="w-24" />
-                ))}
-              </colgroup>
-              <thead>
-                <tr className="text-[var(--text-muted)]">
-                  <th className="px-4 py-2" aria-hidden="true"></th>
-                  <th className="px-4 py-2" aria-hidden="true"></th>
-                  {STAT_CATEGORIES.map((c) => {
-                    const active = c.key === sortKey;
-                    return (
-                      <th key={c.key} className="text-center font-semibold">
-                        <Link
-                          href={`/stats?sort=${c.key}`}
-                          className={`flex items-center justify-center w-full h-full px-2 py-2 cursor-pointer transition-colors ${
-                            active
-                              ? "text-[var(--text)]"
-                              : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                          }`}
-                        >
-                          {c.label}
-                        </Link>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-            </table>
+          <>
+            {/* Пьедестал: топ-3 по активной категории */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {rows.slice(0, 3).map((row, i) => (
+                <div
+                  key={row.nickname}
+                  className="mc-panel flex items-center gap-3 p-3"
+                  style={{ borderTop: `6px solid ${MEDALS[i]}` }}
+                >
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black font-mono text-sm font-bold text-[#1a1a1a]"
+                    style={{ backgroundColor: MEDALS[i] }}
+                  >
+                    {i + 1}
+                  </span>
+                  <PlayerHead skinUrl={row.skinUrl} nickname={row.nickname} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/profile/${encodeURIComponent(row.nickname)}`}
+                      className="block truncate text-sm font-semibold hover:text-[var(--mc-green-light)]"
+                    >
+                      {row.nickname}
+                    </Link>
+                    <div className="truncate font-mono text-lg leading-tight text-[var(--mc-gold)]">
+                      {metricValue(sortKey, row.values)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-            <div className="mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-              <table className="w-full text-sm table-fixed border-separate border-spacing-y-[3px]">
-                <colgroup>
-                  <col className="w-12" />
-                  <col />
-                  {STAT_CATEGORIES.map((c) => (
-                    <col key={c.key} className="w-24" />
-                  ))}
-                </colgroup>
-                <tbody>
-                  {rows.map((row, index) => {
-                    const rank = index + 1;
-                    const isViewer = viewerNickname !== null && row.nickname.toLowerCase() === viewerNickname;
-                    return (
-                      <tr
-                        key={row.nickname}
-                        className={
+            {/* Полный список */}
+            <div className="mc-panel overflow-hidden">
+              <div className="mc-head">
+                <span className="min-w-0 flex-1 truncate">Рейтинг · {activeCategory?.label}</span>
+                <span className="mc-chip text-[0.6rem] text-[var(--text-muted)]">сортировка</span>
+              </div>
+              <ol>
+                {rows.map((row, index) => {
+                  const rank = index + 1;
+                  const isViewer =
+                    viewerNickname !== null && row.nickname.toLowerCase() === viewerNickname;
+                  const top = rank <= 3;
+                  return (
+                    <li key={row.nickname} className="border-b-2 border-black/40 last:border-b-0">
+                      <div
+                        className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
                           isViewer
-                            ? "bg-[#7c3aed]/10"
-                            : "bg-[var(--bubble)] hover:bg-[var(--hover)]"
-                        }
+                            ? "bg-[rgba(125,187,82,0.14)]"
+                            : top
+                              ? "bg-[var(--card-alt)]"
+                              : "hover:bg-[var(--hover)]"
+                        }`}
                       >
-                        <td className="px-2 py-3 font-mono font-semibold text-[var(--text-muted)] text-center">
-                          #{rank}
-                        </td>
-                        <td className="pl-3 pr-4 py-3">
+                        <span
+                          className={`w-7 shrink-0 text-center font-mono text-sm ${
+                            top ? "font-bold" : "text-[var(--text-muted)]"
+                          }`}
+                          style={top ? { color: MEDALS[rank - 1] } : undefined}
+                        >
+                          {rank}
+                        </span>
+
+                        <PlayerHead skinUrl={row.skinUrl} nickname={row.nickname} size={34} />
+
+                        <div className="min-w-0 flex-1">
                           <Link
                             href={`/profile/${encodeURIComponent(row.nickname)}`}
-                            className="flex items-center gap-3 cursor-pointer"
+                            className="flex items-center gap-2"
                           >
-                            <PlayerHead skinUrl={row.skinUrl} nickname={row.nickname} />
-                            <span className="font-medium">{row.nickname}</span>
+                            <span className="truncate text-sm font-semibold">{row.nickname}</span>
+                            {isViewer && (
+                              <span className="mc-chip shrink-0 text-[0.55rem] text-[var(--mc-green-light)]">
+                                ты
+                              </span>
+                            )}
                           </Link>
-                        </td>
-                        {STAT_CATEGORIES.map((c) => (
-                          <td
-                            key={c.key}
-                            className={`px-2 py-3 text-center font-mono whitespace-nowrap ${
-                              c.key === sortKey
-                                ? "text-[var(--text)]"
-                                : "text-[var(--text-muted)]"
-                            }`}
-                          >
-                            {formatStatValue(c, row.values.get(c.key) ?? 0)}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[11px] text-[var(--text-muted)]">
+                            <span>⏱ {metricValue(PLAY_TIME_KEY, row.values)}</span>
+                            <span className="hidden sm:inline">
+                              🗡 {metricValue("mob_kills", row.values)}
+                            </span>
+                            <span className="hidden md:inline">
+                              ⛏ {metricValue("blocks_mined", row.values)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right font-mono text-base text-[var(--text)] sm:text-lg">
+                          {metricValue(sortKey, row.values)}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
-          </div>
+          </>
         )}
       </main>
     </div>
@@ -257,6 +273,6 @@ export default async function StatsPage({
 }
 
 export const metadata = {
-  title: "Статистика — АлопецияКрафт",
+  title: "Статистика",
   description: "Топ игроков сервера по всем категориям статистики, сортировка по клику",
 };

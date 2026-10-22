@@ -66,18 +66,18 @@ export default function SnapshotHistory({ snapshots, nickname }: Props) {
       <h2 className="text-xl font-bold">История инвентаря · {nickname}</h2>
 
       {message && (
-        <div className="px-4 py-3 text-sm text-green-300 border border-green-500/40 bg-green-500/10 rounded-lg">
+        <div className="mc-inset px-4 py-3 text-sm text-[var(--mc-green-light)] border-[var(--mc-green)]">
           ✅ {message}
         </div>
       )}
       {error && (
-        <div className="px-4 py-3 text-sm text-red-300 border border-red-500/40 bg-red-500/10 rounded-lg">
+        <div className="mc-inset px-4 py-3 text-sm text-[var(--mc-red)] border-[var(--mc-red)]">
           ⛔ {error}
         </div>
       )}
 
       {snapshots.length === 0 ? (
-        <div className="p-6 text-sm text-[var(--text-muted)] border border-[var(--border)] rounded-lg">
+        <div className="mc-inset p-6 text-sm text-[var(--text-muted)]">
           Истории пока нет — снимки появятся при входе/выходе игрока с сервера
           и раз в 10 минут во время игры.
         </div>
@@ -86,7 +86,7 @@ export default function SnapshotHistory({ snapshots, nickname }: Props) {
           {snapshots.map((s) => (
             <div
               key={s.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)]"
+              className="mc-panel-flat flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
             >
               <span className="text-sm font-mono text-[var(--text-secondary)]">
                 {new Date(s.capturedAt).toLocaleString("ru-RU")}
@@ -102,7 +102,7 @@ export default function SnapshotHistory({ snapshots, nickname }: Props) {
                 <button
                   onClick={() => restore(s.id)}
                   disabled={pendingId !== null}
-                  className="px-3 py-1.5 text-sm rounded-md bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25 disabled:opacity-50 transition-colors"
+                  className="mc-btn mc-btn-danger text-sm"
                 >
                   {pendingId === s.id ? "Запланировано…" : "Откатить"}
                 </button>

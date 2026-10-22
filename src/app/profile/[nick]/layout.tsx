@@ -58,51 +58,60 @@ export default async function ProfileLayout({
   const isOwn = target.id === me.id;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
         user={{ name: me.name, skinUrl: me.skinUrl, bld: me.bld }}
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-          <div className="p-6 sm:p-8">
-            <div className="flex items-center gap-6">
-              <div className="flex-shrink-0">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8">
+        <div className="mc-panel overflow-hidden">
+          {/* Пиксельный баннер */}
+          <div className="mc-hero-bg h-20 border-b-2 border-black sm:h-24" />
+
+          <div className="px-4 pb-5 sm:px-6">
+            <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end">
+              <div className="shrink-0">
                 {target.skinUrl ? (
-                  <div className="w-24 h-24 rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--bg)]">
-                    <HeadViewer skinUrl={target.skinUrl} size={96} />
+                  <div className="h-24 w-24 overflow-hidden border-2 border-black bg-[var(--bg)] shadow-[3px_3px_0_rgba(0,0,0,.55)] sm:h-28 sm:w-28">
+                    <HeadViewer skinUrl={target.skinUrl} size={112} />
                   </div>
                 ) : (
-                  <div className="w-24 h-24 bg-[var(--bg)] border border-[var(--border)] rounded-xl flex items-center justify-center text-[var(--text-muted)] text-xs text-center px-2">
+                  <div className="flex h-24 w-24 items-center justify-center border-2 border-black bg-[var(--bg-alt)] px-1 text-center text-[0.65rem] text-[var(--text-muted)] shadow-[3px_3px_0_rgba(0,0,0,.55)] sm:h-28 sm:w-28">
                     Нет скина
                   </div>
                 )}
               </div>
 
-              <div className="flex-1 min-w-0 flex flex-col gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h1 className="text-3xl font-bold">{target.nickname}</h1>
-                    <NameHistoryBadge names={previousNames} />
-                  </div>
-                  <p className="text-[var(--text-secondary)] text-sm">
-                    Участник с {new Date(target.createdAt).toLocaleDateString("ru-RU")}
-                  </p>
-                  <p className="text-[var(--text-secondary)] text-sm">
-                    Роль: {target.role === "admin" ? "Администратор" : "Игрок"}
-                  </p>
-                  {isOwn && (
-                    <Link
-                      href="/profile/settings"
-                      className="inline-block mt-3 px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg transition-colors"
-                    >
-                      Изменить профиль
-                    </Link>
+              <div className="min-w-0 flex-1 sm:pb-1">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <h1 className="mc-title text-2xl sm:text-3xl">{target.nickname}</h1>
+                  <NameHistoryBadge names={previousNames} />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="mc-chip text-[0.6rem] text-[var(--mc-green-light)]">
+                    {target.role === "admin" ? "Администратор" : "Игрок"}
+                  </span>
+                  <span className="mc-chip text-[0.6rem] text-[var(--text-secondary)]">
+                    с {new Date(target.createdAt).toLocaleDateString("ru-RU")}
+                  </span>
+                  {target.bld != null && (
+                    <span className="mc-chip font-mono text-[0.6rem] text-[var(--mc-gold)]">
+                      {target.bld.toLocaleString("ru-RU")} BLD
+                    </span>
                   )}
                 </div>
               </div>
+
+              {isOwn && (
+                <Link href="/profile/settings" className="mc-btn mc-btn-primary self-start py-1.5 text-xs sm:self-end">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24">
+                    <path strokeLinecap="square" d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
+                  </svg>
+                  Изменить профиль
+                </Link>
+              )}
             </div>
           </div>
         </div>

@@ -40,7 +40,7 @@ export default function SkinPreview({ skinUrl, size = 64 }: SkinPreviewProps) {
       ref={canvasRef}
       width={size}
       height={size}
-      className="rounded"
+      className=""
       style={{ background: "transparent" }}
     />
   );

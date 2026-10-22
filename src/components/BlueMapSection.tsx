@@ -3,10 +3,8 @@
 const BLUEMAP_URL = (process.env.BLUEMAP_URL ?? "http://127.0.0.1:8100").replace(/\/+$/, "");
 
 /**
- * 3D-карта мира (BlueMap) — блок в стиле «Чат сервера»: карточка с шапкой
- * и заголовком «Карта мира» внутри блока. iframe без lazy-загрузки (чтобы
- * появление фрейма не давало скачков скролла), без внутреннего скролла и
- * без фокуса. Если веб-сервер мода не отвечает — заглушка.
+ * 3D-карта мира (BlueMap) — пиксельная панель: шапка, iframe и строка статуса.
+ * Если веб-сервер мода не отвечает — заглушка.
  */
 export default async function BlueMapSection({ showTitle = true }: { showTitle?: boolean }) {
   let available = false;
@@ -21,19 +19,28 @@ export default async function BlueMapSection({ showTitle = true }: { showTitle?:
   }
 
   return (
-    <section className="mb-8">
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
+    <section className="mb-6">
+      <div className="mc-panel overflow-hidden">
         {showTitle && (
-          <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
-            <h2 className="font-semibold">Карта мира</h2>
+          <div className="mc-head">
+            <span className="flex shrink-0 items-center text-[var(--mc-green-light)]">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+                <path strokeLinecap="square" d="M9 20l-5 1V4l5-1m0 17l6-2m-6 2V3m6 15l5 1V4l-5 1m0 15V5m0 0L9 3" />
+              </svg>
+            </span>
+            <h2 className="min-w-0 flex-1 truncate text-[0.78rem] font-bold uppercase tracking-[0.12em]">
+              Карта мира
+            </h2>
+            <span className="mc-chip text-[0.6rem] text-[var(--text-secondary)]">BlueMap</span>
           </div>
         )}
+
         {available ? (
           <div className="bg-black">
             <iframe
               src={`${BLUEMAP_URL}/`}
               title="Карта мира BlueMap"
-              className="w-full block"
+              className="block w-full"
               style={{ height: "47.6vh" }}
               scrolling="no"
               tabIndex={-1}
@@ -41,8 +48,28 @@ export default async function BlueMapSection({ showTitle = true }: { showTitle?:
             />
           </div>
         ) : (
-          <div className="p-8 text-center text-[var(--text-muted)] text-sm">
-            Карта мира недоступна — Minecraft-сервер с модом BlueMap не запущен.
+          <div className="mc-inset m-3 flex flex-col items-center gap-2 px-6 py-10 text-center">
+            <span className="mc-panel-flat flex h-12 w-12 items-center justify-center">
+              <svg className="h-6 w-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="square" d="M9 20l-5 1V4l5-1m0 17l6-2m-6 2V3m6 15l5 1V4l-5 1m0 15V5m0 0L9 3" />
+              </svg>
+            </span>
+            <p className="text-sm font-semibold text-[var(--text-secondary)]">Карта недоступна</p>
+            <p className="max-w-sm text-xs text-[var(--text-muted)]">
+              Запусти Minecraft-сервер — BlueMap поднимется на порту 8100 и карта появится здесь.
+            </p>
+          </div>
+        )}
+
+        {available && (
+          <div className="flex items-center justify-between gap-2 border-t-2 border-black bg-[var(--card-alt)] px-3 py-1.5 text-[0.65rem] uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 bg-[var(--mc-green-light)]" aria-hidden />
+              Онлайн-карта
+            </span>
+            <a href={BLUEMAP_URL} target="_blank" rel="noreferrer" className="hover:text-[var(--mc-green-light)]">
+              Открыть отдельно ↗
+            </a>
           </div>
         )}
       </div>

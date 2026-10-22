@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { PhotoCommentItem, PostCommentItem } from "@/lib/profile";
+import PlayerHead from "@/components/mc/PlayerHead";
 
 type AnyComment = PhotoCommentItem | PostCommentItem;
 
@@ -28,66 +29,22 @@ function CommentAvatar({ url, nickname }: { url: string | null; nickname: string
         e.preventDefault();
         window.location.href = `/profile/${encodeURIComponent(nickname)}`;
       }}
-      className="w-8 h-8 shrink-0 rounded bg-[var(--hover)] overflow-hidden flex items-center justify-center text-sm font-bold"
+      className="shrink-0"
       title={nickname}
     >
-      {url ? (
-        <div
-          className="w-8 h-8"
-          style={{
-            backgroundImage: `url(${url})`,
-            backgroundSize: "256px 256px",
-            backgroundPosition: "-32px -32px",
-            imageRendering: "pixelated",
-          }}
-        />
-      ) : (
-        <span className="text-[var(--text-secondary)]">{nickname[0]?.toUpperCase() ?? "?"}</span>
-      )}
+      <PlayerHead skinUrl={url} nickname={nickname} size={32} />
     </a>
   );
 }
 
 /** Мини-голова 16px (для тултипа «Оценили»). */
 function MiniHead({ url, nickname }: { url: string | null; nickname: string }) {
-  return (
-    <div className="w-4 h-4 shrink-0 rounded-[3px] overflow-hidden bg-[var(--hover)] flex items-center justify-center text-[8px] font-bold">
-      {url ? (
-        <div
-          className="w-4 h-4"
-          style={{
-            backgroundImage: `url(${url})`,
-            backgroundSize: "128px 128px",
-            backgroundPosition: "-16px -16px",
-            imageRendering: "pixelated",
-          }}
-        />
-      ) : (
-        <span className="text-[var(--text-secondary)]">{nickname[0]?.toUpperCase() ?? "?"}</span>
-      )}
-    </div>
-  );
+  return <PlayerHead skinUrl={url} nickname={nickname} size={16} borderWidth={1} />;
 }
 
 /** Маленькая голова 24px (для плашки «Ответ @ник…» — меньше, чем в комментариях). */
 function ReplyAvatar({ url, nickname }: { url: string | null; nickname: string }) {
-  return (
-    <div className="w-6 h-6 shrink-0 rounded overflow-hidden bg-[var(--hover)] flex items-center justify-center text-[10px] font-bold">
-      {url ? (
-        <div
-          className="w-6 h-6"
-          style={{
-            backgroundImage: `url(${url})`,
-            backgroundSize: "192px 192px",
-            backgroundPosition: "-24px -24px",
-            imageRendering: "pixelated",
-          }}
-        />
-      ) : (
-        <span className="text-[var(--text-secondary)]">{nickname[0]?.toUpperCase() ?? "?"}</span>
-      )}
-    </div>
-  );
+  return <PlayerHead skinUrl={url} nickname={nickname} size={24} />;
 }
 
 interface CommentTreeProps {
@@ -164,7 +121,7 @@ function LikeButton({ c }: { c: AnyComment }) {
     <span className="relative group/like inline-flex">
       <span
         className={`inline-flex items-center gap-1.5 ${
-          c.likedByMe ? "text-[#e13a56]" : "text-[var(--text-muted)]"
+          c.likedByMe ? "text-[var(--mc-red)]" : "text-[var(--text-muted)]"
         }`}
       >
         {heart}
@@ -172,7 +129,7 @@ function LikeButton({ c }: { c: AnyComment }) {
       </span>
       {c.likeCount > 0 && (
         <span className="absolute bottom-full right-0 mb-1.5 z-30 hidden group-hover/like:block">
-          <span className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg px-3 py-2 flex flex-col gap-1.5 min-w-44">
+          <span className="mc-panel px-3 py-2 flex flex-col gap-1.5 min-w-44">
             <span className="text-xs text-[var(--text-muted)]">
               Оценили: <span className="text-[var(--text-secondary)]">{c.likeCount}</span>
             </span>
@@ -186,7 +143,7 @@ function LikeButton({ c }: { c: AnyComment }) {
                       e.preventDefault();
                       window.location.href = `/profile/${encodeURIComponent(l.nickname)}`;
                     }}
-                    className="text-[var(--text-secondary)] hover:text-[#7c3aed]"
+                    className="text-[var(--text-secondary)] hover:text-[var(--mc-green)]"
                   >
                     {l.nickname}
                   </a>
@@ -257,7 +214,7 @@ export default function CommentTree({
             <div className="flex items-center gap-x-1.5 flex-wrap">
               <a
                 href={`/profile/${encodeURIComponent(c.authorNickname)}`}
-                className="text-sm font-medium text-[var(--text)] hover:text-[#7c3aed]"
+                className="text-sm font-medium text-[var(--text)] hover:text-[var(--mc-green)]"
                 onClick={(e) => {
                   e.preventDefault();
                   window.location.href = `/profile/${encodeURIComponent(c.authorNickname)}`;
@@ -270,7 +227,7 @@ export default function CommentTree({
                   <span className="text-[var(--text-secondary)]">→</span> @{c.replyToNickname}
                 </span>
               )}
-              {c.viewerIsAuthor && <span className="text-xs text-[#7c3aed]">· Вы</span>}
+              {c.viewerIsAuthor && <span className="text-xs text-[var(--mc-green)]">· Вы</span>}
             </div>
             {/* Строка 2: текст */}
             <p className="text-sm mt-0.5 break-words whitespace-pre-wrap">{c.text}</p>
@@ -283,8 +240,8 @@ export default function CommentTree({
                     if (replyingTo?.id === c.id) setReplyingTo(null);
                     else setReplyingTo(c);
                   }}
-                  className={`text-[var(--text-muted)] hover:text-[#7c3aed] ${
-                    replyingTo?.id === c.id ? "text-[#7c3aed]" : ""
+                  className={`text-[var(--text-muted)] hover:text-[var(--mc-green)] ${
+                    replyingTo?.id === c.id ? "text-[var(--mc-green)]" : ""
                   }`}
                 >
                   Ответить
@@ -326,7 +283,7 @@ export default function CommentTree({
               <button
                 type="button"
                 onClick={onRetry}
-                className="text-[#7c3aed] hover:underline shrink-0"
+                className="text-[var(--mc-green)] hover:underline shrink-0"
               >
                 Повторить
               </button>
@@ -344,7 +301,7 @@ export default function CommentTree({
         panel ? (
           <>
             {replyingTo && (
-              <div className="shrink-0 flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-1.5 mx-5 my-3">
+              <div className="mc-inset shrink-0 flex items-center gap-2 text-xs text-[var(--text-secondary)] px-3 py-1.5 mx-5 my-3">
                 <ReplyAvatar url={replyingTo.authorSkinUrl} nickname={replyingTo.authorNickname} />
                 <span className="min-w-0">
                   Ответ <span className="text-[var(--text)] font-medium">@{replyingTo.authorNickname}</span>
@@ -353,7 +310,7 @@ export default function CommentTree({
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="ml-auto shrink-0 text-[var(--text-muted)] hover:text-red-400"
+                  className="ml-auto shrink-0 text-[var(--text-muted)] hover:text-[var(--mc-red)]"
                   title="Отменить ответ"
                 >
                   ✕
@@ -361,28 +318,28 @@ export default function CommentTree({
               </div>
             )}
             {/* Полоса ввода: высота ровно как у нижнего блока под фото, черта — на одном уровне с ним */}
-            <form className="shrink-0 h-14 border-t border-[var(--border)] flex items-center gap-2 px-5" onSubmit={submit}>
+            <form className="shrink-0 h-14 border-t-2 border-black flex items-center gap-2 px-5" onSubmit={submit}>
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onFocus={() => setFocused(true)}
                 maxLength={500}
                 placeholder={replyingTo ? `Ответить ${replyingTo.authorNickname}…` : "Написать комментарий…"}
-                className="flex-1 min-w-0 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
+                className="mc-input flex-1 min-w-0 text-sm"
               />
               {focused && (
                 <>
                   <button
                     type="button"
                     onClick={cancelComment}
-                    className="px-2.5 py-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg transition-colors shrink-0 whitespace-nowrap"
+                    className="mc-btn text-sm shrink-0 whitespace-nowrap"
                   >
                     Отмена
                   </button>
                   <button
                     type="submit"
                     disabled={!text.trim() || sending}
-                    className="px-3.5 py-1.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50 shrink-0 whitespace-nowrap"
+                    className="mc-btn mc-btn-primary text-sm shrink-0 whitespace-nowrap"
                   >
                     {sending ? "…" : "Отправить"}
                   </button>
@@ -393,7 +350,7 @@ export default function CommentTree({
         ) : (
           <form className="mt-0.5 flex flex-col gap-2" onSubmit={submit}>
             {replyingTo && (
-              <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-1.5">
+              <div className="mc-inset flex items-center gap-2 text-xs text-[var(--text-secondary)] px-3 py-1.5">
                 <ReplyAvatar url={replyingTo.authorSkinUrl} nickname={replyingTo.authorNickname} />
                 <span className="min-w-0">
                   Ответ <span className="text-[var(--text)] font-medium">@{replyingTo.authorNickname}</span>
@@ -402,7 +359,7 @@ export default function CommentTree({
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="ml-auto shrink-0 text-[var(--text-muted)] hover:text-red-400"
+                  className="ml-auto shrink-0 text-[var(--text-muted)] hover:text-[var(--mc-red)]"
                   title="Отменить ответ"
                 >
                   ✕
@@ -415,12 +372,12 @@ export default function CommentTree({
                 onChange={(e) => setText(e.target.value)}
                 maxLength={500}
                 placeholder={replyingTo ? `Ответить ${replyingTo.authorNickname}…` : "Написать комментарий…"}
-                className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
+                className="mc-input flex-1 text-sm"
               />
               <button
                 type="submit"
                 disabled={!text.trim() || sending}
-                className="px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm rounded-lg disabled:opacity-50"
+                className="mc-btn mc-btn-primary text-sm"
               >
                 {sending ? "…" : "Отправить"}
               </button>

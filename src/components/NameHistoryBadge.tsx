@@ -19,11 +19,11 @@ export default function NameHistoryBadge({ names }: { names: PreviousName[] }) {
       onMouseLeave={() => setExpanded(false)}
     >
       <div
-        className="flex items-center gap-1.5 rounded cursor-default transition-all duration-200 overflow-hidden"
+        className="flex items-center gap-1.5 cursor-default transition-all duration-200 overflow-hidden"
         style={{
           height: 28,
-          backgroundColor: expanded ? "var(--bg-alt)" : "transparent",
-          border: expanded ? "1px solid var(--border)" : "1px solid transparent",
+          backgroundColor: expanded ? "var(--card-alt)" : "transparent",
+          border: expanded ? "2px solid #000" : "2px solid transparent",
           width: expanded ? "auto" : 28,
           padding: expanded ? "0 12px 0 8px" : "0",
         }}

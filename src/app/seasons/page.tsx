@@ -19,38 +19,46 @@ export default async function SeasonsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
       <Header
         seasons={allSeasons}
         user={user ? { name: user.name, skinUrl: user.skinUrl, bld: user.bld } : undefined}
         isLoggedIn={!!session}
       />
 
-      <main className="max-w-6xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-8">Все сезоны</h1>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <h1 className="mc-title text-3xl sm:text-4xl">Все сезоны</h1>
+          <span className="mc-chip text-[0.65rem] text-[var(--text-secondary)]">
+            Всего: {allSeasons.length}
+          </span>
+        </div>
 
         {allSeasons.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-[var(--text-muted)] text-lg">Сезоны пока не добавлены.</p>
+          <div className="mc-inset px-6 py-16 text-center">
+            <p className="text-sm text-[var(--text-muted)]">Сезоны пока не добавлены.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {allSeasons.map((season) => (
-              <Link
-                key={season.id}
-                href={`/seasons/${season.number}`}
-                className="block p-8 bg-[var(--card)] border border-[var(--border)] rounded-lg hover:border-[#7c3aed] transition-all hover:scale-[1.02]"
-              >
-                <div className="flex items-start justify-between">
+              <Link key={season.id} href={`/seasons/${season.number}`} className="mc-panel group block overflow-hidden">
+                <div className={`h-2 ${season.isActive ? "bg-[var(--mc-green)]" : "bg-[var(--border-soft)]"}`} />
+                <div className="flex items-start justify-between gap-3 p-6">
                   <div>
-                    <div className="text-sm text-[#7c3aed] mb-1">
+                    <div className="mb-1 font-mono text-xs uppercase tracking-[0.2em] text-[var(--mc-green-light)]">
                       Сезон {season.number}
                     </div>
-                    <h2 className="text-2xl font-bold mb-3">{season.name}</h2>
+                    <h2 className="text-xl font-bold transition-colors group-hover:text-[var(--mc-green-light)] sm:text-2xl">
+                      {season.name}
+                    </h2>
                   </div>
-                  {season.isActive && (
-                    <span className="px-3 py-1 text-xs bg-green-900 text-green-300 rounded-full">
+                  {season.isActive ? (
+                    <span className="mc-chip shrink-0 text-[0.6rem] text-[var(--mc-green-light)]">
                       Активный
+                    </span>
+                  ) : (
+                    <span className="mc-chip shrink-0 text-[0.6rem] text-[var(--text-muted)]">
+                      Архив
                     </span>
                   )}
                 </div>
@@ -62,3 +70,8 @@ export default async function SeasonsPage() {
     </div>
   );
 }
+
+export const metadata = {
+  title: "Сезоны",
+  description: "Все сезоны Minecraft-сервера АлопецияКрафт",
+};

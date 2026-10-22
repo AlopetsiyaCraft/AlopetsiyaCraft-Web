@@ -14,15 +14,23 @@ export default function PhotoCard({
 }) {
   return (
     <div
-      className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden cursor-pointer group"
+      className="mc-panel group cursor-pointer overflow-hidden transition-transform hover:-translate-y-0.5"
       onClick={() => onOpen(photo)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(photo);
+        }
+      }}
     >
-      <div className="aspect-video bg-[var(--bg)] overflow-hidden">
+      <div className="aspect-video overflow-hidden border-b-2 border-black bg-[var(--bg)]">
         <img
           src={photo.thumbUrl}
           alt={photo.caption || "Фото"}
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+          className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
           onError={(e) => {
             // Старое фото без миниатюры на диске — показываем оригинал.
             e.currentTarget.onerror = null;
@@ -31,11 +39,13 @@ export default function PhotoCard({
         />
       </div>
       <div className="p-3">
-        {photo.caption && <p className="text-sm mb-1 truncate">{photo.caption}</p>}
-        <div className="text-xs text-[var(--text-muted)] space-y-0.5">
+        {photo.caption && (
+          <p className="mb-1 truncate text-sm text-[var(--text)]">{photo.caption}</p>
+        )}
+        <div className="space-y-0.5 text-xs text-[var(--text-muted)]">
           {showAuthor && (
-            <div>
-              <span className="text-[var(--text-secondary)]">{photo.authorNickname}</span>
+            <div className="truncate font-semibold text-[var(--mc-green-light)]">
+              {photo.authorNickname}
             </div>
           )}
           <div className="flex flex-wrap gap-x-3">
@@ -43,7 +53,7 @@ export default function PhotoCard({
             {photo.albumName ? <span>«{photo.albumName}»</span> : null}
           </div>
           <div className="flex justify-between">
-            <span>{new Date(photo.createdAt).toLocaleDateString("ru-RU")}</span>
+            <span className="font-mono">{new Date(photo.createdAt).toLocaleDateString("ru-RU")}</span>
             {photo.commentCount > 0 && <span>💬 {photo.commentCount}</span>}
           </div>
         </div>

@@ -32,10 +32,6 @@ const CONTAINER_LABELS: { key: keyof PreparedContainers; label: string }[] = [
   { key: "enderChest", label: "Эндер-сундук" },
 ];
 
-/** Шахматный фон пустого слота, как в игре. */
-const checker =
-  "repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 0 0 / 16px 16px";
-
 function Counter({ n }: { n: number }) {
   // Количество показываем только для стаков > 1 (как в игре).
   if (n <= 1) return null;
@@ -88,14 +84,14 @@ function Tooltip({ stack }: { stack: PreparedStack }) {
     durabilityPct === null
       ? "text-[var(--text-secondary)]"
       : durabilityPct > 0.5
-        ? "text-green-400"
+        ? "text-[var(--mc-green-light)]"
         : durabilityPct > 0.2
-          ? "text-yellow-400"
-          : "text-red-400";
+          ? "text-[var(--mc-gold)]"
+          : "text-[var(--mc-red)]";
 
   return (
     <div className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-50 w-max max-w-[280px] opacity-0 transition-opacity duration-100 group-hover:opacity-100">
-      <div className="bg-[#100018]/95 backdrop-blur border border-[#7c3aed]/60 rounded-lg px-3 py-2.5 shadow-2xl">
+      <div className="mc-panel px-3 py-2.5">
         <div className="text-sm font-semibold text-white">{stack.name}</div>
         {stack.count > 1 && <div className="text-xs text-[var(--text-secondary)]">Кол-во: {stack.count}</div>}
         {durability !== null && stack.maxDamage && (
@@ -106,7 +102,7 @@ function Tooltip({ stack }: { stack: PreparedStack }) {
         {stack.enchantments && stack.enchantments.length > 0 && (
           <div className="mt-1 flex flex-col gap-0.5">
             {stack.enchantments.map((en, i) => (
-              <div key={i} className="text-xs text-[#a78bfa]">
+              <div key={i} className="text-xs text-[var(--mc-blue)]">
                 {enchantmentName(stack, i)}
                 {en.lvl > 1 ? ` ${roman(en.lvl)}` : ""}
               </div>
@@ -114,7 +110,7 @@ function Tooltip({ stack }: { stack: PreparedStack }) {
           </div>
         )}
         {stack.lore && stack.lore.length > 0 && (
-          <div className="mt-1 flex flex-col gap-0.5 text-xs italic text-[#9ca3af]">
+          <div className="mt-1 flex flex-col gap-0.5 text-xs italic text-[var(--text-muted)]">
             {stack.lore.map((line, i) => (
               <div key={i}>{line}</div>
             ))}
@@ -155,18 +151,18 @@ function roman(n: number): string {
 
 function Slot({ stack, size = 44 }: { stack: PreparedStack | null; size?: number }) {
   if (!stack) {
-    return <div className="relative rounded border border-[var(--border)]" style={{ width: size, height: size, background: checker }} />;
+    return <div className="mc-inset relative" style={{ width: size, height: size }} />;
   }
   return (
     <div
-      className="group relative rounded border border-[var(--border)] transition-transform"
-      style={{ width: size, height: size, background: checker }}
+      className="mc-inset group relative transition-transform"
+      style={{ width: size, height: size }}
     >
       <div className="absolute inset-[2px] flex items-center justify-center p-0.5">
         <ItemImage stack={stack} />
       </div>
       <Counter n={stack.count} />
-      <div className="absolute inset-0 rounded hover:bg-white/10 cursor-pointer" />
+      <div className="absolute inset-0 hover:bg-white/10 cursor-pointer" />
       <Tooltip stack={stack} />
     </div>
   );

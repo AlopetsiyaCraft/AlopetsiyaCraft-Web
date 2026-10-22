@@ -173,7 +173,7 @@ export default function MyAudio({
     const state = disc[track.id];
     if (state?.state === "done") {
       return (
-        <span className="text-green-500 text-xs font-medium whitespace-nowrap">Пластинка выдана!</span>
+        <span className="text-[var(--mc-green-light)] text-xs font-medium whitespace-nowrap">Пластинка выдана!</span>
       );
     }
     if (state?.state === "pending") {
@@ -184,7 +184,7 @@ export default function MyAudio({
     return (
       <button
         onClick={() => makeDisc(track)}
-        className="px-3 py-1.5 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-medium transition-colors whitespace-nowrap"
+        className="mc-btn mc-btn-primary text-xs whitespace-nowrap"
         title={`Выдать пластинку с этой песней в игре (нужно быть онлайн) — ${DISC_PRICE_BLD} BLD`}
       >
         💿 Пластинка
@@ -195,8 +195,8 @@ export default function MyAudio({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-bold">
-          {isOwn ? "Мои аудио" : <>Аудио: <span className="text-[#7c3aed]">{targetNickname}</span></>}
+        <h1 className="mc-title text-2xl">
+          {isOwn ? "Мои аудио" : <>Аудио: <span className="text-[var(--mc-green)]">{targetNickname}</span></>}
           <span className="text-[var(--text-muted)] text-sm font-normal ml-2">({tracks.length})</span>
         </h1>
         {isOwn ? (
@@ -223,12 +223,12 @@ export default function MyAudio({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Поиск по своим песням…"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] pl-9 pr-3 py-2 text-sm text-[var(--text-secondary)] outline-none focus:border-[#7c3aed] transition-colors"
+              className="mc-input pl-9 text-sm"
             />
           </div>
           <button
             onClick={() => setUploadOpen(true)}
-            className="shrink-0 px-4 py-2 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-medium transition-colors"
+            className="mc-btn mc-btn-primary shrink-0 text-sm"
             title="Загрузить новую песню с обложкой"
           >
             Загрузить песню
@@ -239,19 +239,19 @@ export default function MyAudio({
       {loading ? (
         <div className="text-[var(--text-muted)] text-sm py-8 text-center">Загрузка…</div>
       ) : loadError ? (
-        <div className="text-red-400 text-sm py-8 text-center">{loadError}</div>
+        <div className="text-[var(--mc-red)] text-sm py-8 text-center">{loadError}</div>
       ) : tracks.length === 0 ? (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg py-10 text-center text-[var(--text-muted)] text-sm">
+        <div className="mc-inset py-10 text-center text-[var(--text-muted)] text-sm">
           {isOwn
             ? "Пока пусто. Нажми «Загрузить песню» и добавь первую!"
             : "У этого игрока пока нет аудио."}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg py-10 text-center text-[var(--text-muted)] text-sm">
+        <div className="mc-inset py-10 text-center text-[var(--text-muted)] text-sm">
           Ничего не найдено по запросу «{query}».
         </div>
       ) : (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg divide-y divide-[var(--border)]">
+        <div className="mc-panel divide-y divide-[var(--border)]">
           {filtered.map((track, i) => {
             const isPlaying = playingId === track.id;
             const dState = disc[track.id];
@@ -261,14 +261,14 @@ export default function MyAudio({
 
                 <button
                   onClick={() => togglePlay(track)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white transition-colors"
+                  className="mc-btn mc-btn-primary h-9 w-9 p-0"
                   title={isPlaying ? "Пауза" : "Слушать"}
                 >
                   {isPlaying ? <PauseIcon /> : <PlayIcon />}
                 </button>
 
                 {track.coverThumbUrl && (
-                  <div className="w-9 h-9 rounded border border-[var(--border)] overflow-hidden shrink-0 bg-[var(--hover)]">
+                  <div className="w-9 h-9 border-2 border-black overflow-hidden shrink-0 bg-[var(--hover)]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={track.coverThumbUrl} alt="" className="w-full h-full object-cover" />
                   </div>
@@ -286,14 +286,14 @@ export default function MyAudio({
                 <div className="flex items-center gap-2 shrink-0">
                   {isOwn && discButton(track)}
                   {isOwn && dState?.state === "failed" && (
-                    <span className="text-red-400 text-xs max-w-[220px] truncate" title={dState.error}>
+                    <span className="text-[var(--mc-red)] text-xs max-w-[220px] truncate" title={dState.error}>
                       {dState.error || "Не вышло"}
                     </span>
                   )}
                   {isOwn && (
                     <button
                       onClick={() => deleteTrack(track)}
-                      className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--hover)] transition-colors"
+                      className="mc-btn h-9 w-9 p-0 text-[var(--text-muted)] hover:text-[var(--mc-red)]"
                       title="Удалить"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

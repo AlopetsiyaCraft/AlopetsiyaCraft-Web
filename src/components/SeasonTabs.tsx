@@ -16,7 +16,7 @@ export default function SeasonTabs({ tabs }: { tabs: Tab[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 border-b border-[var(--border)] mb-8">
+    <nav className="mc-panel-flat no-scrollbar mb-6 flex gap-1 overflow-x-auto p-1.5">
       {tabs.map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         return (
@@ -24,12 +24,11 @@ export default function SeasonTabs({ tabs }: { tabs: Tab[] }) {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={
-              "px-6 py-3 transition-colors " +
-              (active
-                ? "text-[var(--text)] font-semibold border-b-2 border-[#7c3aed]"
-                : "text-[var(--text-muted)] hover:text-[var(--text)] hover:border-b-2 hover:border-[#7c3aed]")
-            }
+            className={`shrink-0 border-2 px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition-colors ${
+              active
+                ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                : "border-transparent text-[var(--text-muted)] hover:border-black hover:bg-[var(--hover)] hover:text-[var(--text)]"
+            }`}
           >
             {tab.name}
           </Link>

@@ -200,7 +200,7 @@ export default function ImageCropModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onCancel}>
       <div
-        className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex flex-col gap-3 w-full max-w-[400px]"
+        className="mc-panel p-4 flex flex-col gap-3 w-full max-w-[400px]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-base font-bold">Кадрируй обложку (1:1)</h2>
@@ -213,7 +213,7 @@ export default function ImageCropModal({
             ref={canvasRef}
             width={VIEW}
             height={VIEW}
-            className="rounded-lg border-2 border-white/20 cursor-grab active:cursor-grabbing touch-none select-none"
+            className="border-2 border-black cursor-grab active:cursor-grabbing touch-none select-none"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -225,7 +225,7 @@ export default function ImageCropModal({
           <button
             type="button"
             onClick={() => changeZoom(1 / 1.25)}
-            className="w-8 h-8 rounded-lg bg-[var(--hover)] hover:bg-[var(--border)] transition-colors"
+            className="mc-btn h-8 w-8 p-0"
             title="Уменьшить"
           >
             −
@@ -234,21 +234,21 @@ export default function ImageCropModal({
           <button
             type="button"
             onClick={() => changeZoom(1.25)}
-            className="w-8 h-8 rounded-lg bg-[var(--hover)] hover:bg-[var(--border)] transition-colors"
+            className="mc-btn h-8 w-8 p-0"
             title="Увеличить"
           >
             +
           </button>
         </div>
 
-        {error && <span className="text-xs text-red-400">{error}</span>}
+        {error && <span className="text-xs text-[var(--mc-red)]">{error}</span>}
 
         <div className="flex gap-2 justify-end">
           <button
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="px-3 py-1.5 rounded-lg text-sm text-[var(--text-muted)] hover:bg-[var(--hover)] transition-colors"
+            className="mc-btn text-sm"
           >
             Отмена
           </button>
@@ -256,7 +256,7 @@ export default function ImageCropModal({
             type="button"
             onClick={apply}
             disabled={busy || error !== null}
-            className="px-4 py-1.5 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-medium transition-colors disabled:opacity-50"
+            className="mc-btn mc-btn-primary text-sm"
           >
             {busy ? "Готовим…" : "Применить"}
           </button>

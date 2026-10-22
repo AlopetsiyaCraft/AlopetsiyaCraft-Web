@@ -131,7 +131,7 @@ export default function SkinViewer({
       {showControls && (
         <button
           onClick={toggleAnimation}
-          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded bg-black/50 hover:bg-black/70 text-white transition-colors"
+          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-none border-2 border-black bg-black/70 hover:bg-black/70 text-white transition-colors"
           title={isAnimating ? "Остановить" : "Воспроизвести анимацию"}
         >
           {isAnimating ? (

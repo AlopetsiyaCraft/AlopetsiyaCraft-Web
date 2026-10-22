@@ -73,88 +73,104 @@ export default function WalletExchange({
   return (
     <div className="flex flex-col gap-6">
       {/* Балансы */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-5">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-            <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M14.5 8.5a2.5 2.5 0 0 0-2.5-2.5h-1a2.5 2.5 0 0 0 0 5h2a2.5 2.5 0 0 1 0 5h-3" />
-              <path d="M12 5v14" />
-            </svg>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mc-panel p-5">
+          <div className="flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <span className="mc-panel-flat flex h-7 w-7 items-center justify-center">
+              <svg className="h-4 w-4 text-[var(--mc-green-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M14.5 8.5a2.5 2.5 0 0 0-2.5-2.5h-1a2.5 2.5 0 0 0 0 5h2a2.5 2.5 0 0 1 0 5h-3" />
+                <path d="M12 5v14" />
+              </svg>
+            </span>
             Болды
           </div>
-          <div className="mt-2 text-2xl font-bold text-emerald-500">
-            {formatCurrency(bld)} <span className="text-base font-medium text-[var(--text-muted)]">BLD</span>
+          <div className="mt-3 font-mono text-3xl leading-none text-[var(--mc-green-light)]">
+            {formatCurrency(bld)}
+            <span className="ml-1.5 text-sm text-[var(--text-muted)]">BLD</span>
           </div>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Покупки на сайте: пластинки и не только.</p>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">Покупки на сайте: пластинки и не только.</p>
         </div>
 
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-5">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-            <svg className="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v10M9 9.5h4a2 2 0 1 0 0-4H9a2 2 0 0 0 0 4zm2.5 5.5h2a2 2 0 1 1 0 4h-4" />
-            </svg>
+        <div className="mc-panel p-5">
+          <div className="flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <span className="mc-panel-flat flex h-7 w-7 items-center justify-center">
+              <svg className="h-4 w-4 text-[var(--mc-gold)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v10M9 9.5h4a2 2 0 1 0 0-4H9a2 2 0 0 0 0 4zm2.5 5.5h2a2 2 0 1 1 0 4h-4" />
+              </svg>
+            </span>
             Фишки
           </div>
-          <div className="mt-2 text-2xl font-bold text-amber-500">
-            {formatCurrency(chips)} <span className="text-base font-medium text-[var(--text-muted)]">фишек</span>
+          <div className="mt-3 font-mono text-3xl leading-none text-[var(--mc-gold)]">
+            {formatCurrency(chips)}
+            <span className="ml-1.5 text-sm text-[var(--text-muted)]">фишек</span>
           </div>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Игра в казино на сервере — только за фишки.</p>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">Казино на сервере — только за фишки.</p>
         </div>
       </div>
 
       {/* Конвертер */}
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-5">
-        <h2 className="text-lg font-bold mb-1">Конвертер</h2>
-        <p className="text-sm text-[var(--text-muted)] mb-4">
-          1 BLD = {CHIPS_PER_BLD} фишек. Обратно — целыми пачками по {SELL_CHIPS_PER_BLD} фишек.
-        </p>
+      <div className="mc-panel overflow-hidden">
+        <div className="mc-head">Конвертер</div>
+        <div className="p-5">
+          <p className="mb-4 text-sm text-[var(--text-muted)]">
+            1 BLD = {CHIPS_PER_BLD} фишек. Обратно — целыми пачками по {SELL_CHIPS_PER_BLD} фишек.
+          </p>
 
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => { setDirection("bld"); setError(null); setOk(null); }}
-            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${direction === "bld" ? "bg-emerald-500 text-white" : "bg-[var(--bg)] text-[var(--text-secondary)] border border-[var(--border)]"}`}
-          >
-            Болды → Фишки
-          </button>
-          <button
-            onClick={() => { setDirection("chips"); setError(null); setOk(null); }}
-            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${direction === "chips" ? "bg-amber-500 text-white" : "bg-[var(--bg)] text-[var(--text-secondary)] border border-[var(--border)]"}`}
-          >
-            Фишки → Болды
-          </button>
+          <div className="mb-4 flex gap-2">
+            <button
+              onClick={() => { setDirection("bld"); setError(null); setOk(null); }}
+              className={`flex-1 cursor-pointer border-2 px-3 py-2 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition-colors ${
+                direction === "bld"
+                  ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
+                  : "border-black bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+              }`}
+            >
+              Болды → Фишки
+            </button>
+            <button
+              onClick={() => { setDirection("chips"); setError(null); setOk(null); }}
+              className={`flex-1 cursor-pointer border-2 px-3 py-2 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition-colors ${
+                direction === "chips"
+                  ? "border-black bg-[var(--mc-gold)] text-[#1a1400]"
+                  : "border-black bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+              }`}
+            >
+              Фишки → Болды
+            </button>
+          </div>
+
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <label className="flex w-full items-center gap-2 text-sm text-[var(--text-secondary)] sm:w-auto">
+              <span className="shrink-0 text-[0.7rem] uppercase tracking-wider text-[var(--text-muted)]">Сколько</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={amount}
+                onChange={(e) => { setAmount(e.target.value); setError(null); setOk(null); }}
+                placeholder={direction === "bld" ? "10" : "100"}
+                className="mc-input flex-1 sm:w-32"
+              />
+            </label>
+            {preview && (
+              <span className="text-sm text-[var(--text-secondary)]">
+                {preview.label}: <b className="font-mono text-[var(--text)]">{formatCurrency(preview.value)}</b> {preview.unit}
+              </span>
+            )}
+            <button
+              onClick={submit}
+              disabled={!valid || busy}
+              className="mc-btn mc-btn-primary text-xs sm:ml-auto"
+            >
+              {busy ? "Обмениваем…" : "Обменять"}
+            </button>
+          </div>
+
+          {error && <p className="mt-3 text-sm text-[var(--mc-red)]">{error}</p>}
+          {ok && <p className="mt-3 text-sm text-[var(--mc-green-light)]">{ok}</p>}
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] w-full sm:w-auto">
-            Сколько
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={amount}
-              onChange={(e) => { setAmount(e.target.value); setError(null); setOk(null); }}
-              placeholder={direction === "bld" ? "10" : "100"}
-              className="flex-1 sm:w-32 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] text-sm outline-none focus:border-[#7c3aed]"
-            />
-          </label>
-          {preview && (
-            <span className="text-sm text-[var(--text-secondary)]">
-              {preview.label}: <b className="text-[var(--text)]">{formatCurrency(preview.value)}</b> {preview.unit}
-            </span>
-          )}
-          <button
-            onClick={submit}
-            disabled={!valid || busy}
-            className="px-4 py-2 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-40 text-white text-sm font-medium transition-colors cursor-pointer"
-          >
-            {busy ? "Обмениваем…" : "Обменять"}
-          </button>
-        </div>
-
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-        {ok && <p className="mt-3 text-sm text-green-500">{ok}</p>}
       </div>
     </div>
   );
