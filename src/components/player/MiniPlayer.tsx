@@ -111,13 +111,38 @@ function CloseIcon() {
   );
 }
 
+function VolumeIcon({ muted = false }: { muted?: boolean }) {
+  return (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M3 9v6h4l5 5V4L7 9H3z" />
+      {muted ? (
+        <path
+          d="M16 8l6 6M22 8l-6 6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
+      ) : (
+        <path
+          d="M15.5 8.5a5 5 0 010 7M18 6a9 9 0 010 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  );
+}
+
 /**
  * Мини-плеер сайта: перетаскивается за шапку, переживает переходы между
  * страницами (живёт в корневом layout), умеет перемотку, повтор и перемешивание.
  */
 export default function MiniPlayer() {
   const player = usePlayer();
-  const { track, playing, currentTime, duration, repeat, shuffle, error } = player;
+  const { track, playing, currentTime, duration, repeat, shuffle, volume, error } = player;
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
@@ -138,6 +163,21 @@ export default function MiniPlayer() {
   useEffect(() => {
     seekRef.current = player.seek;
   }, [player.seek]);
+
+  const lastVolumeRef = useRef(volume > 0 ? volume : 1);
+
+  useEffect(() => {
+    if (volume > 0) lastVolumeRef.current = volume;
+  }, [volume]);
+
+  function toggleMute() {
+    if (volume > 0) {
+      lastVolumeRef.current = volume;
+      player.setVolume(0);
+    } else {
+      player.setVolume(lastVolumeRef.current || 1);
+    }
+  }
 
   // Держим позицию в пределах окна (после ресайза/смены монитора).
   useEffect(() => {
@@ -332,6 +372,38 @@ export default function MiniPlayer() {
           <div className="mt-0.5 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
             <span>{formatTime(shown)}</span>
             <span>{max > 0 ? formatTime(max) : "--:--"}</span>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="mc-btn h-6 w-6 shrink-0 p-0"
+              title={volume > 0 ? "Выключить звук" : "Включить звук"}
+              aria-label={volume > 0 ? "Выключить звук" : "Включить звук"}
+            >
+              <VolumeIcon muted={volume === 0} />
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => player.setVolume(Number(e.target.value))}
+              className="mc-range min-w-0 flex-1"
+              style={{
+                background: `linear-gradient(to right, var(--mc-green) ${Math.round(
+                  volume * 100
+                )}%, var(--input) ${Math.round(volume * 100)}%)`,
+              }}
+              title="Громкость"
+              aria-label="Громкость"
+              aria-valuetext={`${Math.round(volume * 100)}%`}
+            />
+            <span className="w-7 shrink-0 text-right text-[10px] text-[var(--text-muted)]">
+              {Math.round(volume * 100)}%
+            </span>
           </div>
 
           <div className="mt-2 flex items-center justify-center gap-1.5">

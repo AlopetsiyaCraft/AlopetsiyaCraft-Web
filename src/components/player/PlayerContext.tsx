@@ -23,6 +23,8 @@ export interface PlayerApi {
   /** Повтор текущего трека. */
   repeat: boolean;
   shuffle: boolean;
+  /** Громкость от 0 до 1. */
+  volume: number;
   error: string | null;
   /** Запустить трек из списка (список становится очередью). */
   play: (tracks: PlayerTrack[], startId?: number) => void;
@@ -32,6 +34,8 @@ export interface PlayerApi {
   prev: () => void;
   /** Перемотка (секунды). */
   seek: (seconds: number) => void;
+  /** Громкость от 0 до 1. */
+  setVolume: (value: number) => void;
   toggleRepeat: () => void;
   toggleShuffle: () => void;
   /** Остановить и убрать плеер. */

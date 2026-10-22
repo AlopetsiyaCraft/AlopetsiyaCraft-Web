@@ -9,6 +9,19 @@ import {
 } from "./PlayerContext";
 
 const STATE_KEY = "mc-player-state-v1";
+const VOLUME_KEY = "mc-player-volume-v1";
+
+function readSavedVolume(): number {
+  try {
+    const raw = localStorage.getItem(VOLUME_KEY);
+    if (raw == null) return 1;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return 1;
+    return Math.min(Math.max(value, 0), 1);
+  } catch {
+    return 1;
+  }
+}
 
 /** Состояние плеера, которое переживает перезагрузку страницы. */
 interface SavedState {
@@ -138,6 +151,7 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
   const [repeat, setRepeat] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [shuffleOrder, setShuffleOrder] = useState<number[]>([]);
+  const [volume, setVolumeState] = useState(readSavedVolume);
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -181,6 +195,17 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
       audio.load();
     }
   }, []);
+
+  // Громкость применяется к аудио и запоминается между перезагрузками.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) audio.volume = volume;
+    try {
+      localStorage.setItem(VOLUME_KEY, String(volume));
+    } catch {
+      // localStorage может быть недоступен — не критично.
+    }
+  }, [volume]);
 
   // Свежий снимок состояния — для сохранения при закрытии/сворачивании вкладки.
   useEffect(() => {
@@ -338,6 +363,11 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     setRepeat((prev) => !prev);
   }
 
+  function setVolume(value: number) {
+    if (!Number.isFinite(value)) return;
+    setVolumeState(Math.min(Math.max(value, 0), 1));
+  }
+
   function toggleShuffle() {
     if (!shuffle) {
       setShuffleOrder(makeShuffleOrder(queue.length, index));
@@ -416,12 +446,14 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     duration,
     repeat,
     shuffle,
+    volume,
     error,
     play,
     toggle,
     next: nextTrack,
     prev,
     seek,
+    setVolume,
     toggleRepeat,
     toggleShuffle,
     close,
