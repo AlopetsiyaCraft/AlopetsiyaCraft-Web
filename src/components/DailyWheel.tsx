@@ -195,6 +195,9 @@ export default function DailyWheel({
       pendingRef.current = data;
       setRotation((prev) => spinTarget(prev, data.index));
 
+      // तुरंत nextSpinAt अपडेट करें ताकि UI तुरंत बदल जाए
+      if (typeof data.nextSpinAt === "number") setNextSpinAt(data.nextSpinAt);
+
       if (fallbackRef.current !== null) window.clearTimeout(fallbackRef.current);
       fallbackRef.current = window.setTimeout(reveal, SPIN_DURATION_MS + 900);
     } catch (e) {
