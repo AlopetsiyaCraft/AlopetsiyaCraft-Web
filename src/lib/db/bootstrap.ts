@@ -37,6 +37,16 @@ export const bootstrapSql = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
 
+  CREATE TABLE IF NOT EXISTS daily_spins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    prize_index INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_daily_spins_user ON daily_spins(user_id, created_at);
+
   CREATE TABLE IF NOT EXISTS seasons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     number INTEGER NOT NULL UNIQUE,
@@ -324,6 +334,12 @@ export async function initDatabase() {
   try {
     // legacy: Фишки казино — отдельная валюта для столов в Minecraft
     await client.execute(`ALTER TABLE users ADD COLUMN chips INTEGER NOT NULL DEFAULT 0`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: время последнего прокрута колеса ежедневного бонуса
+    await client.execute(`ALTER TABLE users ADD COLUMN daily_bonus_at INTEGER`);
   } catch (e) {
     // column already exists
   }

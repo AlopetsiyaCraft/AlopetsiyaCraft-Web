@@ -50,11 +50,37 @@ export const users = sqliteTable("users", {
   bld: integer("bld").notNull().default(0),
   // Фишки казино — тратятся только за карточными столами в Minecraft.
   chips: integer("chips").notNull().default(0),
+  // Когда последний раз крутили колесо ежедневного бонуса (раз в 24 часа).
+  dailyBonusAt: integer("daily_bonus_at", { mode: "timestamp" }),
   lastActiveAt: integer("last_active_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/**
+ * История прокрутов ежедневного бонуса. Нужна для истории и статистики:
+ * сам кулдаун хранится в users.daily_bonus_at, чтобы проверку нельзя было
+ * обойти параллельными запросами.
+ */
+export const dailySpins = sqliteTable(
+  "daily_spins",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    prizeIndex: integer("prize_index").notNull(),
+    kind: text("kind", { enum: ["bld", "chips"] }).notNull(),
+    amount: integer("amount").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    userCreated: index("idx_daily_spins_user").on(t.userId, t.createdAt),
+  })
+);
 
 export const seasons = sqliteTable("seasons", {
   id: integer("id").primaryKey({ autoIncrement: true }),

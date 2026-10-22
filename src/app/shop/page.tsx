@@ -4,7 +4,9 @@ import { seasons, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import Header from "@/components/Header";
+import DailyWheel from "@/components/DailyWheel";
 import { CHIPS_PER_BLD, DISC_PRICE_BLD } from "@/lib/currency";
+import { DAILY_SPIN_COOLDOWN_MS, isDailySpinAvailable } from "@/lib/dailyBonus";
 
 /**
  * Магазин АлопецияКрафт (временная витрина, потом переделаем с нуля).
@@ -15,12 +17,23 @@ export default async function ShopPage() {
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.number)).all();
 
   let user = null;
+  let nextSpinAt: number | null = null;
   if (session?.user?.id) {
     user = await db
-      .select({ name: users.nickname, skinUrl: users.skinUrl, bld: users.bld })
+      .select({
+        name: users.nickname,
+        skinUrl: users.skinUrl,
+        bld: users.bld,
+        chips: users.chips,
+        dailyBonusAt: users.dailyBonusAt,
+      })
       .from(users)
       .where(eq(users.id, parseInt(session.user.id, 10)))
       .get();
+
+    if (user?.dailyBonusAt && !isDailySpinAvailable(user.dailyBonusAt)) {
+      nextSpinAt = user.dailyBonusAt.getTime() + DAILY_SPIN_COOLDOWN_MS;
+    }
   }
 
   const items = [
@@ -88,6 +101,15 @@ export default async function ShopPage() {
               {user.bld.toLocaleString("ru-RU")} BLD
             </span>
           )}
+        </div>
+
+        <div className="mb-6">
+          <DailyWheel
+            isLoggedIn={!!session}
+            initialBld={user?.bld ?? 0}
+            initialChips={user?.chips ?? 0}
+            initialNextSpinAt={nextSpinAt}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
