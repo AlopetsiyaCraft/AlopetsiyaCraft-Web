@@ -189,11 +189,16 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     setCurrentTime(0);
     setDuration(0);
 
-    if (audio.src !== nextTrack.url) {
+    const absoluteUrl = new URL(nextTrack.url, window.location.href).href;
+    if (audio.src !== absoluteUrl) {
+      // Сначала останавливаем прошлый трек, потом меняем источник, и не трогаем
+      // currentTime: иначе браузер начинал играть и сразу перематывался на 0 —
+      // отсюда был слышен короткий провал/«затухание» в начале.
+      audio.pause();
       audio.src = nextTrack.url;
-      audio.load();
+    } else if (audio.currentTime > 0) {
+      audio.currentTime = 0;
     }
-    audio.currentTime = 0;
     if (autoplay) {
       audio.play().catch(() => {
         setPlaying(false);

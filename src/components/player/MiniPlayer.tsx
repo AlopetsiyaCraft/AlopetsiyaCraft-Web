@@ -380,15 +380,15 @@ export default function MiniPlayer() {
             <button
               type="button"
               onClick={player.cycleRepeat}
-              className={`mc-btn relative h-8 w-8 p-0 ${
+              className={`mc-btn relative h-8 min-w-[44px] gap-1 px-1 ${
                 repeat !== "off" ? "mc-btn-primary" : "text-[var(--text-secondary)]"
               }`}
               title={repeatLabel}
               aria-label={repeatLabel}
             >
               <RepeatIcon />
-              {repeat === "one" && (
-                <span className="absolute -right-0.5 -top-1 text-[8px] font-bold leading-none">1</span>
+              {repeat !== "off" && (
+                <span className="text-[9px] leading-none">{repeat === "one" ? "1" : "ВСЁ"}</span>
               )}
             </button>
           </div>
