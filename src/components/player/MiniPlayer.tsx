@@ -248,8 +248,7 @@ export default function MiniPlayer() {
   const shown = draft ?? currentTime;
   const max = duration > 0 ? duration : 0;
   const progress = max > 0 ? Math.min((shown / max) * 100, 100) : 0;
-  const repeatLabel =
-    repeat === "one" ? "Повтор одного трека" : repeat === "all" ? "Повтор списка" : "Повтор выключен";
+  const repeatLabel = repeat ? "Повтор трека включён" : "Повтор трека выключен";
 
   return (
     <div
@@ -379,17 +378,16 @@ export default function MiniPlayer() {
 
             <button
               type="button"
-              onClick={player.cycleRepeat}
+              onClick={player.toggleRepeat}
               className={`mc-btn relative h-8 min-w-[44px] gap-1 px-1 ${
-                repeat !== "off" ? "mc-btn-primary" : "text-[var(--text-secondary)]"
+                repeat ? "mc-btn-primary" : "text-[var(--text-secondary)]"
               }`}
               title={repeatLabel}
               aria-label={repeatLabel}
+              aria-pressed={repeat}
             >
               <RepeatIcon />
-              {repeat !== "off" && (
-                <span className="text-[9px] leading-none">{repeat === "one" ? "1" : "ВСЁ"}</span>
-              )}
+              {repeat && <span className="text-[9px] leading-none">1</span>}
             </button>
           </div>
 

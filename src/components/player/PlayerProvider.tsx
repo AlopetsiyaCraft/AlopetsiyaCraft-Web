@@ -6,7 +6,6 @@ import {
   PlayerContext,
   type PlayerApi,
   type PlayerTrack,
-  type RepeatMode,
 } from "./PlayerContext";
 
 const STATE_KEY = "mc-player-state-v1";
@@ -16,15 +15,59 @@ interface SavedState {
   queue: PlayerTrack[];
   index: number;
   currentTime: number;
-  repeat: RepeatMode;
+  repeat: boolean;
   shuffle: boolean;
+  /** Порядок треков для перемешивания (индексы в queue). */
+  shuffleOrder: number[];
+}
+
+/** Перемешанный порядок треков: текущий трек идёт первым, остальные — случайно. */
+function makeShuffleOrder(length: number, first: number): number[] {
+  if (length <= 0) return [];
+  const start = first >= 0 && first < length ? first : 0;
+  const rest = Array.from({ length }, (_, i) => i).filter((i) => i !== start);
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+  return [start, ...rest];
+}
+
+/** Случайный индекс, отличный от текущего (если треков больше одного). */
+function randomOther(length: number, current: number): number {
+  if (length <= 1) return 0;
+  let n = Math.floor(Math.random() * (length - 1));
+  if (n >= current) n += 1;
+  return n;
+}
+
+/** Проверяем, что сохранённый порядок — корректная перестановка всех треков. */
+function isValidOrder(order: unknown, length: number): order is number[] {
+  return (
+    Array.isArray(order) &&
+    order.length === length &&
+    order.every(
+      (n, i) =>
+        typeof n === "number" &&
+        n >= 0 &&
+        n < length &&
+        order.indexOf(n) === i
+    )
+  );
 }
 
 function readSavedState(): SavedState | null {
   try {
     const raw = localStorage.getItem(STATE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<SavedState>;
+    const parsed = JSON.parse(raw) as {
+      queue?: unknown;
+      index?: unknown;
+      currentTime?: unknown;
+      repeat?: unknown;
+      shuffle?: unknown;
+      shuffleOrder?: unknown;
+    };
     if (!Array.isArray(parsed.queue) || !parsed.queue.length) return null;
     const queue = parsed.queue.filter(
       (t): t is PlayerTrack =>
@@ -42,9 +85,20 @@ function readSavedState(): SavedState | null {
       typeof parsed.currentTime === "number" && Number.isFinite(parsed.currentTime) && parsed.currentTime > 0
         ? parsed.currentTime
         : 0;
-    const repeat: RepeatMode =
-      parsed.repeat === "all" || parsed.repeat === "one" ? parsed.repeat : "off";
-    return { queue, index, currentTime, repeat, shuffle: parsed.shuffle === true };
+    // Старые сохранения хранили repeat строкой ("off" | "all" | "one").
+    const repeat = parsed.repeat === true || parsed.repeat === "one";
+    const shuffle = parsed.shuffle === true;
+    const savedOrder = isValidOrder(parsed.shuffleOrder, queue.length)
+      ? parsed.shuffleOrder
+      : makeShuffleOrder(queue.length, index);
+    return {
+      queue,
+      index,
+      currentTime,
+      repeat,
+      shuffle,
+      shuffleOrder: shuffle ? savedOrder : [],
+    };
   } catch {
     return null;
   }
@@ -66,14 +120,6 @@ function clearSavedState(): void {
   }
 }
 
-/** Случайный индекс, отличный от текущего (если треков больше одного). */
-function randomOther(length: number, current: number): number {
-  if (length <= 1) return 0;
-  let n = Math.floor(Math.random() * (length - 1));
-  if (n >= current) n += 1;
-  return n;
-}
-
 /**
  * Общий плеер сайта.
  *
@@ -89,8 +135,9 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [repeat, setRepeat] = useState<RepeatMode>("off");
+  const [repeat, setRepeat] = useState(false);
   const [shuffle, setShuffle] = useState(false);
+  const [shuffleOrder, setShuffleOrder] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -102,8 +149,9 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
   const metaRef = useRef<{
     queue: PlayerTrack[];
     index: number;
-    repeat: RepeatMode;
+    repeat: boolean;
     shuffle: boolean;
+    shuffleOrder: number[];
   } | null>(null);
 
   const track = queue[index] ?? null;
@@ -122,6 +170,7 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     setCurrentTime(saved.currentTime);
     setRepeat(saved.repeat);
     setShuffle(saved.shuffle);
+    setShuffleOrder(saved.shuffleOrder);
     setDuration(0);
     setError(null);
     restoreSeekRef.current = saved.currentTime;
@@ -136,9 +185,9 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
   // Свежий снимок состояния — для сохранения при закрытии/сворачивании вкладки.
   useEffect(() => {
     snapshotRef.current = queue.length
-      ? { queue, index, currentTime, repeat, shuffle }
+      ? { queue, index, currentTime, repeat, shuffle, shuffleOrder }
       : null;
-  }, [queue, index, currentTime, repeat, shuffle]);
+  }, [queue, index, currentTime, repeat, shuffle, shuffleOrder]);
 
   // Сохраняем состояние: смену трека/режимов — сразу, позицию — не чаще раза в секунду.
   useEffect(() => {
@@ -153,12 +202,13 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
       prev.queue !== queue ||
       prev.index !== index ||
       prev.repeat !== repeat ||
-      prev.shuffle !== shuffle;
-    metaRef.current = { queue, index, repeat, shuffle };
+      prev.shuffle !== shuffle ||
+      prev.shuffleOrder !== shuffleOrder;
+    metaRef.current = { queue, index, repeat, shuffle, shuffleOrder };
     if (!metaChanged && now - lastSaveRef.current < 1000) return;
     lastSaveRef.current = now;
-    writeSavedState({ queue, index, currentTime, repeat, shuffle });
-  }, [queue, index, currentTime, repeat, shuffle]);
+    writeSavedState({ queue, index, currentTime, repeat, shuffle, shuffleOrder });
+  }, [queue, index, currentTime, repeat, shuffle, shuffleOrder]);
 
   // Перед уходом со страницы (F5, закрытие, скрытие вкладки) фиксируем точную секунду.
   useEffect(() => {
@@ -210,7 +260,9 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
   function play(tracks: PlayerTrack[], startId?: number) {
     if (!tracks.length) return;
     const found = startId == null ? 0 : tracks.findIndex((t) => t.id === startId);
-    startAt(tracks, found >= 0 ? found : 0);
+    const i = found >= 0 ? found : 0;
+    if (shuffle) setShuffleOrder(makeShuffleOrder(tracks.length, i));
+    startAt(tracks, i);
   }
 
   function toggle() {
@@ -224,10 +276,24 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     }
   }
 
+  /** Следующий по порядку: при перемешивании — по перемешанному списку. */
   function nextTrack() {
     if (!queue.length) return;
     if (shuffle) {
-      startAt(queue, randomOther(queue.length, index), true);
+      const order =
+        shuffleOrder.length === queue.length
+          ? shuffleOrder
+          : makeShuffleOrder(queue.length, index);
+      const pos = order.indexOf(index);
+      if (pos >= 0 && pos + 1 < order.length) {
+        if (order !== shuffleOrder) setShuffleOrder(order);
+        startAt(queue, order[pos + 1], true);
+        return;
+      }
+      // Круг закончился — начинаем новый, но не с только что игравшего трека.
+      const fresh = makeShuffleOrder(queue.length, randomOther(queue.length, index));
+      setShuffleOrder(fresh);
+      startAt(queue, fresh[0], true);
       return;
     }
     startAt(queue, (index + 1) % queue.length, true);
@@ -243,7 +309,17 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
       return;
     }
     if (shuffle) {
-      startAt(queue, randomOther(queue.length, index), true);
+      const order =
+        shuffleOrder.length === queue.length
+          ? shuffleOrder
+          : makeShuffleOrder(queue.length, index);
+      const pos = order.indexOf(index);
+      if (pos > 0) {
+        if (order !== shuffleOrder) setShuffleOrder(order);
+        startAt(queue, order[pos - 1], true);
+        return;
+      }
+      startAt(queue, order[order.length - 1], true);
       return;
     }
     startAt(queue, (index - 1 + queue.length) % queue.length, true);
@@ -258,12 +334,18 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     setCurrentTime(value);
   }
 
-  function cycleRepeat() {
-    setRepeat((prev) => (prev === "off" ? "all" : prev === "all" ? "one" : "off"));
+  function toggleRepeat() {
+    setRepeat((prev) => !prev);
   }
 
   function toggleShuffle() {
-    setShuffle((prev) => !prev);
+    if (!shuffle) {
+      setShuffleOrder(makeShuffleOrder(queue.length, index));
+      setShuffle(true);
+    } else {
+      setShuffle(false);
+      setShuffleOrder([]);
+    }
   }
 
   function close() {
@@ -281,6 +363,9 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setRepeat(false);
+    setShuffle(false);
+    setShuffleOrder([]);
     setError(null);
   }
 
@@ -288,22 +373,33 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     const audio = audioRef.current;
     if (!audio || !queue.length) return;
 
-    if (repeat === "one") {
+    if (repeat) {
       audio.currentTime = 0;
       audio.play().catch(() => setError("Не удалось включить трек"));
       return;
     }
 
     if (shuffle) {
-      startAt(queue, randomOther(queue.length, index), true);
+      const order =
+        shuffleOrder.length === queue.length
+          ? shuffleOrder
+          : makeShuffleOrder(queue.length, index);
+      const pos = order.indexOf(index);
+      if (pos >= 0 && pos + 1 < order.length) {
+        if (order !== shuffleOrder) setShuffleOrder(order);
+        startAt(queue, order[pos + 1], true);
+        return;
+      }
+      // Весь перемешанный список отыгран — останавливаемся.
+      audio.currentTime = 0;
+      setPlaying(false);
+      setCurrentTime(0);
       return;
     }
 
     const ni = index + 1;
     if (ni < queue.length) {
       startAt(queue, ni, true);
-    } else if (repeat === "all") {
-      startAt(queue, 0, true);
     } else {
       audio.currentTime = 0;
       setPlaying(false);
@@ -326,7 +422,7 @@ export default function PlayerProvider({ children }: { children: React.ReactNode
     next: nextTrack,
     prev,
     seek,
-    cycleRepeat,
+    toggleRepeat,
     toggleShuffle,
     close,
   };

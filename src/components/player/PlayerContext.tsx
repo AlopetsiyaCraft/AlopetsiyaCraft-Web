@@ -13,8 +13,6 @@ export interface PlayerTrack {
   url: string;
 }
 
-export type RepeatMode = "off" | "all" | "one";
-
 export interface PlayerApi {
   queue: PlayerTrack[];
   index: number;
@@ -22,7 +20,8 @@ export interface PlayerApi {
   playing: boolean;
   currentTime: number;
   duration: number;
-  repeat: RepeatMode;
+  /** Повтор текущего трека. */
+  repeat: boolean;
   shuffle: boolean;
   error: string | null;
   /** Запустить трек из списка (список становится очередью). */
@@ -33,7 +32,7 @@ export interface PlayerApi {
   prev: () => void;
   /** Перемотка (секунды). */
   seek: (seconds: number) => void;
-  cycleRepeat: () => void;
+  toggleRepeat: () => void;
   toggleShuffle: () => void;
   /** Остановить и убрать плеер. */
   close: () => void;
