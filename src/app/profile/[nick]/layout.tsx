@@ -106,7 +106,7 @@ export default async function ProfileLayout({
         <div className="mc-panel overflow-hidden">
           {/* Пиксельный баннер */}
           <div
-            className={`h-28 border-b-2 border-black sm:h-40 ${
+            className={`h-48 border-b-2 border-black sm:h-72 ${
               hasCustomBackground ? "" : "mc-hero-bg"
             }`}
             style={backgroundStyle}
