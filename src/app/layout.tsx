@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 import Providers from "@/components/Providers";
 import TelegramWebApp from "@/components/TelegramWebApp";
 import "./globals.css";
@@ -60,6 +61,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <TelegramWebApp />
+        <AnalyticsTracker />
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -358,6 +358,19 @@ export const bootstrapSql = `
   );
   CREATE INDEX IF NOT EXISTS idx_mc_sessions_nickname ON mc_sessions(nickname);
   CREATE INDEX IF NOT EXISTS idx_mc_sessions_user ON mc_sessions(user_id);
+
+  CREATE TABLE IF NOT EXISTS page_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    user_id INTEGER,
+    device TEXT NOT NULL DEFAULT 'desktop',
+    source TEXT NOT NULL DEFAULT 'web',
+    referrer TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_page_views_path_created ON page_views(path, created_at);
+  CREATE INDEX IF NOT EXISTS idx_page_views_session_path ON page_views(session_id, path, created_at);
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */

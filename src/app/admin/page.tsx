@@ -78,6 +78,12 @@ export default async function AdminPage() {
             text="Права администратора и балансы аккаунтов."
           />
           <AdminLink
+            href="/admin/analytics"
+            icon="📊"
+            title="Аналитика"
+            text="Просмотры разделов и мёртвые страницы."
+          />
+          <AdminLink
             href="/admin/seasons"
             icon="🗓"
             title="Сезоны"

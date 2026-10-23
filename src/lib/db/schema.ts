@@ -327,8 +327,29 @@ export const achievements = sqliteTable("achievements", {
     .$defaultFn(() => new Date()),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
-  screenshots: many(screenshots),
+/**
+ * Просмотры страниц сайта — простая аналитика без внешних сервисов.
+ * Нужна, чтобы понимать, какие разделы живые, а какие мёртвые.
+ * Пишется анонимно: случайный id в localStorage, без cookie и IP.
+ */
+export const pageViews = sqliteTable("page_views", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  path: text("path").notNull(),
+  sessionId: text("session_id").notNull(),
+  userId: integer("user_id"),
+  device: text("device", { enum: ["desktop", "mobile", "tablet"] })
+    .notNull()
+    .default("desktop"),
+  source: text("source", { enum: ["web", "telegram"] })
+    .notNull()
+    .default("web"),
+  referrer: text("referrer"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const usersRelations = relations(users, ({ many }) => ({  screenshots: many(screenshots),
   comments: many(comments),
   audioTracks: many(audioTracks),
   discRequests: many(discRequests),
