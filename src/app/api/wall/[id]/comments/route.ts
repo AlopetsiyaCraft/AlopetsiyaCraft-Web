@@ -32,6 +32,8 @@ export async function GET(
       authorId: postComments.userId,
       authorNickname: authorAlias.nickname,
       authorSkinUrl: authorAlias.skinUrl,
+      authorNickColor: authorAlias.nickColor,
+      authorFrame: authorAlias.profileFrame,
       parentId: postComments.parentId,
       replyToNickname: replyUserAlias.nickname,
     })
@@ -78,6 +80,8 @@ export async function GET(
       authorId: r.authorId,
       authorNickname: r.authorNickname ?? "unknown",
       authorSkinUrl: r.authorSkinUrl ?? null,
+      authorNickColor: r.authorNickColor ?? null,
+      authorFrame: r.authorFrame ?? null,
       parentId: r.parentId ?? null,
       replyToNickname: r.replyToNickname ?? null,
       viewerIsAuthor: r.authorId === viewerId,
@@ -139,7 +143,16 @@ export async function POST(
       .get();
 
     const [author, replyTo] = await Promise.all([
-      db.select({ nickname: users.nickname, skinUrl: users.skinUrl }).from(users).where(eq(users.id, row.userId)).get(),
+      db
+        .select({
+          nickname: users.nickname,
+          skinUrl: users.skinUrl,
+          nickColor: users.nickColor,
+          frame: users.profileFrame,
+        })
+        .from(users)
+        .where(eq(users.id, row.userId))
+        .get(),
       parentId != null
         ? db
             .select({ nickname: users.nickname })
@@ -175,6 +188,8 @@ export async function POST(
       authorId: row.userId,
       authorNickname: author?.nickname ?? "unknown",
       authorSkinUrl: author?.skinUrl ?? null,
+      authorNickColor: author?.nickColor ?? null,
+      authorFrame: author?.frame ?? null,
       parentId: row.parentId ?? null,
       replyToNickname: replyTo?.nickname ?? null,
       viewerIsAuthor: true,

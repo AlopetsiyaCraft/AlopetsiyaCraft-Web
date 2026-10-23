@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
         source: chatLogs.source,
         createdAt: chatLogs.createdAt,
         skinUrl: users.skinUrl,
+        nickColor: users.nickColor,
+        frame: users.profileFrame,
       })
       .from(chatLogs)
       .leftJoin(users, eq(chatLogs.nickname, users.nickname))

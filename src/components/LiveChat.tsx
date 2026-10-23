@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useChatDock } from "@/lib/chat-dock";
 import { SYSTEM_NICKNAME } from "@/lib/chatSystem";
 import PlayerHead from "@/components/mc/PlayerHead";
+import { nickColorValue, profileFrameStyle } from "@/lib/profileCustomization";
 
 /** Обработчики для шапки чата в режиме «перетаскиваемого окна» (передаёт FloatingChat). */
 export interface HeaderDragProps {
@@ -20,6 +21,8 @@ interface ChatMessage {
   message: string;
   createdAt: string;
   skinUrl: string | null;
+  nickColor: string | null;
+  frame: string | null;
 }
 
 export default function LiveChat({
@@ -206,7 +209,7 @@ export default function LiveChat({
             const isSystem = msg.nickname === SYSTEM_NICKNAME;
             return (
               <div key={msg.id} className="flex items-start gap-2.5">
-                <div className="mt-0.5">
+                <div className="mt-0.5" style={profileFrameStyle(msg.frame)}>
                   {isSystem ? (
                     <PlayerHead skinUrl={msg.skinUrl} nickname={msg.nickname} size={30} />
                   ) : (
@@ -226,6 +229,7 @@ export default function LiveChat({
                       <Link
                         href={`/profile/${encodeURIComponent(msg.nickname)}`}
                         className="text-xs font-bold uppercase tracking-wider text-[var(--mc-green-light)] hover:underline"
+                        style={{ color: nickColorValue(msg.nickColor) ?? undefined }}
                       >
                         {msg.nickname}
                       </Link>

@@ -36,6 +36,9 @@ interface CommentBase {
   authorNickname: string;
   authorId: number;
   authorSkinUrl: string | null;
+  /** Цвет ника и купленная рамка автора (для стены/комментариев). */
+  authorNickColor: string | null;
+  authorFrame: string | null;
   parentId: number | null;
   replyToNickname: string | null;
   viewerIsAuthor: boolean;
@@ -59,6 +62,8 @@ export interface PostItem {
   createdAt: number;
   authorNickname: string;
   authorSkinUrl: string | null;
+  authorNickColor: string | null;
+  authorFrame: string | null;
   photos: PhotoItem[];
   commentCount: number;
 }

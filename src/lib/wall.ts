@@ -14,6 +14,8 @@ export async function loadPosts(userId: number): Promise<PostItem[]> {
       createdAt: wallPosts.createdAt,
       authorNickname: users.nickname,
       authorSkinUrl: users.skinUrl,
+      authorNickColor: users.nickColor,
+      authorFrame: users.profileFrame,
     })
     .from(wallPosts)
     .leftJoin(users, eq(wallPosts.userId, users.id))
@@ -82,6 +84,8 @@ export async function loadPosts(userId: number): Promise<PostItem[]> {
     createdAt: p.createdAt.getTime(),
     authorNickname: p.authorNickname ?? "unknown",
     authorSkinUrl: p.authorSkinUrl,
+    authorNickColor: p.authorNickColor,
+    authorFrame: p.authorFrame,
     photos: (photoGroups.get(p.id) ?? []).map((r) => toPhotoItem(r, photoCountMap)),
     commentCount: postCountMap.get(p.id) ?? 0,
   }));

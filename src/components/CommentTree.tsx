@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { PhotoCommentItem, PostCommentItem } from "@/lib/profile";
 import PlayerHead from "@/components/mc/PlayerHead";
+import { nickColorValue, profileFrameStyle } from "@/lib/profileCustomization";
 
 type AnyComment = PhotoCommentItem | PostCommentItem;
 
@@ -21,7 +22,15 @@ function vkDate(ts: number): string {
 }
 
 /** Голова скина 32px (как в шапке), либо буковка, если скина нет. */
-function CommentAvatar({ url, nickname }: { url: string | null; nickname: string }) {
+function CommentAvatar({
+  url,
+  nickname,
+  frame,
+}: {
+  url: string | null;
+  nickname: string;
+  frame: string | null;
+}) {
   return (
     <a
       href={`/profile/${encodeURIComponent(nickname)}`}
@@ -29,7 +38,8 @@ function CommentAvatar({ url, nickname }: { url: string | null; nickname: string
         e.preventDefault();
         window.location.href = `/profile/${encodeURIComponent(nickname)}`;
       }}
-      className="shrink-0"
+      className="inline-flex shrink-0"
+      style={profileFrameStyle(frame)}
       title={nickname}
     >
       <PlayerHead skinUrl={url} nickname={nickname} size={32} />
@@ -208,13 +218,18 @@ export default function CommentTree({
         className={depth > 0 ? "ml-9 pl-1.5 flex flex-col gap-3" : "flex flex-col gap-3"}
       >
         <div className="group/comment flex gap-2.5">
-          <CommentAvatar url={c.authorSkinUrl} nickname={c.authorNickname} />
+          <CommentAvatar
+            url={c.authorSkinUrl}
+            nickname={c.authorNickname}
+            frame={c.authorFrame}
+          />
           <div className="flex-1 min-w-0">
             {/* Строка 1: имя (аватар слева от него) */}
             <div className="flex items-center gap-x-1.5 flex-wrap">
               <a
                 href={`/profile/${encodeURIComponent(c.authorNickname)}`}
                 className="text-sm font-medium text-[var(--text)] hover:text-[var(--mc-green)]"
+                style={{ color: nickColorValue(c.authorNickColor) ?? undefined }}
                 onClick={(e) => {
                   e.preventDefault();
                   window.location.href = `/profile/${encodeURIComponent(c.authorNickname)}`;

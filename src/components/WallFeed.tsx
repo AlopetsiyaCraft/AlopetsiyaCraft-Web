@@ -4,6 +4,7 @@ import { useEffect, useState, type SyntheticEvent } from "react";
 import CommentTree from "./CommentTree";
 import PhotoLightbox from "./PhotoLightbox";
 import PlayerHead from "@/components/mc/PlayerHead";
+import { nickColorValue, profileFrameStyle } from "@/lib/profileCustomization";
 import type { PhotoItem, PostCommentItem, PostItem } from "@/lib/profile";
 
 function ruDate(ts: number): string {
@@ -222,9 +223,15 @@ export default function WallFeed({
         posts.map((post) => (
           <div key={post.id} className="mc-panel p-4">
             <div className="flex items-center gap-3 mb-3">
-              <PlayerHead skinUrl={post.authorSkinUrl} nickname={post.authorNickname} size={36} />
+              <span className="inline-flex shrink-0" style={profileFrameStyle(post.authorFrame)}>
+                <PlayerHead skinUrl={post.authorSkinUrl} nickname={post.authorNickname} size={36} />
+              </span>
               <div className="flex-1 min-w-0">
-                <a href={`/profile/${encodeURIComponent(post.authorNickname)}`} className="font-medium text-sm hover:text-[var(--mc-green)]">
+                <a
+                  href={`/profile/${encodeURIComponent(post.authorNickname)}`}
+                  className="font-medium text-sm hover:text-[var(--mc-green)]"
+                  style={{ color: nickColorValue(post.authorNickColor) ?? undefined }}
+                >
                   {post.authorNickname}
                 </a>
                 <div className="text-xs text-[var(--text-muted)]">{ruDate(post.createdAt)}</div>
