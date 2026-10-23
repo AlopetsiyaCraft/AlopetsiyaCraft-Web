@@ -7,6 +7,7 @@ import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import HeadViewer from "@/components/HeadViewer";
 import NameHistoryBadge from "@/components/NameHistoryBadge";
+import ProfileStatusBubble from "@/components/ProfileStatusBubble";
 import ProfileTabs from "@/components/ProfileTabs";
 import {
   SOCIAL_KEYS,
@@ -113,8 +114,8 @@ export default async function ProfileLayout({
           />
 
           <div className="px-4 pb-5 sm:px-6">
-            <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end">
-              <div className="shrink-0">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="relative -mt-12 shrink-0 sm:-mt-14">
                 {target.skinUrl ? (
                   <div
                     className="h-24 w-24 overflow-hidden border-2 border-black bg-[var(--bg)] shadow-[3px_3px_0_rgba(0,0,0,.55)] sm:h-28 sm:w-28"
@@ -130,9 +131,10 @@ export default async function ProfileLayout({
                     Нет скина
                   </div>
                 )}
+                {target.status && <ProfileStatusBubble status={target.status} />}
               </div>
 
-              <div className="min-w-0 flex-1 sm:pb-1">
+              <div className="min-w-0 flex-1 sm:pt-2">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <h1
                     className="mc-title text-2xl sm:text-3xl"
@@ -149,15 +151,7 @@ export default async function ProfileLayout({
                   <span className="mc-chip text-[0.6rem] text-[var(--text-secondary)]">
                     с {new Date(target.createdAt).toLocaleDateString("ru-RU")}
                   </span>
-                  {target.bld != null && (
-                    <span className="mc-chip font-mono text-[0.6rem] text-[var(--mc-gold)]">
-                      {target.bld.toLocaleString("ru-RU")} BLD
-                    </span>
-                  )}
                 </div>
-                {target.status && (
-                  <p className="mt-2 text-sm text-[var(--text-secondary)]">{target.status}</p>
-                )}
                 {Object.keys(socials).length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {SOCIAL_KEYS.map((key) => {
@@ -189,7 +183,7 @@ export default async function ProfileLayout({
               </div>
 
               {isOwn && (
-                <Link href="/profile/settings" className="mc-btn mc-btn-primary self-start py-1.5 text-xs sm:self-end">
+                <Link href="/profile/settings" className="mc-btn mc-btn-primary self-start py-1.5 text-xs sm:mt-2">
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24">
                     <path strokeLinecap="square" d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
                   </svg>
