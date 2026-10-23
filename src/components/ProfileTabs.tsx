@@ -15,7 +15,7 @@ const TABS = [
 export default function ProfileTabs({ baseHref }: { baseHref: string }) {
   const pathname = usePathname();
   return (
-    <nav className="mc-panel-flat no-scrollbar flex gap-1 overflow-x-auto p-1.5">
+    <nav className="mc-panel-flat no-scrollbar flex flex-wrap gap-1 overflow-x-auto p-1.5 sm:flex-nowrap">
       {TABS.map((t) => {
         const href = baseHref + t.suffix;
         const active = pathname === href;

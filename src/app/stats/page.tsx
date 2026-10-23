@@ -6,6 +6,7 @@ import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import PlayerHead from "@/components/mc/PlayerHead";
 import StatsBars from "@/components/stats/StatsBars";
+import StatsCategoryPicker from "@/components/stats/StatsCategoryPicker";
 import StatsCompare from "@/components/stats/StatsCompare";
 import {
   STAT_CATEGORIES,
@@ -175,8 +176,14 @@ export default async function StatsPage({
           </span>
         </div>
 
-        {/* Категории-табы */}
-        <div className="mc-panel-flat no-scrollbar flex gap-1 overflow-x-auto p-1.5">
+        {/* Категории-табы: на телефоне — выпадающий список, на десктопе — табы */}
+        <StatsCategoryPicker
+          categories={STAT_CATEGORIES.map((c) => ({ key: c.key, label: c.label }))}
+          value={sortKey}
+          a={sp.a}
+          b={sp.b}
+        />
+        <div className="mc-panel-flat no-scrollbar hidden gap-1 overflow-x-auto p-1.5 sm:flex">
           {STAT_CATEGORIES.map((c) => {
             const active = c.key === sortKey;
             return (

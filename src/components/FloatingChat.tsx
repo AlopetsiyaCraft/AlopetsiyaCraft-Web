@@ -139,7 +139,11 @@ export default function FloatingChat() {
     <div
       ref={windowRef}
       className="fixed z-50 w-[380px] max-w-[calc(100vw-2rem)]"
-      style={pos ? { left: pos.x, top: pos.y } : { right: "1rem", bottom: "1rem" }}
+      style={
+        pos
+          ? { left: pos.x, top: pos.y }
+          : { right: "1rem", bottom: "calc(1rem + var(--tg-safe-bottom, 0px))" }
+      }
     >
       <div className="mc-panel overflow-hidden">
         <LiveChat isLoggedIn={!!session?.user} headerDragProps={headerDragProps} />

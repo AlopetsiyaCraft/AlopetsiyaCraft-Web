@@ -40,7 +40,7 @@ export default function ServerIp({ compact = false }: { compact?: boolean }) {
     >
       <span className="flex min-w-0 items-center gap-2.5">
         <span className="mc-chip shrink-0 text-[0.6rem] text-[var(--mc-green-light)]">IP</span>
-        <span className="truncate font-mono text-base text-[var(--text)] sm:text-lg">{ADDRESS}</span>
+        <span className="truncate font-mono text-sm text-[var(--text)] sm:text-lg">{ADDRESS}</span>
       </span>
       <span className="flex shrink-0 items-center gap-1.5 text-[0.7rem] uppercase tracking-wider text-[var(--text-muted)] group-hover:text-[var(--mc-green-light)]">
         {copied ? (
@@ -52,7 +52,7 @@ export default function ServerIp({ compact = false }: { compact?: boolean }) {
             <path strokeLinecap="square" d="M8 5H5v14h14v-3M9 3h12v12H9z" />
           </svg>
         )}
-        {copied ? "Готово" : "Копировать"}
+        {copied ? "Готово" : <span className="hidden sm:inline">Копировать</span>}
       </span>
     </button>
   );

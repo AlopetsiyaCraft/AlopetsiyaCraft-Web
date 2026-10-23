@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import Providers from "@/components/Providers";
+import TelegramWebApp from "@/components/TelegramWebApp";
 import "./globals.css";
 
 /**
@@ -29,6 +31,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#121212",
 };
 
@@ -47,8 +52,14 @@ export default function RootLayout({
         {/* Синхронный скрипт темы намеренный: класс ставится до отрисовки (анти-FOUC). Вынесен в файл, т.к. инлайн-скрипты в дереве React дают warning в консоли. */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="/theme-init.js" />
+        {/* Официальный SDK Telegram Mini App. Вне Telegram ничего не меняет. */}
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body className="min-h-full flex flex-col">
+        <TelegramWebApp />
         <Providers>{children}</Providers>
       </body>
     </html>

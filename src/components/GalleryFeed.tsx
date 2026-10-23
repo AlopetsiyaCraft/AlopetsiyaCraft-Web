@@ -63,7 +63,10 @@ export default function GalleryFeed({
   }, [seasonFilter, fixedSeasonId, openPhotoId, openedPhoto]);
 
   useEffect(() => {
-    refresh();
+    // setState внутри refresh нельзя вызывать прямо в теле эффекта:
+    // откладываем загрузку на следующий такт.
+    const timer = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(timer);
   }, [refresh]);
 
   const fixed = !!fixedSeasonId;
@@ -71,7 +74,7 @@ export default function GalleryFeed({
   return (
     <div className="flex flex-col gap-4">
       {!fixed && (
-        <div className="mc-panel-flat no-scrollbar flex gap-1 overflow-x-auto p-1.5">
+        <div className="mc-panel-flat no-scrollbar flex flex-wrap gap-1 overflow-x-auto p-1.5 sm:flex-nowrap">
           <SeasonTab
             active={seasonFilter === "all"}
             onClick={() => setSeasonFilter("all")}

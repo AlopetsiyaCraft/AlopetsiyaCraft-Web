@@ -118,7 +118,7 @@ export default function AdminContent({
         </p>
       )}
 
-      <div className="mc-panel-flat no-scrollbar flex gap-1 overflow-x-auto p-1.5">
+      <div className="mc-panel-flat no-scrollbar flex flex-wrap gap-1 overflow-x-auto p-1.5 sm:flex-nowrap">
         {TABS.map((item) => (
           <button
             key={item.key}

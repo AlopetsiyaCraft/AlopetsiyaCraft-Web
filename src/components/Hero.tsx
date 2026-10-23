@@ -20,7 +20,7 @@ export default function Hero({
     <section className="mc-hero-bg force-dark relative overflow-hidden border-b-2 border-black">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:py-16 lg:py-20">
         <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
-          <div>
+          <div className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="mc-chip text-[0.65rem] text-[var(--mc-green-light)]">
                 <span className="h-2 w-2 animate-pulse bg-[var(--mc-green-light)]" aria-hidden />
@@ -57,7 +57,7 @@ export default function Hero({
           </div>
 
           {/* Правая панель со статистикой */}
-          <div className="mc-panel p-4 sm:p-5">
+          <div className="mc-panel min-w-0 p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between border-b-2 border-black/50 pb-2">
               <span className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
                 Сводка сервера

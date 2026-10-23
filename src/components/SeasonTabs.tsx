@@ -16,7 +16,7 @@ export default function SeasonTabs({ tabs }: { tabs: Tab[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="mc-panel-flat no-scrollbar mb-6 flex gap-1 overflow-x-auto p-1.5">
+    <nav className="mc-panel-flat no-scrollbar mb-6 flex flex-wrap gap-1 overflow-x-auto p-1.5 sm:flex-nowrap">
       {tabs.map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         return (

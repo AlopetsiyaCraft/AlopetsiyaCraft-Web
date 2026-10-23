@@ -96,14 +96,14 @@ export default function Header({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50">
+    <header className="mc-site-header sticky top-0 z-50">
       <div className="mc-grass-line" />
       <div className="border-b-2 border-black bg-[var(--bg-alt)]/95 backdrop-blur-[2px]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           {/* Логотип */}
-          <Link href="/" className="group flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
+          <Link href="/" className="group flex min-w-0 items-center gap-2.5" onClick={() => setMobileOpen(false)}>
             <GrassBlock />
-            <span className="mc-text-shadow text-[1.05rem] font-bold uppercase leading-none tracking-[0.06em] sm:text-[1.2rem]">
+            <span className="mc-text-shadow hidden truncate text-[1.05rem] font-bold uppercase leading-none tracking-[0.06em] min-[360px]:block sm:text-[1.2rem]">
               <span className="text-[var(--text)]">Алопеция</span>
               <span className="text-[var(--mc-green-light)]">Крафт</span>
             </span>
@@ -184,7 +184,7 @@ export default function Header({
                       {user?.name}
                     </span>
                     <svg
-                      className={`h-3.5 w-3.5 transition-transform ${userOpen ? "rotate-180" : ""}`}
+                      className={`hidden h-3.5 w-3.5 transition-transform sm:block ${userOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
                       strokeWidth={3}
@@ -283,7 +283,7 @@ export default function Header({
 
             <button
               onClick={toggleTheme}
-              className="mc-panel-flat flex h-9 w-9 cursor-pointer items-center justify-center transition-colors hover:bg-[var(--hover)]"
+              className="mc-panel-flat hidden h-9 w-9 cursor-pointer items-center justify-center transition-colors hover:bg-[var(--hover)] sm:flex"
               title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
               aria-label="Переключить тему"
             >
@@ -347,6 +347,16 @@ export default function Header({
                   Войти
                 </Link>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  toggleTheme();
+                  setMobileOpen(false);
+                }}
+                className="col-span-2 cursor-pointer bg-[var(--card)] px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider transition-colors hover:bg-[var(--hover)]"
+              >
+                {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+              </button>
             </nav>
           </div>
         )}

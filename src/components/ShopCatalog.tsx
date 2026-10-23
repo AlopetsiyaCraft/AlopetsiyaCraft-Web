@@ -157,7 +157,7 @@ export default function ShopCatalog({
         </div>
 
         {categories.length > 1 && (
-          <div className="no-scrollbar flex gap-1 overflow-x-auto">
+          <div className="no-scrollbar flex w-full flex-wrap gap-1 overflow-x-auto sm:w-auto sm:flex-nowrap">
             {categories.map((c) => (
               <button
                 key={c.key}
