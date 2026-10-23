@@ -41,6 +41,7 @@ export const bootstrapSql = `
     profile_frame TEXT,
     socials TEXT NOT NULL DEFAULT '{}',
     featured_achievements TEXT NOT NULL DEFAULT '[]',
+    profile_layout TEXT NOT NULL DEFAULT '[]',
     last_active_at INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
@@ -449,6 +450,7 @@ export async function initDatabase() {
     `ALTER TABLE users ADD COLUMN profile_frame TEXT`,
     `ALTER TABLE users ADD COLUMN socials TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE users ADD COLUMN featured_achievements TEXT NOT NULL DEFAULT '[]'`,
+    `ALTER TABLE users ADD COLUMN profile_layout TEXT NOT NULL DEFAULT '[]'`,
   ]) {
     try {
       await client.execute(ddl);

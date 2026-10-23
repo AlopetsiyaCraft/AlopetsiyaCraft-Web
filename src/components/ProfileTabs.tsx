@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { name: "Стена", suffix: "" },
+  { name: "Обзор", suffix: "" },
+  { name: "Стена", suffix: "/wall" },
   { name: "Аудио", suffix: "/music" },
   { name: "Фото", suffix: "/foto" },
   { name: "Друзья", suffix: "/friends" },

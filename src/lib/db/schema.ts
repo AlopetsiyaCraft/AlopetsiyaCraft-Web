@@ -62,6 +62,8 @@ export const users = sqliteTable("users", {
   profileFrame: text("profile_frame"),
   socials: text("socials").notNull().default("{}"),
   featuredAchievements: text("featured_achievements").notNull().default("[]"),
+  /** Порядок, видимость и ширина блоков на вкладке «Обзор». */
+  profileLayout: text("profile_layout").notNull().default("[]"),
   // Когда последний раз крутили колесо ежедневного бонуса (раз в день).
   dailyBonusAt: integer("daily_bonus_at", { mode: "timestamp" }),
   lastActiveAt: integer("last_active_at", { mode: "timestamp" }),

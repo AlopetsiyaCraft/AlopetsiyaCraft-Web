@@ -136,6 +136,24 @@ export default async function SettingsPage({
         </div>
 
         <div className="mt-6">
+          <section className="mc-panel overflow-hidden">
+            <div className="mc-head">Блоки профиля</div>
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <p className="max-w-lg text-sm text-[var(--text-secondary)]">
+                Порядок, ширина и видимость блоков на вкладке «Обзор»: статистика,
+                радар, топы, достижения и остальное.
+              </p>
+              <Link
+                href="/profile/settings/layout"
+                className="mc-btn mc-btn-primary px-3 py-1.5 text-xs"
+              >
+                Настроить блоки
+              </Link>
+            </div>
+          </section>
+        </div>
+
+        <div className="mt-6">
           <DiscordLinkCard discordId={user.discordId} oauthUrl={oauthUrl} />
         </div>
       </div>

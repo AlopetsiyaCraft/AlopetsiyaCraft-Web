@@ -20,7 +20,7 @@ import {
 
 /**
  * Профиль игрока (VK-стиль, osu-адреса): /profile/<ник> или /profile/<id>.
- * Вкладки: Стена (/), Аудио (/music), Фото (/foto), Друзья (/friends), Внешний вид (/appearance).
+ * Вкладки: Обзор (/), Стена (/wall), Аудио (/music), Фото (/foto), Друзья (/friends), Внешний вид (/appearance).
  * Профиль видят только зарегистрированные.
  */
 export default async function ProfileLayout({
