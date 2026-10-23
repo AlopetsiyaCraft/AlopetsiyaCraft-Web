@@ -55,6 +55,11 @@ export default async function SettingsPage({
     .from(userFrames)
     .where(eq(userFrames.userId, user.id))
     .all();
+  const unlockedFrameIds = myFrames.map((f) => f.frameId);
+  const activeFrame =
+    user.profileFrame && unlockedFrameIds.includes(user.profileFrame)
+      ? user.profileFrame
+      : "";
 
   // OAuth-кнопка «Привязать Discord» доступна, если заданы
   // DISCORD_CLIENT_ID и DISCORD_CLIENT_SECRET в .env. Сама ссылка — на
@@ -106,10 +111,10 @@ export default async function SettingsPage({
             initialStatus={user.status ?? ""}
             initialNickColor={user.nickColor ?? ""}
             initialProfileBg={user.profileBg ?? ""}
-            initialProfileFrame={user.profileFrame ?? ""}
+            initialProfileFrame={activeFrame}
             initialBgImage={user.profileBgImage ?? ""}
             bgUnlocked={user.profileBgUnlocked}
-            unlockedFrames={myFrames.map((f) => f.frameId)}
+            unlockedFrames={unlockedFrameIds}
             initialSocials={parseSocials(user.socials)}
             initialFeatured={parseFeaturedAchievements(user.featuredAchievements)}
             achievements={myAchievements.map((a) => ({

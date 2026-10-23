@@ -68,7 +68,13 @@ export default async function ProfileLayout({
       .all(),
   ]);
 
-  const previousNames = names.filter((n) => n.nickname !== target.nickname);
+  const seenNames = new Set<string>();
+  const previousNames = names.filter((n) => {
+    const key = n.nickname.toLowerCase();
+    if (key === target.nickname.toLowerCase() || seenNames.has(key)) return false;
+    seenNames.add(key);
+    return true;
+  });
   const isOwn = target.id === me.id;
   const socials = parseSocials(target.socials);
   const nickColor = nickColorValue(target.nickColor);

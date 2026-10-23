@@ -14,6 +14,7 @@ import {
   profileFrameStyle,
   type SocialKey,
 } from "@/lib/profileCustomization";
+import ProfileBannerCropModal from "./ProfileBannerCropModal";
 
 export interface AchievementOption {
   id: number;
@@ -28,6 +29,12 @@ const FRAME_COLORS: Record<string, string> = {
   goal: "var(--mc-gold)",
   challenge: "#a855f7",
 };
+
+function normalizedSocials(input: Partial<Record<SocialKey, string>>) {
+  return Object.fromEntries(
+    SOCIAL_KEYS.map((key) => [key, (input[key] ?? "").trim()]).filter(([, value]) => value)
+  );
+}
 
 export default function ProfileCustomizationForm({
   initialStatus,
@@ -53,13 +60,17 @@ export default function ProfileCustomizationForm({
   achievements: AchievementOption[];
 }) {
   const router = useRouter();
+  const initialFrameValue = unlockedFrames.includes(initialProfileFrame)
+    ? initialProfileFrame
+    : "";
   const [status, setStatus] = useState(initialStatus);
   const [nickColor, setNickColor] = useState(initialNickColor);
   const [profileBg, setProfileBg] = useState(initialProfileBg);
-  const [profileFrame, setProfileFrame] = useState(initialProfileFrame);
+  const [profileFrame, setProfileFrame] = useState(initialFrameValue);
   const [socials, setSocials] = useState<Partial<Record<SocialKey, string>>>(initialSocials);
   const [featured, setFeatured] = useState<number[]>(initialFeatured);
   const [bgImage, setBgImage] = useState(initialBgImage);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [bgError, setBgError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -72,18 +83,33 @@ export default function ProfileCustomizationForm({
     (frame) => frame.id === "none" || unlockedFrames.includes(frame.id)
   );
 
-  async function uploadBg(file: File) {
+  const initialSnapshot = JSON.stringify({
+    status: initialStatus,
+    nickColor: initialNickColor,
+    profileBg: initialProfileBg,
+    profileFrame: initialFrameValue,
+    socials: normalizedSocials(initialSocials),
+    featured: initialFeatured,
+  });
+  const currentSnapshot = JSON.stringify({
+    status,
+    nickColor,
+    profileBg,
+    profileFrame,
+    socials: normalizedSocials(socials),
+    featured,
+  });
+  const dirty = initialSnapshot !== currentSnapshot;
+
+  async function uploadBg(blob: Blob) {
     if (!bgUnlocked || uploading) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setBgError("Файл больше 8 МБ");
-      return;
-    }
     setUploading(true);
     setBgError(null);
     setMessage(null);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      const ext = blob.type === "image/png" ? "png" : "webp";
+      formData.append("file", blob, `profile-bg.${ext}`);
       const res = await fetch("/api/user/profile-bg", { method: "POST", body: formData });
       const data = (await res.json()) as { error?: string; profileBgImage?: string };
       if (!res.ok || !data.profileBgImage) {
@@ -269,7 +295,14 @@ export default function ProfileCustomizationForm({
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) void uploadBg(file);
+                    if (file) {
+                      if (file.size > 8 * 1024 * 1024) {
+                        setBgError("Файл больше 8 МБ");
+                      } else {
+                        setBgError(null);
+                        setCropFile(file);
+                      }
+                    }
                     e.target.value = "";
                   }}
                 />
@@ -421,13 +454,24 @@ export default function ProfileCustomizationForm({
         <div>
           <button
             type="submit"
-            disabled={saving}
-            className="mc-btn mc-btn-primary px-4 py-2 text-sm"
+            disabled={saving || !dirty}
+            className="mc-btn mc-btn-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {saving ? "Сохраняем…" : "Сохранить оформление"}
+            {saving ? "Сохраняем…" : dirty ? "Сохранить оформление" : "Нет изменений"}
           </button>
         </div>
       </form>
+
+      {cropFile && (
+        <ProfileBannerCropModal
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onConfirm={(blob) => {
+            setCropFile(null);
+            void uploadBg(blob);
+          }}
+        />
+      )}
     </div>
   );
 }

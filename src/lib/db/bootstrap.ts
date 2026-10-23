@@ -436,6 +436,17 @@ export async function initDatabase() {
       // column already exists
     }
   }
+
+  // Рамки, выбранные до появления магазина, сохраняем за игроками:
+  // иначе после обновления профиль молча терял рамку, а сохранение падало
+  // с «рамка не куплена».
+  await client.execute(
+    `INSERT OR IGNORE INTO user_frames (user_id, frame_id)
+     SELECT id, profile_frame FROM users
+     WHERE profile_frame IS NOT NULL
+       AND profile_frame != ''
+       AND profile_frame != 'none'`
+  );
   try {
     // legacy: пиксельная обложка пластинки (фото альбома, 16x16 PNG)
     await client.execute(`ALTER TABLE audio_tracks ADD COLUMN cover_file_name TEXT`);
