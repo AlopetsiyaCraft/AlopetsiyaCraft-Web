@@ -38,6 +38,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        // Забаненные не могут войти заново; уже выданные JWT доживают срок.
+        if (user.bannedAt) {
+          return null;
+        }
+
         return {
           id: user.id.toString(),
           name: user.nickname,

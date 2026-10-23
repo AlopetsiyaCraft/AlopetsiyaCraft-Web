@@ -31,6 +31,8 @@ export const bootstrapSql = `
     skin_model TEXT NOT NULL DEFAULT 'wide',
     discord_id TEXT,
     role TEXT NOT NULL DEFAULT 'user',
+    banned_at INTEGER,
+    ban_reason TEXT,
     bld INTEGER NOT NULL DEFAULT 0,
     chips INTEGER NOT NULL DEFAULT 0,
     nick_color TEXT,
@@ -427,6 +429,18 @@ export async function initDatabase() {
     `ALTER TABLE users ADD COLUMN profile_frame TEXT`,
     `ALTER TABLE users ADD COLUMN socials TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE users ADD COLUMN featured_achievements TEXT NOT NULL DEFAULT '[]'`,
+  ]) {
+    try {
+      await client.execute(ddl);
+    } catch {
+      // column already exists
+    }
+  }
+
+  // legacy: бан пользователя
+  for (const ddl of [
+    `ALTER TABLE users ADD COLUMN banned_at INTEGER`,
+    `ALTER TABLE users ADD COLUMN ban_reason TEXT`,
   ]) {
     try {
       await client.execute(ddl);

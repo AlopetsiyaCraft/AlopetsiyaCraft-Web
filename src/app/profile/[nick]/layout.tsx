@@ -144,7 +144,11 @@ export default async function ProfileLayout({
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="mc-chip text-[0.6rem] text-[var(--mc-green-light)]">
-                    {target.role === "admin" ? "Администратор" : "Игрок"}
+                    {target.role === "admin"
+                      ? "Администратор"
+                      : target.role === "moderator"
+                        ? "Модератор"
+                        : "Игрок"}
                   </span>
                   <span className="mc-chip text-[0.6rem] text-[var(--text-secondary)]">
                     с {new Date(target.createdAt).toLocaleDateString("ru-RU")}

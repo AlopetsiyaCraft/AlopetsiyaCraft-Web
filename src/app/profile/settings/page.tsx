@@ -86,6 +86,14 @@ export default async function SettingsPage({
 
         <h1 className="mc-title text-2xl mb-8">Настройки аккаунта</h1>
 
+        {user.role !== "user" && (
+          <div className="mb-6">
+            <Link href="/admin" className="mc-btn mc-btn-primary px-3 py-1.5 text-xs">
+              🛡 Админка
+            </Link>
+          </div>
+        )}
+
         {params.discord === "linked" && (
           <div className="mc-inset mb-6 border-[var(--mc-green)] text-[var(--mc-green-light)] p-4 text-sm">
             Discord привязан! Бот обновит твой ник и аватарку на сервере и
