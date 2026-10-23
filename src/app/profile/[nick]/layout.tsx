@@ -7,7 +7,6 @@ import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import HeadViewer from "@/components/HeadViewer";
 import NameHistoryBadge from "@/components/NameHistoryBadge";
-import ProfileStatusBubble from "@/components/ProfileStatusBubble";
 import ProfileTabs from "@/components/ProfileTabs";
 import {
   SOCIAL_KEYS,
@@ -131,7 +130,6 @@ export default async function ProfileLayout({
                     Нет скина
                   </div>
                 )}
-                {target.status && <ProfileStatusBubble status={target.status} />}
               </div>
 
               <div className="min-w-0 flex-1 sm:pt-2">

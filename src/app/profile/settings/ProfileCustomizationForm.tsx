@@ -37,7 +37,6 @@ function normalizedSocials(input: Partial<Record<SocialKey, string>>) {
 }
 
 export default function ProfileCustomizationForm({
-  initialStatus,
   initialNickColor,
   initialProfileBg,
   initialProfileFrame,
@@ -48,7 +47,6 @@ export default function ProfileCustomizationForm({
   initialFeatured,
   achievements,
 }: {
-  initialStatus: string;
   initialNickColor: string;
   initialProfileBg: string;
   initialProfileFrame: string;
@@ -63,7 +61,6 @@ export default function ProfileCustomizationForm({
   const initialFrameValue = unlockedFrames.includes(initialProfileFrame)
     ? initialProfileFrame
     : "";
-  const [status, setStatus] = useState(initialStatus);
   const [nickColor, setNickColor] = useState(initialNickColor);
   const [profileBg, setProfileBg] = useState(initialProfileBg);
   const [profileFrame, setProfileFrame] = useState(initialFrameValue);
@@ -84,7 +81,6 @@ export default function ProfileCustomizationForm({
   );
 
   const initialSnapshot = JSON.stringify({
-    status: initialStatus,
     nickColor: initialNickColor,
     profileBg: initialProfileBg,
     profileFrame: initialFrameValue,
@@ -92,7 +88,6 @@ export default function ProfileCustomizationForm({
     featured: initialFeatured,
   });
   const currentSnapshot = JSON.stringify({
-    status,
     nickColor,
     profileBg,
     profileFrame,
@@ -164,7 +159,6 @@ export default function ProfileCustomizationForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status,
           nickColor,
           profileBg,
           profileFrame,
@@ -190,20 +184,6 @@ export default function ProfileCustomizationForm({
         <h2 className="min-w-0 flex-1">Оформление профиля</h2>
       </div>
       <form onSubmit={save} className="flex flex-col gap-6 p-6">
-        <div className="max-w-md">
-          <label className="flex flex-col gap-1 text-xs text-[var(--text-muted)]">
-            Статус
-            <input
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              maxLength={30}
-              placeholder="Например: строю город мечты"
-              className="mc-input"
-            />
-            <span className="self-end font-mono text-[0.58rem]">{status.length}/30</span>
-          </label>
-        </div>
-
         <section>
           <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.1em]">Цвет ника</h3>
           <div className="flex flex-wrap items-center gap-2">

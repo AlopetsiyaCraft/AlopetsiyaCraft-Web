@@ -51,7 +51,6 @@ export const users = sqliteTable("users", {
   // Фишки казино — тратятся только за карточными столами в Minecraft.
   chips: integer("chips").notNull().default(0),
   // Кастомизация профиля (редактируется в настройках).
-  status: text("status"),
   nickColor: text("nick_color"),
   profileBg: text("profile_bg"),
   profileBgImage: text("profile_bg_image"),

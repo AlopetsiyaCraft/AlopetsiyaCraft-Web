@@ -36,8 +36,6 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
 
-  const status = typeof body?.status === "string" ? body.status.trim().slice(0, 30) : "";
-
   const nickColorRaw = typeof body?.nickColor === "string" ? body.nickColor.trim() : "";
   const nickColorOk =
     nickColorRaw === "" ||
@@ -133,7 +131,6 @@ export async function POST(request: NextRequest) {
   await db
     .update(users)
     .set({
-      status: status || null,
       nickColor: nickColorRaw || null,
       profileBg: profileBgRaw || null,
       // Выбор пресета заменяет загруженную картинку; если пресет не выбран,
@@ -149,7 +146,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     message: "Профиль сохранён",
     profile: {
-      status,
       nickColor: nickColorRaw,
       profileBg: profileBgRaw,
       profileFrame: profileFrameValue ?? "",

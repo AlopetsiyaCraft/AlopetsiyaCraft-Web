@@ -108,7 +108,6 @@ export default async function SettingsPage({
 
         <div className="mt-6">
           <ProfileCustomizationForm
-            initialStatus={user.status ?? ""}
             initialNickColor={user.nickColor ?? ""}
             initialProfileBg={user.profileBg ?? ""}
             initialProfileFrame={activeFrame}

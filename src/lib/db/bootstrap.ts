@@ -33,7 +33,6 @@ export const bootstrapSql = `
     role TEXT NOT NULL DEFAULT 'user',
     bld INTEGER NOT NULL DEFAULT 0,
     chips INTEGER NOT NULL DEFAULT 0,
-    status TEXT,
     nick_color TEXT,
     profile_bg TEXT,
     profile_bg_image TEXT,
@@ -419,9 +418,8 @@ export async function initDatabase() {
   } catch (e) {
     // column already exists
   }
-  // legacy: кастомизация профиля (статус, цвета, соцсети, витрина)
+  // legacy: кастомизация профиля (цвета, соцсети, витрина)
   for (const ddl of [
-    `ALTER TABLE users ADD COLUMN status TEXT`,
     `ALTER TABLE users ADD COLUMN nick_color TEXT`,
     `ALTER TABLE users ADD COLUMN profile_bg TEXT`,
     `ALTER TABLE users ADD COLUMN profile_bg_image TEXT`,
