@@ -1,28 +1,29 @@
 /**
- * Пиксельное облачко статуса, привязанное к голове игрока.
- * Абсолютное — не участвует в раскладке, поэтому ник не смещается
- * в зависимости от наличия статуса.
+ * Пиксельное облачко статуса над головой игрока — как в референсе:
+ * прямоугольный бабл с чёрной рамкой и ступенчатым хвостиком вниз.
+ * Абсолютное, поэтому не участвует в раскладке и не двигает ник.
  */
 export default function ProfileStatusBubble({ status }: { status: string }) {
   return (
-    <div className="pointer-events-none absolute left-full top-2 z-20 ml-2 w-max max-w-[min(18rem,calc(100vw-9rem))]">
-      <div className="relative border-2 border-black bg-[#ececec] px-3 py-2 text-sm leading-snug text-[#1b1b1b] shadow-[3px_3px_0_rgba(0,0,0,0.45)]">
-        {/* Ступенчатый хвостик к голове */}
-        <svg
-          className="absolute -left-3 top-1 h-5 w-4"
-          viewBox="0 0 16 20"
-          shapeRendering="crispEdges"
-          aria-hidden
-        >
-          <path
-            d="M16 1H9v4H5v4H1v4h4v4h4v3h7z"
-            fill="#ececec"
-            stroke="#000"
-            strokeWidth="2"
-          />
-        </svg>
-        <span className="relative break-words">{status}</span>
+    <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-5 w-max max-w-[8.5rem] -translate-x-1/2 sm:max-w-[12rem]">
+      <div className="relative border-2 border-black bg-[#f5f5f5] px-3 py-2 text-center text-[0.65rem] font-bold uppercase leading-tight tracking-[0.02em] text-[#151515] shadow-[3px_3px_0_rgba(0,0,0,0.45)]">
+        <span className="break-words">{status}</span>
       </div>
+
+      {/* Ступенчатый хвостик вниз, к голове */}
+      <svg
+        className="absolute left-1/2 top-full h-4 w-8 -translate-x-1/2"
+        viewBox="0 0 24 14"
+        shapeRendering="crispEdges"
+        aria-hidden
+      >
+        <path
+          d="M4 0H20V3H17V6H14V9H12V13H11V9H9V6H6V3H4Z"
+          fill="#f5f5f5"
+          stroke="#000"
+          strokeWidth="2"
+        />
+      </svg>
     </div>
   );
 }
