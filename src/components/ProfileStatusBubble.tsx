@@ -6,7 +6,7 @@
  */
 export default function ProfileStatusBubble({ status }: { status: string }) {
   return (
-    <div className="pointer-events-none absolute bottom-full left-[88%] z-20 mb-1 aspect-[20/11] w-[8rem] -translate-x-1/2 sm:w-[10rem]">
+    <div className="pointer-events-none absolute bottom-full left-[93%] z-20 mb-0 aspect-[20/11] w-[8rem] -translate-x-1/2 sm:w-[10rem]">
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox="0 0 160 88"
@@ -15,7 +15,7 @@ export default function ProfileStatusBubble({ status }: { status: string }) {
         aria-hidden
       >
         <path
-          d="M20 4H140H144V8H148V12H152V16V48H152V52H148V56H144V60H140H88V66H80V72H64V76H40V80H24V76H32V72H40V66H48V60H20H16V56H12V52H8V48V16H8V12H12V8H16V4H20Z"
+          d="M20 4H140H144V8H148V12H152V16V48H152V52H148V56H144V60H140H84V66H76V72H60V76H40V80H28V76H36V72H44V66H52V60H20H16V56H12V52H8V48V16H8V12H12V8H16V4H20Z"
           fill="#f5f5f5"
           stroke="#000"
           strokeWidth="5"
