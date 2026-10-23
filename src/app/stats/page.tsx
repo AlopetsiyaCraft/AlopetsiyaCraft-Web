@@ -5,6 +5,8 @@ import { playerStats, seasons, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import PlayerHead from "@/components/mc/PlayerHead";
+import StatsBars from "@/components/stats/StatsBars";
+import StatsCompare from "@/components/stats/StatsCompare";
 import {
   STAT_CATEGORIES,
   STAT_CATEGORY_KEYS,
@@ -97,7 +99,7 @@ async function getLeaderboard(
 export default async function StatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; a?: string; b?: string }>;
 }) {
   const sp = await searchParams;
   const session = await auth();
@@ -121,6 +123,36 @@ export default async function StatsPage({
   const { rows } = await getLeaderboard(sortKey);
   const viewerNickname = viewer?.name?.toLowerCase() ?? null;
   const activeCategory = getStatCategory(sortKey);
+
+  const byNick = new Map(rows.map((row) => [row.nickname.toLowerCase(), row]));
+  const pickRow = (nickname?: string) =>
+    nickname ? byNick.get(nickname.toLowerCase()) : undefined;
+  const compareA =
+    pickRow(sp.a) ??
+    (viewerNickname ? byNick.get(viewerNickname) : undefined) ??
+    rows[0];
+  let compareB =
+    pickRow(sp.b) ??
+    rows.find(
+      (row) => row.nickname.toLowerCase() !== compareA?.nickname.toLowerCase()
+    );
+  if (
+    compareB &&
+    compareA &&
+    compareB.nickname.toLowerCase() === compareA.nickname.toLowerCase()
+  ) {
+    compareB = rows.find(
+      (row) => row.nickname.toLowerCase() !== compareA.nickname.toLowerCase()
+    );
+  }
+
+  const tabHref = (key: string) => {
+    const query = new URLSearchParams();
+    query.set("sort", key);
+    if (sp.a) query.set("a", sp.a);
+    if (sp.b) query.set("b", sp.b);
+    return `/stats?${query.toString()}`;
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)]">
@@ -150,7 +182,7 @@ export default async function StatsPage({
             return (
               <Link
                 key={c.key}
-                href={`/stats?sort=${c.key}`}
+                href={tabHref(c.key)}
                 className={`shrink-0 border-2 px-3 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition-colors ${
                   active
                     ? "border-black bg-[var(--mc-green)] text-[#0f1a08]"
@@ -198,6 +230,12 @@ export default async function StatsPage({
                 </div>
               ))}
             </div>
+
+            <StatsBars rows={rows} sortKey={sortKey} />
+
+            {compareA && compareB && (
+              <StatsCompare rows={rows} a={compareA} b={compareB} sortKey={sortKey} />
+            )}
 
             {/* Полный список */}
             <div className="mc-panel overflow-hidden">
