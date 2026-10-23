@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { nameHistory, seasons, users } from "@/lib/db/schema";
+import { nameHistory, seasons, userFrames, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import HeadViewer from "@/components/HeadViewer";
@@ -53,7 +53,7 @@ export default async function ProfileLayout({
   }
   if (!target) notFound();
 
-  const [allSeasons, names] = await Promise.all([
+  const [allSeasons, names, frames] = await Promise.all([
     db.select().from(seasons).orderBy(desc(seasons.number)).all(),
     db
       .select()
@@ -61,15 +61,32 @@ export default async function ProfileLayout({
       .where(eq(nameHistory.userId, target.id))
       .orderBy(desc(nameHistory.createdAt))
       .all(),
+    db
+      .select({ frameId: userFrames.frameId })
+      .from(userFrames)
+      .where(eq(userFrames.userId, target.id))
+      .all(),
   ]);
 
   const previousNames = names.filter((n) => n.nickname !== target.nickname);
   const isOwn = target.id === me.id;
   const socials = parseSocials(target.socials);
   const nickColor = nickColorValue(target.nickColor);
-  const backgroundStyle = profileBackgroundStyle(target.profileBg);
-  const hasCustomBackground = Object.keys(backgroundStyle).length > 0;
-  const frameStyle = profileFrameStyle(target.profileFrame);
+  const unlockedFrameIds = new Set(frames.map((f) => f.frameId));
+  const activeFrame =
+    target.profileFrame && unlockedFrameIds.has(target.profileFrame)
+      ? target.profileFrame
+      : null;
+  const backgroundStyle = target.profileBgImage
+    ? {
+        backgroundImage: `url("${target.profileBgImage}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : profileBackgroundStyle(target.profileBg);
+  const hasCustomBackground =
+    !!target.profileBgImage || Object.keys(backgroundStyle).length > 0;
+  const frameStyle = profileFrameStyle(activeFrame);
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)]">
@@ -83,7 +100,7 @@ export default async function ProfileLayout({
         <div className="mc-panel overflow-hidden">
           {/* Пиксельный баннер */}
           <div
-            className={`h-20 border-b-2 border-black sm:h-24 ${
+            className={`h-28 border-b-2 border-black sm:h-40 ${
               hasCustomBackground ? "" : "mc-hero-bg"
             }`}
             style={backgroundStyle}
@@ -134,11 +151,6 @@ export default async function ProfileLayout({
                 </div>
                 {target.status && (
                   <p className="mt-2 text-sm text-[var(--text-secondary)]">{target.status}</p>
-                )}
-                {target.bio && (
-                  <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)]">
-                    {target.bio}
-                  </p>
                 )}
                 {Object.keys(socials).length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">

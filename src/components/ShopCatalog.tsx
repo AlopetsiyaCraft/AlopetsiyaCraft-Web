@@ -131,7 +131,9 @@ export default function ShopCatalog({
         ...prev,
       ]);
       setMessage(
-        `«${product.title}» куплен. Заказ №${data.order.id} появится в игре после выдачи.`
+        data.order.kind === "frame" || data.order.kind === "profile_bg"
+          ? `«${product.title}» куплен и активирован. Настрой его в профиле.`
+          : `«${product.title}» куплен. Заказ №${data.order.id} появится в игре после выдачи.`
       );
       router.refresh();
     } catch (e) {
@@ -249,7 +251,7 @@ export default function ShopCatalog({
                     {busyId === product.id
                       ? "Покупаем…"
                       : limitReached
-                        ? "Лимит исчерпан"
+                        ? "Уже куплено"
                         : notEnough
                           ? `Не хватает ${formatBld(product.priceBld - bld)} BLD`
                           : "Купить"}

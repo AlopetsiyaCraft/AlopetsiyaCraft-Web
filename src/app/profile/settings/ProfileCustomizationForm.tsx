@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   NICK_COLORS,
   PROFILE_BACKGROUNDS,
@@ -29,37 +30,94 @@ const FRAME_COLORS: Record<string, string> = {
 };
 
 export default function ProfileCustomizationForm({
-  initialBio,
   initialStatus,
   initialNickColor,
   initialProfileBg,
   initialProfileFrame,
+  initialBgImage,
+  bgUnlocked,
+  unlockedFrames,
   initialSocials,
   initialFeatured,
   achievements,
 }: {
-  initialBio: string;
   initialStatus: string;
   initialNickColor: string;
   initialProfileBg: string;
   initialProfileFrame: string;
+  initialBgImage: string;
+  bgUnlocked: boolean;
+  unlockedFrames: string[];
   initialSocials: Partial<Record<SocialKey, string>>;
   initialFeatured: number[];
   achievements: AchievementOption[];
 }) {
   const router = useRouter();
-  const [bio, setBio] = useState(initialBio);
   const [status, setStatus] = useState(initialStatus);
   const [nickColor, setNickColor] = useState(initialNickColor);
   const [profileBg, setProfileBg] = useState(initialProfileBg);
   const [profileFrame, setProfileFrame] = useState(initialProfileFrame);
   const [socials, setSocials] = useState<Partial<Record<SocialKey, string>>>(initialSocials);
   const [featured, setFeatured] = useState<number[]>(initialFeatured);
+  const [bgImage, setBgImage] = useState(initialBgImage);
+  const [uploading, setUploading] = useState(false);
+  const [bgError, setBgError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const bgFileRef = useRef<HTMLInputElement>(null);
 
   const colorPickerValue = nickColorValue(nickColor) ?? "#7dbb52";
+  const availableFrames = PROFILE_FRAMES.filter(
+    (frame) => frame.id === "none" || unlockedFrames.includes(frame.id)
+  );
+
+  async function uploadBg(file: File) {
+    if (!bgUnlocked || uploading) return;
+    if (file.size > 8 * 1024 * 1024) {
+      setBgError("Файл больше 8 МБ");
+      return;
+    }
+    setUploading(true);
+    setBgError(null);
+    setMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/user/profile-bg", { method: "POST", body: formData });
+      const data = (await res.json()) as { error?: string; profileBgImage?: string };
+      if (!res.ok || !data.profileBgImage) {
+        throw new Error(data.error || "Не удалось загрузить фон");
+      }
+      setBgImage(data.profileBgImage);
+      setProfileBg("");
+      setMessage("Свой фон загружен");
+      router.refresh();
+    } catch (e) {
+      setBgError(e instanceof Error ? e.message : "Ошибка загрузки");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeBg() {
+    if (uploading) return;
+    setUploading(true);
+    setBgError(null);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/user/profile-bg", { method: "DELETE" });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Не удалось удалить фон");
+      setBgImage("");
+      setMessage("Свой фон удалён");
+      router.refresh();
+    } catch (e) {
+      setBgError(e instanceof Error ? e.message : "Ошибка удаления");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function toggleFeatured(id: number) {
     setFeatured((prev) => {
@@ -80,7 +138,6 @@ export default function ProfileCustomizationForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bio,
           status,
           nickColor,
           profileBg,
@@ -91,6 +148,7 @@ export default function ProfileCustomizationForm({
       });
       const data = (await res.json()) as { error?: string; message?: string };
       if (!res.ok) throw new Error(data.error || "Не удалось сохранить профиль");
+      if (profileBg) setBgImage("");
       setMessage(data.message ?? "Профиль сохранён");
       router.refresh();
     } catch (e2) {
@@ -106,31 +164,18 @@ export default function ProfileCustomizationForm({
         <h2 className="min-w-0 flex-1">Оформление профиля</h2>
       </div>
       <form onSubmit={save} className="flex flex-col gap-6 p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="max-w-md">
           <label className="flex flex-col gap-1 text-xs text-[var(--text-muted)]">
             Статус
             <input
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              maxLength={80}
+              maxLength={30}
               placeholder="Например: строю город мечты"
               className="mc-input"
             />
-            <span className="self-end font-mono text-[0.58rem]">{status.length}/80</span>
+            <span className="self-end font-mono text-[0.58rem]">{status.length}/30</span>
           </label>
-          <div className="flex flex-col gap-1 text-xs text-[var(--text-muted)] sm:col-span-2">
-            <label htmlFor="bio">О себе</label>
-            <textarea
-              id="bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={300}
-              rows={4}
-              placeholder="Пара слов о себе, любимые занятия на сервере, планы…"
-              className="mc-input"
-            />
-            <span className="self-end font-mono text-[0.58rem]">{bio.length}/300</span>
-          </div>
         </div>
 
         <section>
@@ -192,12 +237,70 @@ export default function ProfileCustomizationForm({
               );
             })}
           </div>
+
+          <div className="mt-3 border-2 border-black bg-[var(--bg)] p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold">Свой фон</div>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  {bgUnlocked
+                    ? "PNG, JPEG или WebP до 8 МБ. Загрузка применяется сразу и заменяет пресет."
+                    : "Разовая покупка в магазине — 100 BLD."}
+                </p>
+              </div>
+              {!bgUnlocked && (
+                <Link href="/shop" className="mc-btn mc-btn-primary px-3 py-1.5 text-xs">
+                  Купить в магазине
+                </Link>
+              )}
+            </div>
+
+            {bgUnlocked && (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <div
+                  className="h-16 w-40 border-2 border-black bg-[var(--card-alt)] bg-cover bg-center"
+                  style={bgImage ? { backgroundImage: `url(${bgImage})` } : undefined}
+                  title={bgImage ? "Текущий фон" : "Фон не загружен"}
+                />
+                <input
+                  ref={bgFileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void uploadBg(file);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => bgFileRef.current?.click()}
+                  disabled={uploading}
+                  className="mc-btn px-3 py-1.5 text-xs"
+                >
+                  {uploading ? "Загружаем…" : bgImage ? "Заменить" : "Загрузить"}
+                </button>
+                {bgImage && (
+                  <button
+                    type="button"
+                    onClick={() => void removeBg()}
+                    disabled={uploading}
+                    className="mc-btn px-3 py-1.5 text-xs text-[var(--mc-red)]"
+                  >
+                    Удалить
+                  </button>
+                )}
+              </div>
+            )}
+            {bgError && <p className="mt-2 text-xs text-[var(--mc-red)]">{bgError}</p>}
+          </div>
         </section>
 
         <section>
           <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.1em]">Рамка аватара</h3>
           <div className="flex flex-wrap gap-2">
-            {PROFILE_FRAMES.map((frame) => {
+            {availableFrames.map((frame) => {
               const active = (profileFrame || "none") === frame.id;
               return (
                 <button
@@ -219,6 +322,15 @@ export default function ProfileCustomizationForm({
               );
             })}
           </div>
+          {unlockedFrames.length === 0 && (
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              Пока доступна только «Без рамки».{" "}
+              <Link href="/shop" className="text-[var(--mc-green-light)] underline">
+                Рамки продаются в магазине
+              </Link>
+              .
+            </p>
+          )}
         </section>
 
         <section>

@@ -5,7 +5,17 @@ import { db } from "@/lib/db";
 import { shopProducts } from "@/lib/db/schema";
 
 const CATEGORIES = ["cosmetic", "service", "currency", "custom"] as const;
-const KINDS = ["cape", "nick_effect", "pet", "title", "disc", "item", "chips"] as const;
+const KINDS = [
+  "cape",
+  "nick_effect",
+  "pet",
+  "title",
+  "disc",
+  "item",
+  "chips",
+  "frame",
+  "profile_bg",
+] as const;
 
 function normalizePayload(value: unknown): string | null {
   if (value == null || value === "") return "{}";

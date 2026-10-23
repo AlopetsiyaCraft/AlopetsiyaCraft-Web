@@ -51,10 +51,13 @@ export const users = sqliteTable("users", {
   // Фишки казино — тратятся только за карточными столами в Minecraft.
   chips: integer("chips").notNull().default(0),
   // Кастомизация профиля (редактируется в настройках).
-  bio: text("bio"),
   status: text("status"),
   nickColor: text("nick_color"),
   profileBg: text("profile_bg"),
+  profileBgImage: text("profile_bg_image"),
+  profileBgUnlocked: integer("profile_bg_unlocked", { mode: "boolean" })
+    .notNull()
+    .default(false),
   profileFrame: text("profile_frame"),
   socials: text("socials").notNull().default("{}"),
   featuredAchievements: text("featured_achievements").notNull().default("[]"),
@@ -109,7 +112,17 @@ export const shopProducts = sqliteTable(
     icon: text("icon").notNull().default("🎁"),
     priceBld: integer("price_bld").notNull(),
     kind: text("kind", {
-      enum: ["cape", "nick_effect", "pet", "title", "disc", "item", "chips"],
+      enum: [
+        "cape",
+        "nick_effect",
+        "pet",
+        "title",
+        "disc",
+        "item",
+        "chips",
+        "frame",
+        "profile_bg",
+      ],
     }).notNull(),
     payload: text("payload").notNull().default("{}"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
@@ -207,6 +220,28 @@ export const notifications = sqliteTable(
   (t) => ({
     userRead: index("idx_notifications_user_read").on(t.userId, t.readAt),
     userCreated: index("idx_notifications_user_created").on(t.userId, t.createdAt),
+  })
+);
+
+/**
+ * Купленные рамки аватара. Рамка — разовая покупка: запись здесь даёт
+ * право выбрать её в настройках профиля. unique(user, frame) защищает
+ * от повторной покупки.
+ */
+export const userFrames = sqliteTable(
+  "user_frames",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    frameId: text("frame_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    userFrame: uniqueIndex("uq_user_frames_user_frame").on(t.userId, t.frameId),
   })
 );
 

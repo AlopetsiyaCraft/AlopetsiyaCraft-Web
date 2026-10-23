@@ -43,6 +43,8 @@ const KINDS = [
   ["disc", "Пластинка"],
   ["item", "Предмет"],
   ["chips", "Фишки"],
+  ["frame", "Рамка"],
+  ["profile_bg", "Свой фон"],
 ] as const;
 
 const STATUS: Record<string, string> = {

@@ -33,10 +33,11 @@ export const bootstrapSql = `
     role TEXT NOT NULL DEFAULT 'user',
     bld INTEGER NOT NULL DEFAULT 0,
     chips INTEGER NOT NULL DEFAULT 0,
-    bio TEXT,
     status TEXT,
     nick_color TEXT,
     profile_bg TEXT,
+    profile_bg_image TEXT,
+    profile_bg_unlocked INTEGER NOT NULL DEFAULT 0,
     profile_frame TEXT,
     socials TEXT NOT NULL DEFAULT '{}',
     featured_achievements TEXT NOT NULL DEFAULT '[]',
@@ -113,6 +114,14 @@ export const bootstrapSql = `
   );
   CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read_at);
   CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS user_frames (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    frame_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(user_id, frame_id)
+  );
 
   CREATE TABLE IF NOT EXISTS seasons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -410,12 +419,13 @@ export async function initDatabase() {
   } catch (e) {
     // column already exists
   }
-  // legacy: кастомизация профиля (bio, статус, цвета, соцсети, витрина)
+  // legacy: кастомизация профиля (статус, цвета, соцсети, витрина)
   for (const ddl of [
-    `ALTER TABLE users ADD COLUMN bio TEXT`,
     `ALTER TABLE users ADD COLUMN status TEXT`,
     `ALTER TABLE users ADD COLUMN nick_color TEXT`,
     `ALTER TABLE users ADD COLUMN profile_bg TEXT`,
+    `ALTER TABLE users ADD COLUMN profile_bg_image TEXT`,
+    `ALTER TABLE users ADD COLUMN profile_bg_unlocked INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN profile_frame TEXT`,
     `ALTER TABLE users ADD COLUMN socials TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE users ADD COLUMN featured_achievements TEXT NOT NULL DEFAULT '[]'`,
@@ -471,6 +481,27 @@ export async function initDatabase() {
         [slug, title, description, category, icon, priceBld, kind, payload, sortOrder]
       );
     }
+  }
+
+  // Новые товары кастомизации добавляем идемпотентно: на существующей базе
+  // стартовый каталог уже заполнен, но рамки и свой фон должны появиться.
+  const customizationProducts: Array<
+    [string, string, string, string, string, number, string, string, number, number]
+  > = [
+    ["frame-gold", "Золотая рамка", "Золотая рамка вокруг аватара в профиле.", "cosmetic", "🟨", 50, "frame", JSON.stringify({ frame: "gold" }), 60, 1],
+    ["frame-green", "Изумрудная рамка", "Изумрудная рамка вокруг аватара в профиле.", "cosmetic", "🟩", 50, "frame", JSON.stringify({ frame: "green" }), 61, 1],
+    ["frame-red", "Редстоун-рамка", "Красная рамка вокруг аватара в профиле.", "cosmetic", "🟥", 60, "frame", JSON.stringify({ frame: "red" }), 62, 1],
+    ["frame-purple", "Аметистовая рамка", "Фиолетовая рамка вокруг аватара в профиле.", "cosmetic", "🟪", 80, "frame", JSON.stringify({ frame: "purple" }), 63, 1],
+    ["frame-blue", "Алмазная рамка", "Голубая рамка вокруг аватара в профиле.", "cosmetic", "🟦", 80, "frame", JSON.stringify({ frame: "blue" }), 64, 1],
+    ["profile-bg-upload", "Свой фон профиля", "Разовая покупка: загрузи любую картинку в шапку профиля.", "custom", "🖼", 100, "profile_bg", "{}", 70, 1],
+  ];
+  for (const [slug, title, description, category, icon, priceBld, kind, payload, sortOrder, maxPerUser] of customizationProducts) {
+    await client.execute(
+      `INSERT OR IGNORE INTO shop_products
+         (slug, title, description, category, icon, price_bld, kind, payload, sort_order, max_per_user)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [slug, title, description, category, icon, priceBld, kind, payload, sortOrder, maxPerUser]
+    );
   }
 
   client.close();

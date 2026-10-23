@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { achievements, users } from "@/lib/db/schema";
+import { achievements, userFrames, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import { db as dbAll } from "@/lib/db";
@@ -48,6 +48,12 @@ export default async function SettingsPage({
     .where(eq(achievements.nickname, user.nickname))
     .orderBy(desc(achievements.createdAt))
     .limit(50)
+    .all();
+
+  const myFrames = await db
+    .select({ frameId: userFrames.frameId })
+    .from(userFrames)
+    .where(eq(userFrames.userId, user.id))
     .all();
 
   // OAuth-кнопка «Привязать Discord» доступна, если заданы
@@ -97,11 +103,13 @@ export default async function SettingsPage({
 
         <div className="mt-6">
           <ProfileCustomizationForm
-            initialBio={user.bio ?? ""}
             initialStatus={user.status ?? ""}
             initialNickColor={user.nickColor ?? ""}
             initialProfileBg={user.profileBg ?? ""}
             initialProfileFrame={user.profileFrame ?? ""}
+            initialBgImage={user.profileBgImage ?? ""}
+            bgUnlocked={user.profileBgUnlocked}
+            unlockedFrames={myFrames.map((f) => f.frameId)}
             initialSocials={parseSocials(user.socials)}
             initialFeatured={parseFeaturedAchievements(user.featuredAchievements)}
             achievements={myAchievements.map((a) => ({

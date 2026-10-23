@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { achievements, users } from "@/lib/db/schema";
+import { achievements, userFrames, users } from "@/lib/db/schema";
 import {
   NICK_COLORS,
   PROFILE_BACKGROUNDS,
@@ -16,7 +16,7 @@ const HEX_RE = /^#[0-9a-f]{6}$/i;
 
 /**
  * POST /api/user/profile — сохранить кастомизацию профиля.
- * bio/status, цвет ника, фон, рамка, соцсети и до 3 закреплённых достижений.
+ * Статус, цвет ника, фон, рамка, соцсети и до 3 закреплённых достижений.
  */
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -36,8 +36,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
 
-  const bio = typeof body?.bio === "string" ? body.bio.trim().slice(0, 300) : "";
-  const status = typeof body?.status === "string" ? body.status.trim().slice(0, 80) : "";
+  const status = typeof body?.status === "string" ? body.status.trim().slice(0, 30) : "";
 
   const nickColorRaw = typeof body?.nickColor === "string" ? body.nickColor.trim() : "";
   const nickColorOk =
@@ -59,10 +58,29 @@ export async function POST(request: NextRequest) {
 
   const profileFrameRaw =
     typeof body?.profileFrame === "string" ? body.profileFrame.trim() : "";
-  const profileFrameOk =
-    profileFrameRaw === "" || PROFILE_FRAMES.some((f) => f.id === profileFrameRaw);
-  if (!profileFrameOk) {
-    return NextResponse.json({ error: "Некорректная рамка профиля" }, { status: 400 });
+  let profileFrameValue: string | null = null;
+  if (profileFrameRaw && profileFrameRaw !== "none") {
+    const frameOk = PROFILE_FRAMES.some(
+      (f) => f.id === profileFrameRaw && f.id !== "none"
+    );
+    if (!frameOk) {
+      return NextResponse.json({ error: "Некорректная рамка профиля" }, { status: 400 });
+    }
+    // Рамку можно выбрать только после покупки в магазине.
+    const owned = await db
+      .select({ id: userFrames.id })
+      .from(userFrames)
+      .where(
+        and(eq(userFrames.userId, userId), eq(userFrames.frameId, profileFrameRaw))
+      )
+      .get();
+    if (!owned) {
+      return NextResponse.json(
+        { error: "Эта рамка не куплена — её можно приобрести в магазине" },
+        { status: 403 }
+      );
+    }
+    profileFrameValue = profileFrameRaw;
   }
 
   const socials: Partial<Record<SocialKey, string>> = {};
@@ -115,11 +133,13 @@ export async function POST(request: NextRequest) {
   await db
     .update(users)
     .set({
-      bio: bio || null,
       status: status || null,
       nickColor: nickColorRaw || null,
       profileBg: profileBgRaw || null,
-      profileFrame: profileFrameRaw || null,
+      // Выбор пресета заменяет загруженную картинку; если пресет не выбран,
+      // свой фон остаётся как есть.
+      ...(profileBgRaw ? { profileBgImage: null } : {}),
+      profileFrame: profileFrameValue,
       socials: JSON.stringify(socials),
       featuredAchievements: JSON.stringify(featuredIds),
     })
@@ -129,11 +149,10 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     message: "Профиль сохранён",
     profile: {
-      bio,
       status,
       nickColor: nickColorRaw,
       profileBg: profileBgRaw,
-      profileFrame: profileFrameRaw,
+      profileFrame: profileFrameValue ?? "",
       socials,
       featuredAchievements: parseFeaturedAchievements(JSON.stringify(featuredIds)),
     },
