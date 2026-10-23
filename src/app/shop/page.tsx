@@ -18,6 +18,31 @@ import { isDailySpinAvailable, nextDailyBonusReset } from "@/lib/dailyBonus";
  * в shop_orders. Выдачу заказов забирает мод/плагин через
  * GET /api/shop/orders/pending и отмечает результат.
  */
+
+/** Шансы призов кейса для карточки товара. */
+function casePrizeChances(raw: string): Array<{ label: string; chance: number }> | undefined {
+  try {
+    const payload = JSON.parse(raw) as { prizes?: Array<Record<string, unknown>> };
+    const prizes = Array.isArray(payload.prizes) ? payload.prizes : [];
+    const valid = prizes
+      .map((prize) => ({
+        label:
+          typeof prize.label === "string" && prize.label.trim()
+            ? prize.label.trim()
+            : String(prize.kind ?? "приз"),
+        weight: Math.max(0, Number(prize.weight) || 0),
+      }))
+      .filter((prize) => prize.weight > 0);
+    const total = valid.reduce((sum, prize) => sum + prize.weight, 0);
+    if (total <= 0) return undefined;
+    return valid.map((prize) => ({
+      label: prize.label,
+      chance: Math.round((prize.weight / total) * 1000) / 10,
+    }));
+  } catch {
+    return undefined;
+  }
+}
 export default async function ShopPage() {
   const session = await auth();
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.number)).all();
@@ -106,6 +131,7 @@ export default async function ShopPage() {
     priceBld: product.priceBld,
     kind: product.kind,
     maxPerUser: product.maxPerUser,
+    casePrizes: product.kind === "case" ? casePrizeChances(product.payload) : undefined,
   }));
 
   return (

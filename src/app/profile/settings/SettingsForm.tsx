@@ -17,15 +17,18 @@ export default function SettingsForm({
   initialCapeUrl,
   initialNickname,
   initialSkinModel,
+  initialNameChangeCredits = 0,
 }: {
   initialSkinUrl?: string | null;
   initialCapeUrl?: string | null;
   initialNickname: string;
   initialSkinModel?: "wide" | "slim";
+  initialNameChangeCredits?: number;
 }) {
   const [skinUrl, setSkinUrl] = useState<string | null>(initialSkinUrl ?? null);
   const [capeUrl, setCapeUrl] = useState<string | null>(initialCapeUrl ?? null);
   const [nickname, setNickname] = useState(initialNickname);
+  const [nameChangeCredits, setNameChangeCredits] = useState(initialNameChangeCredits);
   const [skinModel, setSkinModel] = useState<"wide" | "slim">(initialSkinModel ?? "wide");
   const [modelSaving, setModelSaving] = useState(false);
   const [modelMessage, setModelMessage] = useState<string | null>(null);
@@ -190,6 +193,7 @@ export default function SettingsForm({
     const data = await response.json();
 
     if (response.ok) {
+      setNameChangeCredits((prev) => Math.max(0, prev - 1));
       setNameMessage("Никнейм обновлён!");
       setTimeout(() => window.location.reload(), 1000);
     } else {
@@ -224,7 +228,7 @@ export default function SettingsForm({
           </div>
           <button
             onClick={handleNameChange}
-            disabled={nickname === initialNickname || nickname.length < 3}
+            disabled={nickname === initialNickname || nickname.length < 3 || nameChangeCredits < 1}
             className="mc-btn mc-btn-primary text-sm"
           >
             Изменить
@@ -236,7 +240,18 @@ export default function SettingsForm({
           </p>
         )}
         <p className="mt-2 text-xs text-[var(--text-muted)]">
-          3-16 символов: буквы, цифры, подчёркивание
+          3-16 символов: буквы, цифры, подчёркивание. Оплаченных смен:{" "}
+          <span className={nameChangeCredits > 0 ? "text-[var(--mc-green-light)]" : "text-[var(--mc-red)]"}>
+            {nameChangeCredits}
+          </span>
+          {nameChangeCredits < 1 && (
+            <>
+              {" · "}
+              <a href="/shop" className="text-[var(--mc-green-light)] underline">
+                купить в магазине
+              </a>
+            </>
+          )}
         </p>
         </div>
       </div>

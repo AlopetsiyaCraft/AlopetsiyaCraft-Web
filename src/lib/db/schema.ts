@@ -50,6 +50,8 @@ export const users = sqliteTable("users", {
   bld: integer("bld").notNull().default(0),
   // Фишки казино — тратятся только за карточными столами в Minecraft.
   chips: integer("chips").notNull().default(0),
+  /** Купленные смены ника: тратятся при смене в настройках. */
+  nameChangeCredits: integer("name_change_credits").notNull().default(0),
   // Кастомизация профиля (редактируется в настройках).
   nickColor: text("nick_color"),
   profileBg: text("profile_bg"),
@@ -121,6 +123,8 @@ export const shopProducts = sqliteTable(
         "chips",
         "frame",
         "profile_bg",
+        "case",
+        "name_change",
       ],
     }).notNull(),
     payload: text("payload").notNull().default("{}"),

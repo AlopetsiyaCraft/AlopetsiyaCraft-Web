@@ -33,6 +33,7 @@ export const bootstrapSql = `
     role TEXT NOT NULL DEFAULT 'user',
     bld INTEGER NOT NULL DEFAULT 0,
     chips INTEGER NOT NULL DEFAULT 0,
+    name_change_credits INTEGER NOT NULL DEFAULT 0,
     nick_color TEXT,
     profile_bg TEXT,
     profile_bg_image TEXT,
@@ -422,6 +423,14 @@ export async function initDatabase() {
   try {
     // legacy: Фишки казино — отдельная валюта для столов в Minecraft
     await client.execute(`ALTER TABLE users ADD COLUMN chips INTEGER NOT NULL DEFAULT 0`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: купленные смены ника
+    await client.execute(
+      `ALTER TABLE users ADD COLUMN name_change_credits INTEGER NOT NULL DEFAULT 0`
+    );
   } catch (e) {
     // column already exists
   }

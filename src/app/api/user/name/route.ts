@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, nameHistory, playerStats, playerInventories, mcSessions, achievements } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, gte } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,11 +67,29 @@ export async function POST(request: NextRequest) {
 
     const oldNickname = currentUser.nickname;
 
-    await db
+    // Смена ника — платная услуга: тратим купленный кредит.
+    if ((currentUser.nameChangeCredits ?? 0) < 1) {
+      return NextResponse.json(
+        { error: "Нет оплаченной смены ника. Купи её в магазине." },
+        { status: 402 }
+      );
+    }
+
+    const renamed = await db
       .update(users)
-      .set({ nickname: trimmed })
-      .where(eq(users.id, userId))
+      .set({
+        nickname: trimmed,
+        nameChangeCredits: sql`name_change_credits - 1`,
+      })
+      .where(and(eq(users.id, userId), gte(users.nameChangeCredits, 1)))
       .run();
+
+    if (renamed.rowsAffected === 0) {
+      return NextResponse.json(
+        { error: "Нет оплаченной смены ника. Купи её в магазине." },
+        { status: 402 }
+      );
+    }
 
     await db
       .insert(nameHistory)

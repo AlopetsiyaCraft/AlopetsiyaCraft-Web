@@ -14,6 +14,8 @@ export interface ShopProduct {
   priceBld: number;
   kind: string;
   maxPerUser: number | null;
+  /** Для кейсов: возможные призы и их шансы в процентах. */
+  casePrizes?: Array<{ label: string; chance: number }>;
 }
 
 export interface ShopOrderView {
@@ -78,6 +80,7 @@ export default function ShopCatalog({
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [reward, setReward] = useState<{ label: string; kind: string } | null>(null);
 
   const categories = useMemo(() => {
     const present = new Set(products.map((p) => p.category));
@@ -112,6 +115,7 @@ export default function ShopCatalog({
           status: string;
         };
         error?: string;
+        reward?: { label: string | null; kind: string } | null;
       };
       if (!res.ok || data.bld == null || !data.order) {
         throw new Error(data.error || "Не удалось купить товар");
@@ -131,10 +135,17 @@ export default function ShopCatalog({
         ...prev,
       ]);
       setMessage(
-        data.order.kind === "frame" || data.order.kind === "profile_bg"
-          ? `«${product.title}» куплен и активирован. Настрой его в профиле.`
-          : `«${product.title}» куплен. Заказ №${data.order.id} появится в игре после выдачи.`
+        data.reward?.kind === "name_change"
+          ? "Смена ника куплена — доступна в настройках профиля."
+          : data.order.kind === "frame" || data.order.kind === "profile_bg"
+            ? `«${product.title}» куплен и активирован. Настрой его в профиле.`
+            : product.kind === "case"
+              ? `Кейс «${product.title}» открыт.`
+              : `«${product.title}» куплен. Заказ №${data.order.id} появится в игре после выдачи.`
       );
+      if (data.reward?.label) {
+        setReward({ label: data.reward.label, kind: data.reward.kind });
+      }
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка сети");
@@ -221,6 +232,27 @@ export default function ShopCatalog({
                   </p>
                 </div>
               </div>
+
+              {product.casePrizes && product.casePrizes.length > 0 && (
+                <div className="border-2 border-black/40 bg-[var(--bg)] p-2">
+                  <div className="mb-1 text-[0.56rem] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    Возможные призы
+                  </div>
+                  <ul className="flex flex-col gap-0.5">
+                    {product.casePrizes.map((prize) => (
+                      <li
+                        key={`${prize.label}-${prize.chance}`}
+                        className="flex items-center justify-between gap-2 text-[0.66rem] text-[var(--text-secondary)]"
+                      >
+                        <span className="min-w-0 truncate">{prize.label}</span>
+                        <span className="font-mono text-[0.6rem] text-[var(--text-muted)]">
+                          {prize.chance}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="mt-auto border-t-2 border-black/40 pt-3">
                 <div className="flex items-center justify-between gap-2">
@@ -312,6 +344,39 @@ export default function ShopCatalog({
             </ul>
           )}
         </section>
+      )}
+
+      {reward && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Награда"
+          onClick={() => setReward(null)}
+        >
+          <div
+            className="mc-panel w-full max-w-sm p-6 text-center"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="text-4xl">{reward.kind === "nothing" ? "🕸" : "🎁"}</div>
+            <div className="mt-3 text-[0.62rem] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              {reward.kind === "name_change" ? "Куплено" : "Выпало"}
+            </div>
+            <div className="mt-1 text-lg font-bold text-[var(--mc-gold)]">{reward.label}</div>
+            {reward.kind === "name_change" && (
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                Сменить ник можно в настройках профиля.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => setReward(null)}
+              className="mc-btn mc-btn-primary mt-4 w-full py-1.5 text-xs"
+            >
+              Забрать
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

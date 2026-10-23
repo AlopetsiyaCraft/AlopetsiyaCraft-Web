@@ -112,6 +112,7 @@ export default async function SettingsPage({
           initialCapeUrl={user.capeUrl}
           initialNickname={user.nickname}
           initialSkinModel={user.skinModel}
+          initialNameChangeCredits={user.nameChangeCredits}
         />
 
         <div className="mt-6">
