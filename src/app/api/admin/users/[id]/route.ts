@@ -4,11 +4,11 @@ import { getAdminUser } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
-const ROLES = ["user", "moderator", "admin"] as const;
+const ROLES = ["user", "admin"] as const;
 
 /**
- * PATCH /api/admin/users/[id] { role?, banned?, banReason? }
- * Роль, бан и разбан. Нельзя снять с себя админа и оставить сайт без админов.
+ * PATCH /api/admin/users/[id] { role }
+ * Только выдача/снятие прав администратора. Банов и модераторов нет.
  */
 export async function PATCH(
   request: NextRequest,
@@ -57,17 +57,6 @@ export async function PATCH(
       }
     }
     updates.role = body.role;
-  }
-
-  if (typeof body?.banned === "boolean") {
-    if (target.id === admin.id && body.banned) {
-      return NextResponse.json({ error: "Нельзя забанить самого себя" }, { status: 400 });
-    }
-    updates.bannedAt = body.banned ? new Date() : null;
-    updates.banReason =
-      body.banned && typeof body.banReason === "string"
-        ? body.banReason.trim().slice(0, 300) || null
-        : null;
   }
 
   if (Object.keys(updates).length === 0) {

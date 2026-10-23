@@ -45,10 +45,7 @@ export const users = sqliteTable("users", {
   capeUrl: text("cape_url"),
   skinModel: text("skin_model", { enum: ["wide", "slim"] }).notNull().default("wide"),
   discordId: text("discord_id").unique(),
-  role: text("role", { enum: ["user", "moderator", "admin"] }).notNull().default("user"),
-  // Бан блокирует вход на сайт; старые сессии живут до истечения JWT.
-  bannedAt: integer("banned_at", { mode: "timestamp" }),
-  banReason: text("ban_reason"),
+  role: text("role", { enum: ["user", "admin"] }).notNull().default("user"),
   // Болды (BLD) — внутриигровая валюта: фишки казино, кастомные пластинки и т.п.
   bld: integer("bld").notNull().default(0),
   // Фишки казино — тратятся только за карточными столами в Minecraft.

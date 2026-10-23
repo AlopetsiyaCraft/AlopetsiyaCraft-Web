@@ -5,20 +5,12 @@ import { useState } from "react";
 export interface AdminUserRow {
   id: number;
   nickname: string;
-  role: "user" | "moderator" | "admin";
+  role: "user" | "admin";
   bld: number;
   chips: number;
   createdAt: string;
   lastActiveAt: string | null;
-  bannedAt: string | null;
-  banReason: string | null;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  user: "Игрок",
-  moderator: "Модератор",
-  admin: "Админ",
-};
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -44,10 +36,7 @@ export default function AdminUsers({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function patch(
-    id: number,
-    body: { role?: AdminUserRow["role"]; banned?: boolean; banReason?: string }
-  ) {
+  async function setRole(id: number, role: AdminUserRow["role"]) {
     setBusyId(id);
     setError(null);
     setMessage(null);
@@ -55,48 +44,17 @@ export default function AdminUsers({
       const res = await fetch(`/api/admin/users/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ role }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Не удалось применить");
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === id
-            ? {
-                ...u,
-                ...(typeof body.role === "string" ? { role: body.role } : {}),
-                ...(typeof body.banned === "boolean"
-                  ? {
-                      bannedAt: body.banned ? new Date().toISOString() : null,
-                      banReason:
-                        body.banned && typeof body.banReason === "string"
-                          ? body.banReason
-                          : null,
-                    }
-                  : {}),
-              }
-            : u
-        )
-      );
+      setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, role } : user)));
       setMessage("Сохранено");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
       setBusyId(null);
     }
-  }
-
-  function toggleBan(user: AdminUserRow) {
-    if (user.bannedAt) {
-      void patch(user.id, { banned: false });
-      return;
-    }
-    const reason = window.prompt(
-      `Причина бана ${user.nickname}? (можно оставить пустой)`,
-      ""
-    );
-    if (reason === null) return;
-    void patch(user.id, { banned: true, banReason: reason });
   }
 
   return (
@@ -114,7 +72,7 @@ export default function AdminUsers({
 
       <section className="mc-panel overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-[var(--card-alt)] text-[0.6rem] uppercase tracking-[0.12em] text-[var(--text-muted)]">
               <tr>
                 <th className="px-3 py-2">Игрок</th>
@@ -122,16 +80,13 @@ export default function AdminUsers({
                 <th className="px-3 py-2">Баланс</th>
                 <th className="px-3 py-2">Регистрация</th>
                 <th className="px-3 py-2">Заходил</th>
-                <th className="px-3 py-2">Статус</th>
-                <th className="px-3 py-2" />
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-black/40">
               {users.map((user) => {
                 const isSelf = user.id === selfId;
-                const banned = !!user.bannedAt;
                 return (
-                  <tr key={user.id} className={banned ? "bg-[rgba(214,69,69,0.06)]" : undefined}>
+                  <tr key={user.id}>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{user.nickname}</span>
@@ -149,18 +104,16 @@ export default function AdminUsers({
                       <select
                         value={user.role}
                         disabled={isSelf || busyId === user.id}
-                        onChange={(e) =>
-                          void patch(user.id, {
-                            role: e.target.value as AdminUserRow["role"],
-                          })
+                        onChange={(event) =>
+                          void setRole(
+                            user.id,
+                            event.target.value as AdminUserRow["role"]
+                          )
                         }
                         className="mc-input py-1 text-xs disabled:opacity-60"
                       >
-                        {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
+                        <option value="user">Игрок</option>
+                        <option value="admin">Админ</option>
                       </select>
                     </td>
                     <td className="px-3 py-2 font-mono text-[0.68rem]">
@@ -172,34 +125,6 @@ export default function AdminUsers({
                     </td>
                     <td className="px-3 py-2 font-mono text-[0.62rem] text-[var(--text-muted)]">
                       {formatDate(user.lastActiveAt)}
-                    </td>
-                    <td className="px-3 py-2">
-                      {banned ? (
-                        <span
-                          className="mc-chip text-[0.6rem] text-[var(--mc-red)]"
-                          title={user.banReason ?? "Без причины"}
-                        >
-                          Забанен
-                        </span>
-                      ) : (
-                        <span className="mc-chip text-[0.6rem] text-[var(--mc-green-light)]">
-                          Активен
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {!isSelf && (
-                        <button
-                          type="button"
-                          onClick={() => toggleBan(user)}
-                          disabled={busyId === user.id}
-                          className={`mc-btn px-2 py-1 text-[0.6rem] ${
-                            banned ? "text-[var(--mc-green-light)]" : "text-[var(--mc-red)]"
-                          }`}
-                        >
-                          {banned ? "Разбанить" : "Забанить"}
-                        </button>
-                      )}
                     </td>
                   </tr>
                 );

@@ -6,7 +6,7 @@ import { seasons, users } from "@/lib/db/schema";
 import Header from "@/components/Header";
 import AdminUsers, { type AdminUserRow } from "@/components/AdminUsers";
 
-/** /admin/users — роли, баны и балансы игроков. Только для админа. */
+/** /admin/users — права администратора и балансы игроков. Только для админа. */
 export default async function AdminUsersPage({
   searchParams,
 }: {
@@ -40,8 +40,6 @@ export default async function AdminUsersPage({
       chips: u.chips,
       createdAt: u.createdAt.toISOString(),
       lastActiveAt: u.lastActiveAt ? u.lastActiveAt.toISOString() : null,
-      bannedAt: u.bannedAt ? u.bannedAt.toISOString() : null,
-      banReason: u.banReason,
     }));
 
   return (
@@ -56,7 +54,7 @@ export default async function AdminUsersPage({
           <div>
             <h1 className="mc-title text-3xl sm:text-4xl">Админка · игроки</h1>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Роли, баны и балансы. Всего аккаунтов: {allUsers.length}.
+              Права администратора и балансы. Всего аккаунтов: {allUsers.length}.
             </p>
           </div>
           <a href="/admin" className="mc-btn px-3 py-1.5 text-xs">
