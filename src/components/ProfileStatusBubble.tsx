@@ -1,29 +1,32 @@
 /**
- * Пиксельное облачко статуса над головой игрока — как в референсе:
- * прямоугольный бабл с чёрной рамкой и ступенчатым хвостиком вниз.
- * Абсолютное, поэтому не участвует в раскладке и не двигает ник.
+ * Пиксельный бабл статуса справа от головы: поднимается по диагонали
+ * вправо-вверх, а хвостик одним контуром перетекает в тело бабла.
+ * Абсолютный — не участвует в раскладке и не двигает ник.
  */
 export default function ProfileStatusBubble({ status }: { status: string }) {
   return (
-    <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-5 w-max max-w-[8.5rem] -translate-x-1/2 sm:max-w-[12rem]">
-      <div className="relative border-2 border-black bg-[#f5f5f5] px-3 py-2 text-center text-[0.65rem] font-bold uppercase leading-tight tracking-[0.02em] text-[#151515] shadow-[3px_3px_0_rgba(0,0,0,0.45)]">
-        <span className="break-words">{status}</span>
-      </div>
-
-      {/* Ступенчатый хвостик вниз, к голове */}
+    <div className="pointer-events-none absolute left-full top-[-0.35rem] z-20 ml-1 h-14 w-[13rem] sm:w-[14rem]">
       <svg
-        className="absolute left-1/2 top-full h-4 w-8 -translate-x-1/2"
-        viewBox="0 0 24 14"
+        className="absolute inset-0 h-full w-full"
+        viewBox="0 0 240 64"
+        preserveAspectRatio="none"
         shapeRendering="crispEdges"
+        style={{ filter: "drop-shadow(3px 3px 0 rgba(0,0,0,0.45))" }}
         aria-hidden
       >
         <path
-          d="M4 0H20V3H17V6H14V9H12V13H11V9H9V6H6V3H4Z"
+          d="M12 4H228L234 10V42L228 48H46L30 60H14L10 48V10Z"
           fill="#f5f5f5"
           stroke="#000"
-          strokeWidth="2"
+          strokeWidth="3"
+          strokeLinejoin="miter"
         />
       </svg>
+      <div className="absolute inset-x-2 bottom-[14px] top-1 flex items-center justify-center px-1">
+        <span className="break-words text-center text-[0.68rem] font-bold uppercase leading-tight tracking-[0.02em] text-[#151515]">
+          {status}
+        </span>
+      </div>
     </div>
   );
 }
