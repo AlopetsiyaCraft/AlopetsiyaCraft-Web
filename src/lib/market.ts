@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/schema";
 import { parseInventoryData, type ContainerKey, type InventoryStack } from "@/lib/inventory";
 import { localizeItemSmart, itemRenderIconUrl } from "@/lib/mcAssets";
+import { notifyDiscordEvent, notifyDiscordUser } from "@/lib/discord";
 
 /** Комиссия маркета в процентах: уходит из выплаты продавцу. */
 export const MARKET_FEE_PERCENT = 5;
@@ -353,6 +354,20 @@ export async function completeSale(params: {
         link,
       })
       .run();
+
+    await notifyDiscordUser(
+      listing.sellerId,
+      `💰 Продан «${listing.title}» за ${listing.priceBld} BLD. На баланс: ${sellerGain} BLD.`
+    );
+    await notifyDiscordUser(
+      buyer.id,
+      `🛒 Куплен «${listing.title}» за ${listing.priceBld} BLD. Предмет выдадут в игре.`
+    );
+    await notifyDiscordEvent({
+      title: "Сделка на маркете",
+      description: `${listing.title} · ${listing.priceBld} BLD\n${listing.sellerNickname} → ${buyer.nickname}`,
+      link,
+    });
 
     return { ok: true, feeBld: fee, sellerGain, refundBld: refund };
   } catch (error) {

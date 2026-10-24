@@ -21,7 +21,14 @@
  * функция ничего не делает.
  */
 
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
+const EVENTS_WEBHOOK_URL =
+  process.env.DISCORD_EVENTS_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_URL || "";
+const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || "";
 const SITE_URL = (process.env.WEBSITE_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
 
 /** Ник (lowercase) -> уже залитый на CDN Discord URL головы. */
@@ -105,5 +112,105 @@ export async function notifyDiscord({
     }
   } catch (error) {
     console.error("Discord webhook error:", error);
+  }
+}
+/** POST в Discord с коротким таймаутом: сайт не должен ждать Discord. */
+async function postDiscord(url: string, body: unknown): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      return res.ok;
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (error) {
+    console.error("Discord request error:", error);
+    return false;
+  }
+}
+
+/**
+ * Событие сайта в Discord-канал: покупка, продажа, выдача заказа, рассылка.
+ * Использует DISCORD_EVENTS_WEBHOOK_URL (или DISCORD_WEBHOOK_URL).
+ */
+export async function notifyDiscordEvent({
+  title,
+  description,
+  link,
+}: {
+  title: string;
+  description: string;
+  link?: string;
+}): Promise<void> {
+  if (!EVENTS_WEBHOOK_URL) return;
+  await postDiscord(EVENTS_WEBHOOK_URL, {
+    username: "АлопецияКрафт",
+    allowed_mentions: { parse: [] },
+    embeds: [
+      {
+        title: title.slice(0, 240),
+        description: description.slice(0, 1800),
+        url: link ? `${SITE_URL}${link}` : undefined,
+        color: 0x5d9c3c,
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  });
+}
+
+/**
+ * Личное сообщение игроку в Discord (если аккаунт привязан и есть токен бота).
+ * Ошибки глушим: уведомление не должно ломать покупку или заказ.
+ */
+export async function notifyDiscordUser(userId: number, content: string): Promise<void> {
+  if (!BOT_TOKEN) return;
+  try {
+    const user = await db
+      .select({ discordId: users.discordId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .get();
+    if (!user?.discordId) return;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    try {
+      const dmRes = await fetch("https://discord.com/api/v10/users/@me/channels", {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${BOT_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recipient_id: user.discordId }),
+        signal: controller.signal,
+      });
+      if (!dmRes.ok) return;
+      const dm = (await dmRes.json()) as { id?: string };
+      if (!dm.id) return;
+
+      await fetch(`https://discord.com/api/v10/channels/${dm.id}/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${BOT_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: content.slice(0, 1900),
+          allowed_mentions: { parse: [] },
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (error) {
+    console.error("Discord DM error:", error);
   }
 }

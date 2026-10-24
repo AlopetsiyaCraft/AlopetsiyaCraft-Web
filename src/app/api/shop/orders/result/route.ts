@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { shopOrders, users, walletLedger } from "@/lib/db/schema";
 import { checkBridgeKey } from "@/lib/bridge";
 import { createNotification } from "@/lib/notifications";
+import { notifyDiscordEvent, notifyDiscordUser } from "@/lib/discord";
 
 /**
  * POST /api/shop/orders/result — мод сообщает итог выдачи (x-api-key).
@@ -94,6 +95,18 @@ export async function POST(request: NextRequest) {
       ? "Товар уже в игре — проверь инвентарь или косметику."
       : `${order.priceBld} BLD вернулись на баланс.`,
     link: ok ? "/shop" : "/wallet",
+  });
+
+  await notifyDiscordUser(
+    order.userId,
+    ok
+      ? `📦 Заказ «${order.productTitle}» выдан в игре.`
+      : `↩️ Заказ «${order.productTitle}» не выдан: ${order.priceBld} BLD вернулись на баланс.`
+  );
+  await notifyDiscordEvent({
+    title: ok ? "Заказ выдан" : "Заказ возвращён",
+    description: `${order.productTitle} · ${order.priceBld} BLD${ok ? "" : ` · ${error ?? "ошибка выдачи"}`}`,
+    link: "/shop",
   });
 
   return NextResponse.json({ message: "OK" });
