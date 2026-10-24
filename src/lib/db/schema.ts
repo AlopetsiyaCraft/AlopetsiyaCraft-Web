@@ -262,6 +262,66 @@ export const seasons = sqliteTable("seasons", {
     .$defaultFn(() => new Date()),
 });
 
+/** События сезона: старт, ивенты, финал — таймлайн на странице итогов. */
+export const seasonEvents = sqliteTable(
+  "season_events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    title: text("title").notNull(),
+    description: text("description"),
+    startsAt: integer("starts_at", { mode: "timestamp" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp" }),
+    icon: text("icon").notNull().default("📌"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({ season: index("idx_season_events_season").on(t.seasonId, t.startsAt) })
+);
+
+/** Награды за места и активность (витрина сезона). */
+export const seasonRewards = sqliteTable(
+  "season_rewards",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    place: integer("place"),
+    title: text("title").notNull(),
+    description: text("description"),
+    rewardBld: integer("reward_bld").notNull().default(0),
+    rewardChips: integer("reward_chips").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({ season: index("idx_season_rewards_season").on(t.seasonId, t.place) })
+);
+
+/** Итоги сезона: кто занял место и что получил. */
+export const seasonResults = sqliteTable(
+  "season_results",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    place: integer("place").notNull(),
+    nickname: text("nickname").notNull(),
+    note: text("note"),
+    rewardBld: integer("reward_bld").notNull().default(0),
+    rewardChips: integer("reward_chips").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({ season: index("idx_season_results_season").on(t.seasonId, t.place) })
+);
+
 export const screenshots = sqliteTable("screenshots", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id")

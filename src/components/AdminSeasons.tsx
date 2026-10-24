@@ -200,6 +200,12 @@ function SeasonCard({ season }: { season: AdminSeason }) {
             Активный
           </span>
         )}
+        <a
+          href={`/admin/seasons/${season.number}`}
+          className="mc-chip text-[0.58rem] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
+        >
+          События и итоги
+        </a>
       </div>
       <form
         className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2"

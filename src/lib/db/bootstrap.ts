@@ -134,6 +134,42 @@ export const bootstrapSql = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
 
+  CREATE TABLE IF NOT EXISTS season_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    season_id INTEGER NOT NULL REFERENCES seasons(id),
+    title TEXT NOT NULL,
+    description TEXT,
+    starts_at INTEGER NOT NULL,
+    ends_at INTEGER,
+    icon TEXT NOT NULL DEFAULT '📌',
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_season_events_season ON season_events(season_id, starts_at);
+
+  CREATE TABLE IF NOT EXISTS season_rewards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    season_id INTEGER NOT NULL REFERENCES seasons(id),
+    place INTEGER,
+    title TEXT NOT NULL,
+    description TEXT,
+    reward_bld INTEGER NOT NULL DEFAULT 0,
+    reward_chips INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_season_rewards_season ON season_rewards(season_id, place);
+
+  CREATE TABLE IF NOT EXISTS season_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    season_id INTEGER NOT NULL REFERENCES seasons(id),
+    place INTEGER NOT NULL,
+    nickname TEXT NOT NULL,
+    note TEXT,
+    reward_bld INTEGER NOT NULL DEFAULT 0,
+    reward_chips INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_season_results_season ON season_results(season_id, place);
+
   CREATE TABLE IF NOT EXISTS screenshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),
