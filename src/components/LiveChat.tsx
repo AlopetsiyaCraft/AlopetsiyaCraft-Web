@@ -15,6 +15,12 @@ export interface HeaderDragProps {
   dragging: boolean;
 }
 
+interface ChatReaction {
+  emoji: string;
+  count: number;
+  mine: boolean;
+}
+
 interface ChatMessage {
   id: number;
   nickname: string;
@@ -23,7 +29,11 @@ interface ChatMessage {
   skinUrl: string | null;
   nickColor: string | null;
   frame: string | null;
+  replyTo: { id: number; nickname: string; message: string } | null;
+  reactions: ChatReaction[];
 }
+
+const QUICK_REACTIONS = ["👍", "❤️", "🔥", "😂"] as const;
 
 export default function LiveChat({
   isLoggedIn,
@@ -38,6 +48,7 @@ export default function LiveChat({
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
 
@@ -115,11 +126,15 @@ export default function LiveChat({
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input.trim() }),
+        body: JSON.stringify({
+          message: input.trim(),
+          replyToId: replyTo?.id ?? null,
+        }),
       });
 
       if (res.ok) {
         setInput("");
+        setReplyTo(null);
         shouldAutoScroll.current = true;
         await fetchMessages();
         scrollToBottom();
@@ -128,6 +143,27 @@ export default function LiveChat({
       console.error("Failed to send message:", error);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function toggleReaction(messageId: number, emoji: string) {
+    if (!isLoggedIn) return;
+    try {
+      const res = await fetch(`/api/chat/${messageId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { reactions: ChatReaction[] };
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === messageId ? { ...message, reactions: data.reactions } : message
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to toggle reaction:", error);
     }
   }
 
@@ -245,7 +281,50 @@ export default function LiveChat({
                         : "bg-[var(--bubble)] text-[var(--text-secondary)]"
                     }`}
                   >
+                    {msg.replyTo && (
+                      <span className="mb-1.5 block border-l-4 border-[var(--mc-green-dark)] bg-black/20 px-2 py-1 text-[0.62rem] leading-snug text-[var(--text-muted)]">
+                        <span className="font-semibold text-[var(--mc-green-light)]">
+                          {msg.replyTo.nickname}
+                        </span>{" "}
+                        {msg.replyTo.message}
+                      </span>
+                    )}
                     {msg.message}
+                  </div>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    {QUICK_REACTIONS.map((emoji) => {
+                      const reaction = msg.reactions.find((item) => item.emoji === emoji);
+                      return (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => void toggleReaction(msg.id, emoji)}
+                          disabled={!isLoggedIn}
+                          aria-label={`Реакция ${emoji}`}
+                          aria-pressed={reaction?.mine ?? false}
+                          className={`flex items-center gap-1 border-2 px-1 py-0.5 text-[0.62rem] leading-none transition-colors disabled:cursor-default disabled:opacity-50 ${
+                            reaction?.mine
+                              ? "border-[var(--mc-green-light)] bg-[rgba(125,187,82,0.18)] text-[var(--mc-green-light)]"
+                              : "border-black bg-[var(--bg)] text-[var(--text-muted)] hover:bg-[var(--hover)]"
+                          }`}
+                        >
+                          <span>{emoji}</span>
+                          {reaction && reaction.count > 0 && (
+                            <span className="font-mono">{reaction.count}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {isLoggedIn && (
+                      <button
+                        type="button"
+                        onClick={() => setReplyTo(msg)}
+                        className="border-2 border-transparent px-1 py-0.5 text-[0.62rem] uppercase tracking-[0.06em] text-[var(--text-muted)] hover:border-black hover:bg-[var(--hover)] hover:text-[var(--text)]"
+                      >
+                        ↩ ответ
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -256,24 +335,44 @@ export default function LiveChat({
 
       <div className="border-t-2 border-black bg-[var(--card-alt)] p-3">
         {isLoggedIn ? (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Написать сообщение…"
-              maxLength={500}
-              className="mc-input flex-1"
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || sending}
-              className="mc-btn mc-btn-primary shrink-0"
-            >
-              {sending ? "…" : "Отправить"}
-            </button>
-          </div>
+          <>
+            {replyTo && (
+              <div className="mb-2 flex items-start gap-2 border-2 border-black bg-[var(--bg)] px-2 py-1.5 text-[0.65rem]">
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-[var(--mc-green-light)]">
+                    Ответ {replyTo.nickname}
+                  </span>
+                  <span className="block truncate text-[var(--text-muted)]">{replyTo.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyTo(null)}
+                  className="shrink-0 px-1 text-[var(--text-muted)] hover:text-[var(--mc-red)]"
+                  aria-label="Отменить ответ"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Написать сообщение…"
+                maxLength={500}
+                className="mc-input flex-1"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || sending}
+                className="mc-btn mc-btn-primary shrink-0"
+              >
+                {sending ? "…" : "Отправить"}
+              </button>
+            </div>
+          </>
         ) : (
           <div className="text-sm text-[var(--text-secondary)]">
             Чтобы писать сообщения,{" "}

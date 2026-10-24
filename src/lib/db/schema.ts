@@ -305,10 +305,34 @@ export const chatLogs = sqliteTable("chat_logs", {
    * а не всем (см. мод chatbridge). NULL — сообщение для всех.
    */
   target: text("target"),
+  /** На какое сообщение это ответ (NULL — обычное сообщение). */
+  replyToId: integer("reply_to_id"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/** Реакции на сообщения чата: один игрок — одна реакция каждого вида. */
+export const chatReactions = sqliteTable(
+  "chat_reactions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    messageId: integer("message_id")
+      .notNull()
+      .references(() => chatLogs.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    emoji: text("emoji").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    uniqueReaction: uniqueIndex("uq_chat_reactions").on(t.messageId, t.userId, t.emoji),
+    message: index("idx_chat_reactions_message").on(t.messageId),
+  })
+);
 
 /**
  * Достижения игроков (Minecraft advancements 1.12+). Присылает мод на сервере

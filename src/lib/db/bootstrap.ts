@@ -159,8 +159,19 @@ export const bootstrapSql = `
     message TEXT NOT NULL,
     source TEXT NOT NULL DEFAULT 'website',
     target TEXT,
+    reply_to_id INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
+
+  CREATE TABLE IF NOT EXISTS chat_reactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id INTEGER NOT NULL REFERENCES chat_logs(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    emoji TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS uq_chat_reactions ON chat_reactions(message_id, user_id, emoji);
+  CREATE INDEX IF NOT EXISTS idx_chat_reactions_message ON chat_reactions(message_id);
 
   CREATE TABLE IF NOT EXISTS players_online (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -450,6 +461,12 @@ export async function initDatabase() {
   try {
     // legacy: chat bridge source column
     await client.execute(`ALTER TABLE chat_logs ADD COLUMN source TEXT NOT NULL DEFAULT 'website'`);
+  } catch (e) {
+    // column already exists
+  }
+  try {
+    // legacy: ответы на сообщения в чате
+    await client.execute(`ALTER TABLE chat_logs ADD COLUMN reply_to_id INTEGER`);
   } catch (e) {
     // column already exists
   }
