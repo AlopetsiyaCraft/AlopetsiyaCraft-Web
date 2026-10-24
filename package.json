@@ -16,7 +16,8 @@
     "discord-bot": "tsx scripts/discord-bot.ts",
     "predev": "npm run db:init",
     "prebuild": "npm run db:init",
-    "prestart": "npm run db:init"
+    "prestart": "npm run db:init",
+    "tunnel": "bash scripts/tunnel.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

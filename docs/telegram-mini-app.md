@@ -60,12 +60,20 @@ ngrok покажет адрес вида `https://xxxx.ngrok-free.app`. Откр
 ### Cloudflare Tunnel (без аккаунта)
 
 ```bash
-brew install cloudflared
-cloudflared tunnel --url http://localhost:3000
+npm run tunnel
 ```
 
-В логе появится `https://xxxx.trycloudflare.com`. Это временный адрес:
-после перезапуска туннеля он меняется.
+Скрипт сам запустит `cloudflared`, дождётся публичного адреса и напишет его
+в терминал крупно, а также сохранит в `/tmp/alopetsiya-tunnel-url.txt`.
+Адрес вида `https://xxxx.trycloudflare.com`.
+
+Если `cloudflared` не установлен:
+
+```bash
+brew install cloudflared
+```
+
+После перезапуска туннеля адрес меняется.
 
 ### Подключение к Telegram
 
