@@ -373,6 +373,57 @@ export const bootstrapSql = `
   );
   CREATE INDEX IF NOT EXISTS idx_page_views_path_created ON page_views(path, created_at);
   CREATE INDEX IF NOT EXISTS idx_page_views_session_path ON page_views(session_id, path, created_at);
+
+  CREATE TABLE IF NOT EXISTS market_listings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    seller_id INTEGER NOT NULL REFERENCES users(id),
+    seller_nickname TEXT NOT NULL,
+    item_key TEXT NOT NULL,
+    title TEXT NOT NULL,
+    material TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT '',
+    item_data TEXT NOT NULL DEFAULT '{}',
+    price_bld INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    buyer_id INTEGER,
+    buyer_nickname TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    sold_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_market_listings_status_key ON market_listings(status, item_key);
+  CREATE INDEX IF NOT EXISTS idx_market_listings_seller ON market_listings(seller_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS market_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    nickname TEXT NOT NULL,
+    item_key TEXT NOT NULL,
+    title TEXT NOT NULL,
+    material TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT '',
+    price_bld INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    filled_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_market_orders_status_key ON market_orders(status, item_key);
+  CREATE INDEX IF NOT EXISTS idx_market_orders_user ON market_orders(user_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS market_sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_key TEXT NOT NULL,
+    title TEXT NOT NULL,
+    material TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT '',
+    price_bld INTEGER NOT NULL,
+    fee_bld INTEGER NOT NULL DEFAULT 0,
+    seller_id INTEGER NOT NULL,
+    seller_nickname TEXT NOT NULL,
+    buyer_id INTEGER NOT NULL,
+    buyer_nickname TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_market_sales_key_created ON market_sales(item_key, created_at);
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */

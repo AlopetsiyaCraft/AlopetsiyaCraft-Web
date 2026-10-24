@@ -22,6 +22,7 @@ interface User {
 const NAV = [
   { href: "/stats", label: "Статистика" },
   { href: "/gallery", label: "Галерея" },
+  { href: "/market", label: "Маркет" },
   { href: "/shop", label: "Магазин" },
 ];
 

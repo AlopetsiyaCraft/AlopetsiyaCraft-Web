@@ -355,6 +355,94 @@ export const pageViews = sqliteTable("page_views", {
     .$defaultFn(() => new Date()),
 });
 
+/**
+ * Маркетплейс: активные лоты игроков. Предмет списывается из последнего
+ * снимка инвентаря (эскроу), а покупателю создаётся заказ на выдачу в игре.
+ */
+export const marketListings = sqliteTable(
+  "market_listings",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    sellerId: integer("seller_id")
+      .notNull()
+      .references(() => users.id),
+    sellerNickname: text("seller_nickname").notNull(),
+    /** Идентификатор предмета, например minecraft:diamond_sword. */
+    itemKey: text("item_key").notNull(),
+    title: text("title").notNull(),
+    material: text("material").notNull(),
+    icon: text("icon").notNull().default(""),
+    /** Снимок стека из инвентаря (JSON). */
+    itemData: text("item_data").notNull().default("{}"),
+    priceBld: integer("price_bld").notNull(),
+    status: text("status", { enum: ["active", "sold", "cancelled"] })
+      .notNull()
+      .default("active"),
+    buyerId: integer("buyer_id"),
+    buyerNickname: text("buyer_nickname"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    soldAt: integer("sold_at", { mode: "timestamp" }),
+  },
+  (t) => ({
+    statusKey: index("idx_market_listings_status_key").on(t.status, t.itemKey),
+    seller: index("idx_market_listings_seller").on(t.sellerId, t.createdAt),
+  })
+);
+
+/** Заявки на покупку: BLD резервируются до исполнения или отмены. */
+export const marketOrders = sqliteTable(
+  "market_orders",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    nickname: text("nickname").notNull(),
+    itemKey: text("item_key").notNull(),
+    title: text("title").notNull(),
+    material: text("material").notNull(),
+    icon: text("icon").notNull().default(""),
+    priceBld: integer("price_bld").notNull(),
+    status: text("status", { enum: ["active", "filled", "cancelled"] })
+      .notNull()
+      .default("active"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    filledAt: integer("filled_at", { mode: "timestamp" }),
+  },
+  (t) => ({
+    statusKey: index("idx_market_orders_status_key").on(t.status, t.itemKey),
+    user: index("idx_market_orders_user").on(t.userId, t.createdAt),
+  })
+);
+
+/** История продаж для графиков цены и «последних сделок». */
+export const marketSales = sqliteTable(
+  "market_sales",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    itemKey: text("item_key").notNull(),
+    title: text("title").notNull(),
+    material: text("material").notNull(),
+    icon: text("icon").notNull().default(""),
+    priceBld: integer("price_bld").notNull(),
+    feeBld: integer("fee_bld").notNull().default(0),
+    sellerId: integer("seller_id").notNull(),
+    sellerNickname: text("seller_nickname").notNull(),
+    buyerId: integer("buyer_id").notNull(),
+    buyerNickname: text("buyer_nickname").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    keyCreated: index("idx_market_sales_key_created").on(t.itemKey, t.createdAt),
+  })
+);
+
 export const usersRelations = relations(users, ({ many }) => ({  screenshots: many(screenshots),
   comments: many(comments),
   audioTracks: many(audioTracks),
