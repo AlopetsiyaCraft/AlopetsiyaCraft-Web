@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { playerStats, seasons, users } from "@/lib/db/schema";
+import { playerStats, seasons, users, achievements } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Header from "@/components/Header";
 import PlayerHead from "@/components/mc/PlayerHead";
@@ -23,6 +23,12 @@ import {
  */
 
 const MEDALS = ["#f2c94c", "#c9c9c9", "#c98b4b"];
+
+const ACHIEVEMENT_COLORS: Record<string, string> = {
+  task: "var(--mc-green-light)",
+  goal: "var(--mc-gold)",
+  challenge: "#a855f7",
+};
 
 /** Крупная цифра метрики для активной категории. */
 function metricValue(key: string, values: Map<string, number>) {
@@ -122,6 +128,19 @@ export default async function StatsPage({
       : PLAY_TIME_KEY;
 
   const { rows } = await getLeaderboard(sortKey);
+  const recentAchievements = await db
+    .select({
+      id: achievements.id,
+      nickname: achievements.nickname,
+      title: achievements.title,
+      description: achievements.description,
+      frame: achievements.frame,
+      createdAt: achievements.createdAt,
+    })
+    .from(achievements)
+    .orderBy(desc(achievements.createdAt))
+    .limit(8)
+    .all();
   const viewerNickname = viewer?.name?.toLowerCase() ?? null;
   const activeCategory = getStatCategory(sortKey);
 
@@ -242,6 +261,50 @@ export default async function StatsPage({
 
             {compareA && compareB && (
               <StatsCompare rows={rows} a={compareA} b={compareB} sortKey={sortKey} />
+            )}
+
+            {recentAchievements.length > 0 && (
+              <section className="mc-panel overflow-hidden">
+                <div className="mc-head">
+                  <span className="min-w-0 flex-1 truncate">Последние достижения</span>
+                  <span className="mc-chip text-[0.58rem] text-[var(--text-muted)]">
+                    {recentAchievements.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-px bg-black/40 sm:grid-cols-2">
+                  {recentAchievements.map((achievement) => (
+                    <div key={achievement.id} className="flex gap-2 bg-[var(--card)] p-2.5">
+                      <span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black text-sm"
+                        style={{
+                          color:
+                            ACHIEVEMENT_COLORS[achievement.frame] ??
+                            "var(--mc-green-light)",
+                        }}
+                        aria-hidden
+                      >
+                        ★
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-xs font-semibold">
+                          {achievement.title}
+                        </div>
+                        <Link
+                          href={`/profile/${encodeURIComponent(achievement.nickname)}`}
+                          className="text-[0.6rem] text-[var(--mc-green-light)] hover:underline"
+                        >
+                          {achievement.nickname}
+                        </Link>
+                        {achievement.description && (
+                          <p className="line-clamp-1 text-[0.58rem] text-[var(--text-muted)]">
+                            {achievement.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             )}
 
             {/* Полный список */}
