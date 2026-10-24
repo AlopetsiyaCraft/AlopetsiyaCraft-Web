@@ -435,6 +435,18 @@ export const bootstrapSql = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   );
   CREATE INDEX IF NOT EXISTS idx_market_sales_key_created ON market_sales(item_key, created_at);
+
+  CREATE TABLE IF NOT EXISTS admin_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id INTEGER NOT NULL,
+    admin_nickname TEXT NOT NULL,
+    action TEXT NOT NULL,
+    target_type TEXT,
+    target_id TEXT,
+    details TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+  CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit(created_at);
 `;
 
 /** Creates the schema if missing (+ legacy ALTERs). Run at db:init / seed / prestart. */

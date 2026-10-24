@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getAdminUser } from "@/lib/admin";
+import { logAdminAction } from "@/lib/adminAudit";
 import { db } from "@/lib/db";
 import { seasons } from "@/lib/db/schema";
 
@@ -59,6 +60,13 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(seasons.id, id))
         .run();
+      await logAdminAction({
+        admin,
+        action: "season.update",
+        targetType: "season",
+        targetId: id,
+        details: `Сезон ${number}: ${name}${isActive ? " (активный)" : ""}`,
+      });
       return NextResponse.json({ message: "Сезон сохранён", id });
     }
 
@@ -72,7 +80,15 @@ export async function POST(request: NextRequest) {
         isActive,
       })
       .run();
-    return NextResponse.json({ message: "Сезон создан", id: Number(inserted.lastInsertRowid) });
+    const newId = Number(inserted.lastInsertRowid);
+    await logAdminAction({
+      admin,
+      action: "season.create",
+      targetType: "season",
+      targetId: newId,
+      details: `Сезон ${number}: ${name}`,
+    });
+    return NextResponse.json({ message: "Сезон создан", id: newId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message.includes("UNIQUE")) {

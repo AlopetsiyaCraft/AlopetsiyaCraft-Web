@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getAdminUser } from "@/lib/admin";
+import { logAdminAction } from "@/lib/adminAudit";
 import { db } from "@/lib/db";
 import { shopProducts } from "@/lib/db/schema";
 
@@ -15,6 +16,8 @@ const KINDS = [
   "chips",
   "frame",
   "profile_bg",
+  "case",
+  "name_change",
 ] as const;
 
 function normalizePayload(value: unknown): string | null {
@@ -101,7 +104,15 @@ export async function POST(request: NextRequest) {
         maxPerUser,
       })
       .run();
-    return NextResponse.json({ id: Number(inserted.lastInsertRowid) });
+    const newId = Number(inserted.lastInsertRowid);
+    await logAdminAction({
+      admin,
+      action: "shop.product.create",
+      targetType: "shop_product",
+      targetId: newId,
+      details: `${title} (${slug}) · ${priceBld} BLD · ${kind}`,
+    });
+    return NextResponse.json({ id: newId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message.includes("UNIQUE")) {
@@ -167,5 +178,12 @@ export async function PATCH(request: NextRequest) {
   if (result.rowsAffected === 0) {
     return NextResponse.json({ error: "Товар не найден" }, { status: 404 });
   }
+  await logAdminAction({
+    admin,
+    action: "shop.product.update",
+    targetType: "shop_product",
+    targetId: id,
+    details: Object.keys(updates).join(", "),
+  });
   return NextResponse.json({ message: "OK" });
 }

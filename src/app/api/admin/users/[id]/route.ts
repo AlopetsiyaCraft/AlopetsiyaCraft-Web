@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { count, eq } from "drizzle-orm";
 import { getAdminUser } from "@/lib/admin";
+import { logAdminAction } from "@/lib/adminAudit";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
@@ -64,5 +65,12 @@ export async function PATCH(
   }
 
   await db.update(users).set(updates).where(eq(users.id, targetId)).run();
+  await logAdminAction({
+    admin,
+    action: "user.role",
+    targetType: "user",
+    targetId,
+    details: `${target.nickname}: ${target.role} → ${updates.role}`,
+  });
   return NextResponse.json({ message: "OK" });
 }

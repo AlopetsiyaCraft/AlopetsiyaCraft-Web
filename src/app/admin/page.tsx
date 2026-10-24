@@ -84,6 +84,30 @@ export default async function AdminPage() {
             text="Просмотры разделов и мёртвые страницы."
           />
           <AdminLink
+            href="/admin/economy"
+            icon="💰"
+            title="Экономика"
+            text="Массовые начисления BLD и фишек, оборот валют."
+          />
+          <AdminLink
+            href="/admin/broadcast"
+            icon="📢"
+            title="Рассылка"
+            text="Объявление всем игрокам: сайт, чат и Discord."
+          />
+          <AdminLink
+            href="/admin/audit"
+            icon="📜"
+            title="Аудит"
+            text="История действий администратора."
+          />
+          <AdminLink
+            href="/admin/content"
+            icon="✏️"
+            title="Контент"
+            text="Подписи и видимость фото, текст записей стены."
+          />
+          <AdminLink
             href="/admin/seasons"
             icon="🗓"
             title="Сезоны"

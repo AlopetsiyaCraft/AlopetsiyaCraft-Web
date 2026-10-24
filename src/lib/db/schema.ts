@@ -467,6 +467,29 @@ export const marketSales = sqliteTable(
   })
 );
 
+/**
+ * Журнал действий администратора: кто, что и когда менял.
+ * Нужен, чтобы не терять историю правок экономики, сезонов и магазина.
+ */
+export const adminAudit = sqliteTable(
+  "admin_audit",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    adminId: integer("admin_id").notNull(),
+    adminNickname: text("admin_nickname").notNull(),
+    action: text("action").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    details: text("details"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    created: index("idx_admin_audit_created").on(t.createdAt),
+  })
+);
+
 export const usersRelations = relations(users, ({ many }) => ({  screenshots: many(screenshots),
   comments: many(comments),
   audioTracks: many(audioTracks),

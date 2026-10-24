@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq, sql } from "drizzle-orm";
 import { getAdminUser } from "@/lib/admin";
+import { logAdminAction } from "@/lib/adminAudit";
 import { db } from "@/lib/db";
 import { shopOrders, users, walletLedger } from "@/lib/db/schema";
 import { createNotification } from "@/lib/notifications";
@@ -100,6 +101,14 @@ export async function POST(request: NextRequest) {
         ? "Товар уже в игре — проверь инвентарь или косметику."
         : `${order.priceBld} BLD вернулись на баланс.`,
     link: action === "deliver" ? "/shop" : "/wallet",
+  });
+
+  await logAdminAction({
+    admin,
+    action: "shop.order.deliver",
+    targetType: "shop_order",
+    targetId: orderId,
+    details: `${order.productTitle}: ${action === "deliver" ? "выдан" : "возврат"}`,
   });
 
   return NextResponse.json({ message: "OK", status: action === "deliver" ? "delivered" : "refunded" });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getAdminUser } from "@/lib/admin";
+import { logAdminAction } from "@/lib/adminAudit";
 import { db } from "@/lib/db";
 import { users, walletLedger } from "@/lib/db/schema";
 import { announceCurrencyChange } from "@/lib/chatAnnounce";
@@ -9,23 +10,14 @@ import { createNotification } from "@/lib/notifications";
 /**
  * POST /api/admin/chips { nickname, amount }
  * Начислить (amount > 0) или списать (amount < 0) казино-фишки игроку.
- * Баланс не уходит ниже 0. Доступно только админам (users.role === "admin").
+ * Баланс не уходит ниже 0. Доступно только администратору.
  *
  * О выдаче пишем в чат — так же, как для болдов.
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
-    }
-
-    const me = await db
-      .select({ role: users.role })
-      .from(users)
-      .where(eq(users.id, parseInt(session.user.id, 10)))
-      .get();
-    if (me?.role !== "admin") {
+    const admin = await getAdminUser();
+    if (!admin) {
       return NextResponse.json({ error: "Нет прав" }, { status: 403 });
     }
 
@@ -61,7 +53,7 @@ export async function POST(request: NextRequest) {
           currency: "chips",
           amount: next - current,
           balanceAfter: next,
-          reason: `Админ: ${session.user.name ?? "admin"}`,
+          reason: `Админ: ${admin.nickname}`,
           refType: "admin",
         })
         .run();
@@ -83,7 +75,15 @@ export async function POST(request: NextRequest) {
       amount: next - current,
       balance: next,
       targetNickname: target.nickname,
-      adminNickname: session.user.name,
+      adminNickname: admin.nickname,
+    });
+
+    await logAdminAction({
+      admin,
+      action: "currency.chips",
+      targetType: "user",
+      targetId: target.id,
+      details: `${target.nickname}: ${next - current >= 0 ? "+" : ""}${next - current} фишек → ${next}`,
     });
 
     return NextResponse.json({ nickname, amount, chips: next });
