@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import HeadViewer from "@/components/HeadViewer";
 import NameHistoryBadge from "@/components/NameHistoryBadge";
 import ProfileTabs from "@/components/ProfileTabs";
+import ProfileHeaderGate from "@/components/ProfileHeaderGate";
 import {
   SOCIAL_KEYS,
   SOCIAL_LABELS,
@@ -103,6 +104,7 @@ export default async function ProfileLayout({
       />
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8">
+        <ProfileHeaderGate baseHref={`/profile/${encodeURIComponent(target.nickname)}`}>
         <div className="mc-panel overflow-hidden">
           {/* Пиксельный баннер */}
           <div
@@ -191,6 +193,7 @@ export default async function ProfileLayout({
             </div>
           </div>
         </div>
+        </ProfileHeaderGate>
 
         <ProfileTabs baseHref={`/profile/${encodeURIComponent(target.nickname)}`} />
 
