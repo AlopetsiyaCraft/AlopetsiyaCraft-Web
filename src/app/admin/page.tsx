@@ -108,6 +108,12 @@ export default async function AdminPage() {
             text="Подписи и видимость фото, текст записей стены."
           />
           <AdminLink
+            href="/admin/system"
+            icon="🧠"
+            title="Система"
+            text="База, память, очередь и healthcheck."
+          />
+          <AdminLink
             href="/admin/seasons"
             icon="🗓"
             title="Сезоны"
